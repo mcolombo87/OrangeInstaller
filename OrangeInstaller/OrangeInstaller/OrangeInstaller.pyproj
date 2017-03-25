@@ -22,6 +22,15 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="systemTools.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="dataConnection.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="svnControl.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Installer.py">
       <SubType>Code</SubType>
     </Compile>
