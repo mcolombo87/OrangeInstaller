@@ -5,8 +5,8 @@ class svnControl(object):
     """SVN controller. Interface with svnclient."""
 
     svnRemoteClient = 'svn://svn.openorange.com/'
-    svnUserName = 'mcolombo'
-    svnPassword = 'maxi0108'
+    svnUserName = 'username'
+    svnPassword = 'password'
 
     def __init__ (self, **kwargs):
         pass
