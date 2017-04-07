@@ -4,24 +4,29 @@ import subprocess
 class svnControl(object):
     """SVN controller. Interface with svnclient."""
 
-    svnRemoteClient = 'svn://svn.openorange.com/'
-    svnUserName = 'mcolombo'
-    svnPassword = 'maxi0108'
+    svnRemoteClient = 'svn://svn.openorange.com'
+    svnUserName = 'username'#modify
+    svnPassword = 'password'#modify
 
     def __init__ (self, **kwargs):
         pass
 
     '''Des'''
-    def checkout (self, revision = 0, svnPath = '/customizations/aerocargas', path=''):
+    #svnPath = '/customizations/aerocargas', path=''
+    def checkout (self, moduleNamePath, revision, svnPath):
         svnclientPath = os.path.abspath("svnclient/svn.exe")
-        svnclientPath = svnPath.replace("\\", "/")
-        print(svnPath)
-        installPath='c:/test/test2'
-        construction = (svnclientPath+' checkout'+' --username '+self.svnUserName+' --password ' +self.svnPassword+' '+self.svnRemoteClient+svnPath+
-                        ' '+installPath)
-        print (construction)
+        svnclientPath.replace("\\", "/")
+        installPath='c:/test' #Change later
+        installRoute = installPath
+        if (moduleNamePath):
+            moduleNamePath.replace("\\", "/")
+            installRoute += '/'+moduleNamePath
+            print (installRoute)
+        construction = (svnclientPath+' checkout'+' -r '+ revision+' --username '+self.svnUserName+' --password ' +self.svnPassword+' '+self.svnRemoteClient+svnPath+
+                        ' '+installRoute)
+        # print (construction) #Delete Later
         moduleInstall = subprocess.Popen(construction, stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-        print(moduleInstall.stdout.read())
+        #print(moduleInstall.stdout.read()) #Delete Later
 
     '''Des'''
     def logon (self):
