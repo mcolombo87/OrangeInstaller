@@ -1,13 +1,14 @@
 import pymysql
 from pymysql import cursors
+from Functions import functions
 
 class dataConnection(object):
     """Management and data flow with program and DBMS"""
 
-    dbEnigne = 'MySQL'
+    dbEnigne = 'mysql'
     basename = 'orangeinstaller'
     host = 'localhost'
-    port = 3106
+    port = 3306
     username = 'root'
     password = 'root' #modify
     connector = None
@@ -20,21 +21,23 @@ class dataConnection(object):
     def testConnection(self):
         test = self.stablishConnection()
         if (test):
+            functions.logging.debug('Connection to DB: OK')
             return True
         else:
-            self.connector.close()
+            functions.logging.debug('Fail to connect with DB')
             return False
             
 
     '''Des'''
     def stablishConnection(self):
         try:
-            self.connector = pymysql.connect(host='127.0.0.1', 
-                                    port=3306, 
-                                    user='root', 
-                                    passwd='1234',
-                                    db='mysql')
+            self.connector = pymysql.connect(host=self.host, 
+                                    port=self.port, 
+                                    user=self.username, 
+                                    passwd=self.password,
+                                    db=self.dbEnigne)
         except:
+            functions.logging.debug('Error when try connect to database')
             print ('Error when try connect to database')
             return False
         else:
@@ -42,27 +45,34 @@ class dataConnection(object):
 
     '''Des'''
     def getData(self, table, id, columns):
-        self.stablishConnection()
-        columnsBuild = ''
-        for a in range(len(columns)):
-            columnsBuild += columns[a]
-        #print (columnsBuild) Delete Later
-        sql = "SELECT {} FROM {}.{} WHERE idcompany={}".format(columnsBuild, self.basename, table,id)
-        cursor = self.connector.cursor()
-        cursor.execute(sql)
-        data = []
-        for a in cursor.fetchall():
-            data.append(a)
-        return data
+        try:
+            self.stablishConnection()
+            columnsBuild = ''
+            for a in range(len(columns)):
+                columnsBuild += columns[a]
+            #print (columnsBuild) Delete Later
+            sql = "SELECT {} FROM {}.{} WHERE idcompany={}".format(columnsBuild, self.basename, table,id)
+            cursor = self.connector.cursor()
+            cursor.execute(sql)
+            data = []
+            for a in cursor.fetchall():
+                data.append(a)
+            return data
+        except:
+            functions.logging.debug('Query ERROR')
+            functions.exitProgram(1)
 
     '''Des'''
     def getDataSearch(self, table, field, key):
-        #Query here!
-        self.stablishConnection()
-        sql = "SELECT idcompany, name, skin FROM {}.{} WHERE {} LIKE '%{}%'".format(self.basename, table, field, key)
-        cursor = self.connector.cursor()
-        cursor.execute(sql)
-        data = []
-        for a in cursor.fetchall():
-            data.append(a)
-        return data
+        try:
+            self.stablishConnection()
+            sql = "SELECT idcompany, name, skin FROM {}.{} WHERE {} LIKE '%{}%'".format(self.basename, table, field, key)
+            cursor = self.connector.cursor()
+            cursor.execute(sql)
+            data = []
+            for a in cursor.fetchall():
+                data.append(a)
+            return data
+        except:
+            functions.logging.debug('Query ERROR')
+            functions.exitProgram(1)

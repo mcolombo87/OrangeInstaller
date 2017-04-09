@@ -1,5 +1,6 @@
 import sys, os
 import subprocess
+from Functions import functions
 
 class svnControl(object):
     """SVN controller. Interface with svnclient."""
@@ -12,7 +13,6 @@ class svnControl(object):
         pass
 
     '''Des'''
-    #svnPath = '/customizations/aerocargas', path=''
     def checkout (self, moduleNamePath, revision, svnPath):
         svnclientPath = os.path.abspath("svnclient/svn.exe")
         svnclientPath.replace("\\", "/")
@@ -24,9 +24,11 @@ class svnControl(object):
             print (installRoute)
         construction = (svnclientPath+' checkout'+' -r '+ revision+' --username '+self.svnUserName+' --password ' +self.svnPassword+' '+self.svnRemoteClient+svnPath+
                         ' '+installRoute)
-        print (construction) #Delete Later
+        #print (construction) #Delete Later
+        functions.logging.debug('Send to SVN: {}'.format(construction)) #ONLY FOR PRE-RELEASE VERSION, DELETE LATER (PRINT USERNAME AND PASS FOR SVN)
         moduleInstall = subprocess.Popen(construction, stdout=subprocess.PIPE,stderr=subprocess.PIPE)
         #print(moduleInstall.stdout.read()) #For catch output from process, use later for log.
+        functions.logging.debug('CheckOut Report: {}'.format(moduleInstall.stdout.read()))
 
     '''Des'''
     def logon (self):

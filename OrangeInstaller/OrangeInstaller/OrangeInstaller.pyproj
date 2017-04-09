@@ -22,6 +22,12 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Functions\functions.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Functions\__init__.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="systemTools.py">
       <SubType>Code</SubType>
     </Compile>
@@ -35,6 +41,9 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="OrangeInstaller.py" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Functions\" />
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
