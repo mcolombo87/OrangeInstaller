@@ -22,8 +22,9 @@ class dataConnection(object):
         if (test):
             return True
         else:
-            return False
             self.connector.close()
+            return False
+            
 
     '''Des'''
     def stablishConnection(self):
@@ -45,7 +46,7 @@ class dataConnection(object):
         columnsBuild = ''
         for a in range(len(columns)):
             columnsBuild += columns[a]
-        print (columnsBuild)
+        #print (columnsBuild) Delete Later
         sql = "SELECT {} FROM {}.{} WHERE idcompany={}".format(columnsBuild, self.basename, table,id)
         cursor = self.connector.cursor()
         cursor.execute(sql)
@@ -58,7 +59,7 @@ class dataConnection(object):
     def getDataSearch(self, table, field, key):
         #Query here!
         self.stablishConnection()
-        sql = "SELECT idcompany, name, skin FROM {}.{} WHERE {} LIKE {}".format(self.basename, table, field, key)
+        sql = "SELECT idcompany, name, skin FROM {}.{} WHERE {} LIKE '%{}%'".format(self.basename, table, field, key)
         cursor = self.connector.cursor()
         cursor.execute(sql)
         data = []

@@ -4,7 +4,7 @@ import subprocess
 class svnControl(object):
     """SVN controller. Interface with svnclient."""
 
-    svnRemoteClient = 'svn://svn.openorange.com'
+    svnRemoteClient = 'svn://svn.openorange.com/'
     svnUserName = 'username'#modify
     svnPassword = 'password'#modify
 
@@ -24,9 +24,9 @@ class svnControl(object):
             print (installRoute)
         construction = (svnclientPath+' checkout'+' -r '+ revision+' --username '+self.svnUserName+' --password ' +self.svnPassword+' '+self.svnRemoteClient+svnPath+
                         ' '+installRoute)
-        # print (construction) #Delete Later
+        print (construction) #Delete Later
         moduleInstall = subprocess.Popen(construction, stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-        #print(moduleInstall.stdout.read()) #Delete Later
+        #print(moduleInstall.stdout.read()) #For catch output from process, use later for log.
 
     '''Des'''
     def logon (self):
