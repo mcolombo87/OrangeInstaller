@@ -1,4 +1,5 @@
 import logging
+import configparser
 
 '''reasonId = 0 : Normally end.
    reasonId = 1 : End by ERROR.
@@ -21,3 +22,9 @@ def exitProgram(reasonId):
 '''Des'''
 def createInstallationLog():
     installLog = logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%d/%m/%Y %I:%M:%S %p',filename='Install.log',level=logging.DEBUG)
+
+'''Des'''
+def readConfigFile(section, value):
+    config = configparser.ConfigParser()
+    config.read('conf.cfg')
+    return config[section][value]

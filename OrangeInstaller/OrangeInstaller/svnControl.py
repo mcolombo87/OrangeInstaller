@@ -6,14 +6,15 @@ class svnControl(object):
     """SVN controller. Interface with svnclient."""
 
     svnRemoteClient = 'svn://svn.openorange.com/'
-    svnUserName = 'username'#modify
-    svnPassword = 'password'#modify
+    svnUserName = 'username'
+    svnPassword ='password'
 
     def __init__ (self, **kwargs):
         pass
 
     '''Des'''
     def checkout (self, moduleNamePath, revision, svnPath):
+        self.logon()
         svnclientPath = os.path.abspath("svnclient/svn.exe")
         svnclientPath.replace("\\", "/")
         installPath='c:/test' #Change later
@@ -32,5 +33,6 @@ class svnControl(object):
 
     '''Des'''
     def logon (self):
-        pass
+        self.svnUserName = input('SVN Username: ')
+        self.svnPassword = input('SVN password: ')
 

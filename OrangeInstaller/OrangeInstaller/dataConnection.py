@@ -5,17 +5,15 @@ from Functions import functions
 class dataConnection(object):
     """Management and data flow with program and DBMS"""
 
-    dbEnigne = 'mysql'
-    basename = 'orangeinstaller'
-    host = 'localhost'
-    port = 3306
-    username = 'root'
-    password = 'root' #modify
     connector = None
   
     def __init__(self, **kwargs):
-        #self.stablishConnection()
-        pass
+        self.dbEnigne = functions.readConfigFile('database','dbEnigne')
+        self.basename = functions.readConfigFile('database','basename')
+        self.host = functions.readConfigFile('database','host')
+        self.port = int(functions.readConfigFile('database','port'))
+        self.username = functions.readConfigFile('database','username')
+        self.password = functions.readConfigFile('database','password')
 
     '''Des'''
     def testConnection(self):
