@@ -1,5 +1,6 @@
 import sys, os
 import subprocess
+import getpass
 from Functions import functions
 
 class svnControl(object):
@@ -13,15 +14,13 @@ class svnControl(object):
         pass
 
     '''Des'''
-    def checkout (self, moduleNamePath, revision, svnPath):
+    def checkout (self, moduleNamePath, revision, svnPath, installRoute):
         self.logon()
         svnclientPath = os.path.abspath("svnclient/svn.exe")
         svnclientPath.replace("\\", "/")
-        installPath='c:/test' #Change later
-        installRoute = installPath
         if (moduleNamePath):
             moduleNamePath.replace("\\", "/")
-            installRoute += '/'+moduleNamePath
+            installRoute += '\\'+moduleNamePath
             print (installRoute)
         construction = (svnclientPath+' checkout'+' -r '+ revision+' --username '+self.svnUserName+' --password ' +self.svnPassword+' '+self.svnRemoteClient+svnPath+
                         ' '+installRoute)
@@ -34,5 +33,5 @@ class svnControl(object):
     '''Des'''
     def logon (self):
         self.svnUserName = input('SVN Username: ')
-        self.svnPassword = input('SVN password: ')
+        self.svnPassword = getpass.getpass('SVN password: ')
 

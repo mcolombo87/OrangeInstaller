@@ -1,16 +1,18 @@
 import dataConnection, svnControl
-from Functions import functions
+from Functions import functions, systemTools
 
 class Installer(object):
     """This class is main, from here all be initialized. First object created and the last in destroy.
     His primitives are focus in concentrated and management each cycle on the installation"""
    
     modulesInfo = None
+    installPath = None
 
     def __init__(self, **kwargs):
-        self.installPath = self.__setDefaultPath()
+        self.__setDefaultPath()
         self.dataConnect = dataConnection.dataConnection()
         self.svn = svnControl.svnControl()
+        print(self.installPath)
 
     def setInstallPath (self, path):
         self.installPath = path
@@ -35,14 +37,19 @@ class Installer(object):
             print ('Installing: '+moduleToInstall[0])
             functions.logging.debug('Installing: '.format(moduleToInstall[0]))
             moduleName = moduleToInstall[0]
-            if moduleName == 'repo': #THIS SENTENCE IS ONLY FOR TESTING INSTALL WITHOUT INSTALLING ALL. CHANGE LATER
+            if (moduleName == 'repo' or moduleName == 'Develop'): #THIS SENTENCE IS ONLY FOR TESTING INSTALL WITHOUT INSTALLING ALL. CHANGE LATER
                 moduleName = None
-            else:
-                self.svn.checkout(moduleName, str(moduleToInstall[2]), moduleToInstall[4])
+            self.svn.checkout(moduleName, str(moduleToInstall[2]), moduleToInstall[4],self.installPath)
 
     '''Des'''
     def __setDefaultPath(self):
-        self.installPath = 'C:\OrangeInstaller\Test'
+        systemInfo = systemTools.systemInfo()
+        currentSystem = systemInfo[0]
+        print (currentSystem)
+        if (currentSystem == 'Windows'):
+            self.setInstallPath('C:\OpenOrange')
+        if (currentSystem == 'Linux'):
+            self.setInstallPath('user/home/OpenOrange')
 
     '''Des'''
     def setCompanyModules(self, companyId): 

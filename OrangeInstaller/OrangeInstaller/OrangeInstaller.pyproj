@@ -28,7 +28,7 @@
     <Compile Include="Functions\__init__.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="systemTools.py">
+    <Compile Include="Functions\systemTools.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="dataConnection.py">

@@ -1,9 +1,11 @@
 import logging
 import configparser
 
-'''reasonId = 0 : Normally end.
-   reasonId = 1 : End by ERROR.
-   reasonId = 2 : Terminated by User.'''
+'''
+reasonId = 0 : Normally end.
+reasonId = 1 : End by ERROR.
+reasonId = 2 : Terminated by User.
+'''
 def exitProgram(reasonId):
         #reasonId = 0 : Normally end.
         #reasonId = 1 : End by ERROR.
