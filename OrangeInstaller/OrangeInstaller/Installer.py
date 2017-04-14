@@ -1,5 +1,6 @@
 import dataConnection, svnControl
 from Functions import functions, systemTools
+from os import path
 
 class Installer(object):
     """This class is main, from here all be initialized. First object created and the last in destroy.
@@ -7,12 +8,11 @@ class Installer(object):
    
     modulesInfo = None
     installPath = None
+    svn = None
 
     def __init__(self, **kwargs):
         self.__setDefaultPath()
         self.dataConnect = dataConnection.dataConnection()
-        self.svn = svnControl.svnControl()
-        print(self.installPath)
 
     def setInstallPath (self, path):
         self.installPath = path
@@ -32,24 +32,28 @@ class Installer(object):
 
     '''Des'''
     def startInstall(self):
+        self.svn = svnControl.svnControl()
         for a in range(len(self.modulesInfo)):
             moduleToInstall = self.modulesInfo[a]
-            print ('Installing: '+moduleToInstall[0])
-            functions.logging.debug('Installing: '.format(moduleToInstall[0]))
             moduleName = moduleToInstall[0]
-            if (moduleName == 'repo' or moduleName == 'Develop'): #THIS SENTENCE IS ONLY FOR TESTING INSTALL WITHOUT INSTALLING ALL. CHANGE LATER
-                moduleName = None
+            print ('Installing: '+moduleName)
+            functions.logging.debug('Installing: {}'.format(moduleName))
+            if (moduleName == 'repo' or moduleName == 'DevelopAr'): #THIS SENTENCE IS ONLY FOR TESTING INSTALL WITHOUT INSTALLING ALL. CHANGE LATER
+                moduleName = ''
             self.svn.checkout(moduleName, str(moduleToInstall[2]), moduleToInstall[4],self.installPath)
+        extraDirPath = self.installPath+'\\extra'
+        if (path.isdir(extraDirPath)): #Create __init__.py if exist extra folder and the file is not there
+            if(not path.exists(extraDirPath+'\\__init__.py')):
+                open(extraDirPath+'\\__init__.py', 'x')
 
     '''Des'''
     def __setDefaultPath(self):
         systemInfo = systemTools.systemInfo()
         currentSystem = systemInfo[0]
-        print (currentSystem)
         if (currentSystem == 'Windows'):
-            self.setInstallPath('C:\OpenOrange')
+            self.setInstallPath('C:\\OpenOrange')
         if (currentSystem == 'Linux'):
-            self.setInstallPath('user/home/OpenOrange')
+            self.setInstallPath('~/OpenOrange')
 
     '''Des'''
     def setCompanyModules(self, companyId): 

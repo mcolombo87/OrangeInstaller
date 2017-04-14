@@ -1,33 +1,38 @@
 import sys, os
 import subprocess
 import getpass
-from Functions import functions
+from Functions import functions, systemTools
 
 class svnControl(object):
     """SVN controller. Interface with svnclient."""
 
-    svnRemoteClient = 'svn://svn.openorange.com/'
+    svnRemoteClient = 'svn://svn.openorange.com/' #by default
     svnUserName = 'username'
     svnPassword ='password'
 
     def __init__ (self, **kwargs):
-        pass
+        self.logon()
 
     '''Des'''
     def checkout (self, moduleNamePath, revision, svnPath, installRoute):
-        self.logon()
-        svnclientPath = os.path.abspath("svnclient/svn.exe")
-        svnclientPath.replace("\\", "/")
+        currentSystem = systemTools.systemInfo()
+        currentSystem = currentSystem[0] #Take first position >> OS Name
+        if (currentSystem == 'Windows'):
+            svnclientPath = os.path.abspath("svnclient/svn.exe")
+            svnclientPath.replace("\\", "/")
+        if (currentSystem == 'Linux'):
+            svnclientPath = 'svn'
+        if (currentSystem != 'Windows' and currentSystem != 'Linux'):
+            functions.logging.debug('Error: System not recognized >> {}'.format(currentSystem))
+            functions.exitProgram(1) #End with Err
         if (moduleNamePath):
-            moduleNamePath.replace("\\", "/")
             installRoute += '\\'+moduleNamePath
-            print (installRoute)
+            moduleNamePath.replace("\\", "/")
+
         construction = (svnclientPath+' checkout'+' -r '+ revision+' --username '+self.svnUserName+' --password ' +self.svnPassword+' '+self.svnRemoteClient+svnPath+
                         ' '+installRoute)
-        #print (construction) #Delete Later
         functions.logging.debug('Send to SVN: {}'.format(construction)) #ONLY FOR PRE-RELEASE VERSION, DELETE LATER (PRINT USERNAME AND PASS FOR SVN)
-        moduleInstall = subprocess.Popen(construction, stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-        #print(moduleInstall.stdout.read()) #For catch output from process, use later for log.
+        moduleInstall = subprocess.Popen(construction, stdout=subprocess.PIPE,stderr=subprocess.PIPE, shell=True)
         functions.logging.debug('CheckOut Report: {}'.format(moduleInstall.stdout.read()))
 
     '''Des'''
