@@ -27,7 +27,7 @@ class svnControl(object):
             functions.exitProgram(1) #End with Err
         if (moduleNamePath):
             installRoute += '/'+moduleNamePath
-            moduleNamePath.replace("\\", "/")
+            installRoute.replace("\\", "/")
 
         construction = (svnclientPath+' checkout'+' -r '+ revision+' --username '+self.svnUserName+' --password ' +self.svnPassword+' '+self.svnRemoteClient+svnPath+
                         ' '+installRoute)

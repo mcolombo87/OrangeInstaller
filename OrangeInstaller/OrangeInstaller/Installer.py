@@ -1,6 +1,7 @@
 import dataConnection, svnControl
 from Functions import functions, systemTools
 from os import path
+import getpass
 
 class Installer(object):
     """This class is main, from here all be initialized. First object created and the last in destroy.
@@ -12,6 +13,7 @@ class Installer(object):
 
     def __init__(self, **kwargs):
         self.currentSystem = systemTools.systemInfo()
+        self.currentSystem = self.currentSystem[0]
         self.__setDefaultPath()
         self.dataConnect = dataConnection.dataConnection()
 
@@ -42,24 +44,22 @@ class Installer(object):
             if (moduleName == 'repo' or moduleName == 'DevelopAr'): #THIS SENTENCE IS ONLY FOR TESTING INSTALL WITHOUT INSTALLING ALL. CHANGE LATER
                 moduleName = ''
             self.svn.checkout(moduleName, str(moduleToInstall[2]), moduleToInstall[4],self.installPath)
-        self.currentSystem = self.currentSystem[0]
         if (self.currentSystem == 'Windows'):
             extraDirPath = self.installPath+'\\extra'
             if (path.isdir(extraDirPath)): #Create __init__.py if exist extra folder and the file is not there
                 if(not path.exists(extraDirPath+'\\__init__.py')):
                     open(extraDirPath+'\\__init__.py', 'x')
         if (self.currentSystem == 'Linux'):
-            if (path.isdir('OpenOrange/extra')): #Create __init__.py if exist extra folder and the file is not there
-                if(not path.exists('OpenOrange/extra/__init__.py')):#For now, install path for Linux is hardcoded
-                    open('OpenOrange/extra/__init__.py', 'x')
+            if (path.isdir(self.installPath+'/extra')): #Create __init__.py if exist extra folder and the file is not there
+                if(not path.exists(self.installPath+'/extra/__init__.py')):#For now, install path for Linux is hardcoded
+                    open(self.installPath+'/extra/__init__.py', 'x')
 
     '''Des'''
     def __setDefaultPath(self):
-        self.currentSystem = self.currentSystem[0]
-        if (self.currentSystem == 'Windows'):
-            self.setInstallPath('C:\\OpenOrange')
-        if (self.currentSystem == 'Linux'):
-            self.setInstallPath('~/OpenOrange')
+        if(self.currentSystem == 'Windows'):
+            self.setInstallPath(functions.readConfigFile('System','DefaultPath')) #Read directory of installation from cfg
+        if(self.currentSystem == 'Linux'):
+            self.setInstallPath('/home/'+getpass.getuser()+'/'+functions.readConfigFile('System','DefaultPath')) #Ever define folders beyond home/user in cfg file
 
     '''Des'''
     def setCompanyModules(self, companyId): 
