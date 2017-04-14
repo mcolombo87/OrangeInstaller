@@ -11,9 +11,9 @@ class Installer(object):
     svn = None
 
     def __init__(self, **kwargs):
+        self.currentSystem = systemTools.systemInfo()
         self.__setDefaultPath()
         self.dataConnect = dataConnection.dataConnection()
-        self.currentSystem = systemTools.systemInfo()
 
     def setInstallPath (self, path):
         self.installPath = path
