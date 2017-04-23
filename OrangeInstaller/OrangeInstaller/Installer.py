@@ -1,4 +1,4 @@
-import dataConnection, svnControl
+import dataConnection, svnControl, openSettingsMaker
 from Functions import functions, systemTools
 from os import path
 import getpass
@@ -66,5 +66,9 @@ class Installer(object):
         self.modulesInfo = self.dataConnect.getData('modules',companyId,['module, ', 'level, ', 'revision, ', 'svnurl, ', 'path'])
         functions.logging.debug('DB > Get Data: {}'.format(self.modulesInfo))
         # print(modulesInfo) #Test line, delete after
+
+    def settingsMaker (self):
+        openSettingsMaker.openSettingsMaker().createSettings(self.modulesInfo)
+
     
 

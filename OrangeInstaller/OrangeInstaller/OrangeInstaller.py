@@ -53,10 +53,11 @@ def testing():
     #testObject.checkout()
     #print (testObject.getDataSearch('company', 'name', '''%test%'''))
     testObject = Installer.Installer()
-    testObject.createInstallationLog()
+    testObject.initialization(1) #Remember, initialization parameter is companyId
+    testObject.settingsMaker()
     pass
 
 
 '''Start application interface or testing'''
-consoleApplication() #Interface Console
-#testing() #Testing
+#consoleApplication() #Interface Console
+testing() #Testing

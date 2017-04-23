@@ -26,9 +26,9 @@ class svnControl(object):
             functions.logging.debug('Error: System not recognized >> {}'.format(currentSystem))
             functions.exitProgram(1) #End with Err
         if (moduleNamePath):
-            installRoute += '/'+moduleNamePath
+            installRoute += '\\'+moduleNamePath
             installRoute.replace("\\", "/")
-
+        print(installRoute)
         construction = (svnclientPath+' checkout'+' -r '+ revision+' --username '+self.svnUserName+' --password ' +self.svnPassword+' '+self.svnRemoteClient+svnPath+
                         ' '+installRoute)
         functions.logging.debug('Send to SVN: {}'.format(construction)) #ONLY FOR PRE-RELEASE VERSION, DELETE LATER (PRINT USERNAME AND PASS FOR SVN)
