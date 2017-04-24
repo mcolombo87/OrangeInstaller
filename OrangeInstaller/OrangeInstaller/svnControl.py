@@ -21,15 +21,18 @@ class svnControl(object):
             svnclientPath = os.path.abspath("svnclient/svn.exe")
             svnclientPath.replace("\\", "/")
             shellActive = False
+            if (moduleNamePath):
+                installRoute += '\\'+moduleNamePath
+                installRoute.replace("\\", "/")
         if (currentSystem == 'Linux'):
             svnclientPath = 'svn'
             shellActive = True
+            if (moduleNamePath):
+                installRoute += '/'+moduleNamePath
+                installRoute.replace("\\", "/")
         if (currentSystem != 'Windows' and currentSystem != 'Linux'):
             functions.logging.debug('Error: System not recognized >> {}'.format(currentSystem))
             functions.exitProgram(1) #End with Err
-        if (moduleNamePath):
-            installRoute += '\\'+moduleNamePath
-            installRoute.replace("\\", "/")
         print(installRoute)
         #CleanUp
         construction = (svnclientPath+ ' --no-auth-cache --non-interactive cleanup '+installRoute)
