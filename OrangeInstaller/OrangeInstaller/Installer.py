@@ -51,8 +51,10 @@ class Installer(object):
                     open(extraDirPath+'\\__init__.py', 'x')
         if (self.currentSystem == 'Linux'):
             if (path.isdir(self.installPath+'/extra')): #Create __init__.py if exist extra folder and the file is not there
-                if(not path.exists(self.installPath+'/extra/__init__.py')):#For now, install path for Linux is hardcoded
+                if(not path.exists(self.installPath+'/extra/__init__.py')):
                     open(self.installPath+'/extra/__init__.py', 'x')
+        print('Creating Settings.xml') #For Console use
+        self.settingsMaker()
 
     '''Des'''
     def __setDefaultPath(self):
@@ -63,12 +65,20 @@ class Installer(object):
 
     '''Des'''
     def setCompanyModules(self, companyId): 
-        self.modulesInfo = self.dataConnect.getData('modules',companyId,['module, ', 'level, ', 'revision, ', 'svnurl, ', 'path'])
+        self.modulesInfo = self.dataConnect.getData('modules',companyId,['module, ', 'level, ', 'revision, ', 'svnurl, ', 'path, ', 'idcompany'])
         functions.logging.debug('DB > Get Data: {}'.format(self.modulesInfo))
         # print(modulesInfo) #Test line, delete after
 
     def settingsMaker (self):
-        openSettingsMaker.openSettingsMaker().createSettings(self.modulesInfo)
+        companyInfo = self.dataConnect.getData('company', self.modulesInfo[0][5], [' * ']) #5 for idcompany in vector
+        settingsPath = self.installPath+'\\settings\\'
+        if (self.currentSystem == 'Linux'):
+            settingsPath.replace("\\", "/")
+        try:
+            outXMLfile = open(settingsPath+'settings.xml','w') #Truncate file if already exist
+        except:
+            outXMLfile = open(settingsPath+'settings.xml','x') #Create new file
+        openSettingsMaker.openSettingsMaker().createSettings(outXMLfile, self.modulesInfo, companyInfo)
 
     
 
