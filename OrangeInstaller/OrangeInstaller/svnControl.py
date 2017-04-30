@@ -41,6 +41,8 @@ class svnControl(object):
         functions.logging.debug('Removing locks: {}'.format(cleanUpReport.stdout.read()))
         cleanUpReport.terminate()
         #Checkout
+        if (revision == 0 or revision == None or revision == '' or revision == 'NULL'):
+            revision = 'HEAD' #Check revision and go to Head if is null, zero, None or empty
         construction = (svnclientPath+' checkout'+' --no-auth-cache --force' +' -r '+ revision+' --username '+self.svnUserName+' --password ' +self.svnPassword+' '+self.svnRemoteClient+svnPath+
                         ' '+installRoute)
         functions.logging.debug('Send to SVN: {}'.format(construction))#ONLY FOR PRE-RELEASE VERSION, DELETE LATER (PRINT USERNAME AND PASS FOR SVN)
