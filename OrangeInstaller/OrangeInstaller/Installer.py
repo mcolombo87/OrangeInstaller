@@ -48,11 +48,11 @@ class Installer(object):
             extraDirPath = self.installPath+'\\extra'
             if (path.isdir(extraDirPath)): #Create __init__.py if exist extra folder and the file is not there
                 if(not path.exists(extraDirPath+'\\__init__.py')):
-                    open(extraDirPath+'\\__init__.py', 'x')
+                    open(extraDirPath+'\\__init__.py', 'w')
         if (self.currentSystem == 'Linux'):
             if (path.isdir(self.installPath+'/extra')): #Create __init__.py if exist extra folder and the file is not there
                 if(not path.exists(self.installPath+'/extra/__init__.py')):
-                    open(self.installPath+'/extra/__init__.py', 'x')
+                    open(self.installPath+'/extra/__init__.py', 'w')
         print('Creating Settings.xml') #For Console use
         self.settingsMaker()
 
@@ -77,7 +77,7 @@ class Installer(object):
         try:
             outXMLfile = open(settingsPath+'settings.xml','w') #Truncate file if already exist
         except:
-            outXMLfile = open(settingsPath+'settings.xml','x') #Create new file
+            print("Can't create Setting.xml") #Create new file
         openSettingsMaker.openSettingsMaker().createSettings(outXMLfile, self.modulesInfo, companyInfo)
 
     

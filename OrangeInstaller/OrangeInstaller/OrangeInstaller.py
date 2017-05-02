@@ -2,6 +2,10 @@ import svnControl
 import dataConnection
 import Installer
 from Functions import functions
+from GUI import window
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk
 
 '''
 Project: OpenInstaller
@@ -18,7 +22,7 @@ def consoleApplication():
     installation = Installer.Installer()
     dataConnect.testConnection()
     while (True):
-        imputTest = input("Search Company: ")
+        imputTest = raw_input("Search Company: ")
         resultOfSearch = dataConnect.getDataSearch('company','name',imputTest)
         if (len(resultOfSearch) == 0):
             print ('Company not Found, try again')
@@ -29,7 +33,7 @@ def consoleApplication():
                     print ("Some result not shown in screen. Choose '666' to search again")
                     break
                 print('{}: {}'.format(i, resultOfSearch[i][1]))
-            rta = int(input("Please, select one: "))
+            rta = int(raw_input("Please, select one: "))
             if (rta != 666):
                 selection = resultOfSearch[rta]
                 break
@@ -38,7 +42,7 @@ def consoleApplication():
             break
     installation.initialization(selection[0]) #'selection[0]' is value companyId from table 'Company'\
     print('Ready to install OpenOrange for {}'.format(selection[1]))
-    rta = input("Are you sure? (Enter to continue, type 'exit' to cancel): ")
+    rta = raw_input("Are you sure? (Enter to continue, type 'exit' to cancel): ")
     if (rta == 'exit'):
         print('CANCEL INSTALLATION BY USER')
         functions.logging.debug('CANCEL INSTALLATION BY USER')
@@ -48,6 +52,16 @@ def consoleApplication():
         installation.startInstall()
         print('Installated in: {}'.format(installation.getInstallPath()))
         functions.logging.debug('Installated in: {}'.format(installation.getInstallPath()))
+
+def userInterface():
+    builder = Gtk.Builder()
+    builder.add_from_file("OrangeInstallerGUI.glade")
+    #win = window.firstWindow()
+    win = builder.get_object("window1")
+    #win.connect("delete-event", Gtk.main_quit)
+    win.show_all()
+    Gtk.main()
+
 def testing():
     #testObject = svnControl.svnControl()
     #testObject.checkout()
@@ -59,5 +73,6 @@ def testing():
 
 
 '''Start application interface or testing'''
-consoleApplication() #Interface Console
+#consoleApplication() # Console Interface
 #testing() #Testing
+userInterface() #Graphic interface
