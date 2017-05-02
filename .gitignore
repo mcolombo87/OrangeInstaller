@@ -88,3 +88,4 @@ ENV/
 # Rope project settings
 .ropeproject
 /OrangeInstaller/OrangeInstaller/VERSION.txt
+/OrangeInstaller/OrangeInstaller/GUI/OrangeInstallerGUI.glade~

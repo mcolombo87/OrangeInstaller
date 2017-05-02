@@ -52,6 +52,6 @@ class svnControl(object):
 
     '''Des'''
     def logon (self):
-        self.svnUserName = input('SVN Username: ')
+        self.svnUserName = raw_input('SVN Username: ')
         self.svnPassword = getpass.getpass('SVN password: ')
 

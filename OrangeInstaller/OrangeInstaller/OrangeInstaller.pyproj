@@ -34,6 +34,12 @@
     <Compile Include="dataConnection.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="GUI\window.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="GUI\__init__.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="openSettingsMaker.py">
       <SubType>Code</SubType>
     </Compile>
@@ -47,6 +53,7 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Functions\" />
+    <Folder Include="GUI\" />
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
