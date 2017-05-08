@@ -2,7 +2,7 @@ import svnControl
 import dataConnection
 import Installer
 from Functions import functions
-from GUI import window
+from GUI import mainGUI
 import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
@@ -54,13 +54,10 @@ def consoleApplication():
         functions.logging.debug('Installated in: {}'.format(installation.getInstallPath()))
 
 def userInterface():
-    builder = Gtk.Builder()
-    builder.add_from_file("OrangeInstallerGUI.glade")
-    #win = window.firstWindow()
-    win = builder.get_object("window1")
-    #win.connect("delete-event", Gtk.main_quit)
-    win.show_all()
-    Gtk.main()
+    functions.createInstallationLog()
+    functions.logging.debug('Program started')
+    mainGUI.mainGUI()
+    
 
 def testing():
     #testObject = svnControl.svnControl()
