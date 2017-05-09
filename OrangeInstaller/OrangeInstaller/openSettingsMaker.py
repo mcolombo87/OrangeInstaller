@@ -56,4 +56,4 @@ class openSettingsMaker(object):
         roughString = xml.tostring(settingsXML, 'utf-8') #From a pretty XML file and not all in same line
         xmlReparsed = xmlDom.parseString(roughString).toprettyxml()
         outXMLfile.write(xmlReparsed)
-        functions.logging.debug('Settings.XML create: '.format(roughString))
+        functions.logging.debug('Settings.XML create'.format(roughString))

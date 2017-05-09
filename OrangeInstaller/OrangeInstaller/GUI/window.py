@@ -9,18 +9,29 @@ class firstWindow(Gtk.Window):
 
     def __init__(self):
         self.dataConnect = dataConnection.dataConnection()
-        self.dataConnect.testConnection()
-        builder = Gtk.Builder()
-        builder.add_from_file("./GUI/OrangeInstallerGUI.glade")
-        handlers = {
+        self.builder = Gtk.Builder()
+        self.builder.add_from_file("./GUI/OrangeInstallerGUI.glade")
+        self.handlers = {
             "delete-event": self.userExit,
             "userExit": self.userExit,
             "nextWindow1": self.nextWindow,
             "searching": self.search,
         }
-        builder.connect_signals(handlers)
-        win = builder.get_object("window1")
-        win.show_all()
+        self.builder.connect_signals(self.handlers)
+        self.win = self.builder.get_object("window1")
+        self.win.show_all()
+        #load objects for working.
+        self.liststore = self.builder.get_object('liststore')
+        self.listview = self.builder.get_object('treeview')
+        self.statusbar = self.builder.get_object('statusbar')
+        #check database Status
+        dbcheck = self.dataConnect.testConnection()
+        if dbcheck:
+            self.communicator('Success connecting to database')
+        else: self.communicator('Fail to connect with database')
+        renderer = Gtk.CellRendererText()
+        column = Gtk.TreeViewColumn("Company", renderer, text=0)
+        self.listview.append_column(column)
 		
     def userExit(self, widget):
         print("Test")
@@ -28,18 +39,25 @@ class firstWindow(Gtk.Window):
 
     def nextWindow(self, widget):
         print("Test2")
+    
+    def communicator(self, message):
+        self.statusbar.push(1,message)
 
     def search(self, widget):
         imputTest = widget.get_text()
-        print(imputTest)
         resultOfSearch = self.dataConnect.getDataSearch('company','name',imputTest)
-
+        #clear treeView
+        self.liststore.clear()
         if (len(resultOfSearch) == 0):
-            print ('Company not Found, try again')
+            self.communicator('Company not Found, try again')
         if (len(resultOfSearch) > 1):
-            print ("Too many result, select one if it's here")
+            self.communicator("Too many result, select one if it's here")
             for i in range(len(resultOfSearch)):
                 if (i > 9):
-                    print ("Some result not shown in screen. Choose '666' to search again")
+                    self.communicator("Some result not shown in screen.")
                     break
-                print('{}: {}'.format(i, resultOfSearch[i][1]))
+                self.liststore.append([resultOfSearch[i][1]])
+        if (len(resultOfSearch) == 1):
+            self.liststore.append([resultOfSearch[0][1]])
+            self.communicator("Company Chosen")
+        
