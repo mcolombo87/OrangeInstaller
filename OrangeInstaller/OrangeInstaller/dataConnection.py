@@ -74,3 +74,6 @@ class dataConnection(object):
         except:
             functions.logging.debug('Query ERROR')
             functions.exitProgram(1)
+
+    def terminated (self):
+        self.connector.close()

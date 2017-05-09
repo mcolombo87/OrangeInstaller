@@ -11,7 +11,8 @@ class svnControl(object):
     svnPassword ='password'
 
     def __init__ (self, **kwargs):
-        self.logon()
+        if (not interface):
+            self.logon()
 
     '''Des'''
     def checkout (self, moduleNamePath, revision, svnPath, installRoute):

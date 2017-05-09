@@ -2,7 +2,7 @@ import svnControl
 import dataConnection
 import Installer
 from Functions import functions
-from GUI import mainGUI
+from GUI import window
 import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
@@ -56,7 +56,8 @@ def consoleApplication():
 def userInterface():
     functions.createInstallationLog()
     functions.logging.debug('Program started')
-    mainGUI.mainGUI()
+    window.userWindow()
+    Gtk.main()
     
 
 def testing():

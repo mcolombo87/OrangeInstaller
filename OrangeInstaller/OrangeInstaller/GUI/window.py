@@ -2,10 +2,13 @@ import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 import dataConnection
+from Functions import functions
 
-class firstWindow(Gtk.Window):
+class userWindow(Gtk.Window):
     """desc"""
     dataConnect = None
+    builder = None
+    companyId = None
 
     def __init__(self):
         self.dataConnect = dataConnection.dataConnection()
@@ -16,6 +19,7 @@ class firstWindow(Gtk.Window):
             "userExit": self.userExit,
             "nextWindow1": self.nextWindow,
             "searching": self.search,
+            "selectRow": self.selectRow,
         }
         self.builder.connect_signals(self.handlers)
         self.win = self.builder.get_object("window1")
@@ -34,10 +38,11 @@ class firstWindow(Gtk.Window):
         self.listview.append_column(column)
 		
     def userExit(self, widget):
-        print("Test")
+        functions.exitProgram(2) #End by user
         exit()
 
     def nextWindow(self, widget):
+        #self.dataConnect.terminated() #for close connection to DB
         print("Test2")
     
     def communicator(self, message):
@@ -60,4 +65,8 @@ class firstWindow(Gtk.Window):
         if (len(resultOfSearch) == 1):
             self.liststore.append([resultOfSearch[0][1]])
             self.communicator("Company Chosen")
+            self.companyId = resultOfSearch[0][0] #[0] for unique row, [0] for Id
+
+    def selectRow(self, widget):
+        print('testtt')
         
