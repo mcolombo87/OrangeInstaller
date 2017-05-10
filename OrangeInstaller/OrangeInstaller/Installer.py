@@ -41,7 +41,7 @@ class Installer(object):
             moduleName = moduleToInstall[0]
             print ('Installing: '+moduleName)
             functions.logging.debug('Installing: {}'.format(moduleName))
-            if (moduleName == 'repo' or moduleName == 'DevelopAr'): #THIS SENTENCE IS ONLY FOR TESTING INSTALL WITHOUT INSTALLING ALL. CHANGE LATER
+            if (moduleName == 'repo' or moduleName == 'DevelopAr'): 
                 moduleName = ''
             self.svn.checkout(moduleName, str(moduleToInstall[2]), moduleToInstall[4],self.installPath)
         if (self.currentSystem == 'Windows'):

@@ -58,6 +58,7 @@ def userInterface():
     functions.logging.debug('Program started')
     window.userWindow()
     Gtk.main()
+    functions.exitProgram(2)
     
 
 def testing():

@@ -1,7 +1,7 @@
 import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
-import dataConnection
+import dataConnection, Installer
 from Functions import functions
 
 class userWindow(Gtk.Window):
@@ -9,30 +9,41 @@ class userWindow(Gtk.Window):
     dataConnect = None
     builder = None
     companyId = None
-
+    companyName = None
+    
     def __init__(self):
         self.dataConnect = dataConnection.dataConnection()
+        self.installation = Installer.Installer()
+
         self.builder = Gtk.Builder()
         self.builder.add_from_file("./GUI/OrangeInstallerGUI.glade")
         self.handlers = {
-            "delete-event": self.userExit,
+            "delete-event": Gtk.main_quit,
             "userExit": self.userExit,
             "nextWindow1": self.nextWindow,
             "searching": self.search,
             "selectRow": self.selectRow,
+            "prevWindow": self.prevWindow,
         }
         self.builder.connect_signals(self.handlers)
-        self.win = self.builder.get_object("window1")
+        self.win = self.builder.get_object('window')
+        self.win1 = self.builder.get_object('window1')
+
+        self.actualWindowPos = 1 #First Windows, this is an index for navigator
         self.win.show_all()
         #load objects for working.
         self.liststore = self.builder.get_object('liststore')
         self.listview = self.builder.get_object('treeview')
         self.statusbar = self.builder.get_object('statusbar')
+        self.statusbar1 = self.builder.get_object('statusbar1')
+        self.selectorList = self.builder.get_object('treeview-selection')
+
         #check database Status
         dbcheck = self.dataConnect.testConnection()
         if dbcheck:
             self.communicator('Success connecting to database')
         else: self.communicator('Fail to connect with database')
+
         renderer = Gtk.CellRendererText()
         column = Gtk.TreeViewColumn("Company", renderer, text=0)
         self.listview.append_column(column)
@@ -42,11 +53,40 @@ class userWindow(Gtk.Window):
         exit()
 
     def nextWindow(self, widget):
-        #self.dataConnect.terminated() #for close connection to DB
-        print("Test2")
+        #check if company was selected
+        if (self.companyId == None and self.companyName != None):
+            resultOfSearch = self.dataConnect.getDataSearch('company','name',self.companyName)
+            self.companyId = resultOfSearch[0][0]
+        if (self.companyId == None and self.companyName == None):
+            self.communicator("First you must choose a Company")
+        else:
+            nextWindowPos = self.actualWindowPos + 1
+            if (self.actualWindowPos == 1):
+                self.win.hide()
+                self.win1.show_all()
+            if (self.actualWindowPos == 2):
+                self.win1.hide()
+                self.win2.show_all()
+            if (self.actualWindowPos == 3):
+                self.win2.hide()
+                self.win3.show_all()
+            self.actualWindowPos = nextWindowPos #is more clearly
+
+    def prevWindow(self, widget):
+        prevWindowPos = self.actualWindowPos - 1
+        if (self.actualWindowPos == 2):
+            self.win1.hide()
+            self.win.show_all()
+        if (self.actualWindowPos == 3):
+            self.win2.hide()
+            self.win.show_all()
+        self.actualWindowPos = prevWindowPos #is more clearly
     
     def communicator(self, message):
-        self.statusbar.push(1,message)
+        if (self.actualWindowPos == 1):
+            self.statusbar.push(1,message)
+        if (self.actualWindowPos == 2):
+            self.statusbar1.push(1,message)
 
     def search(self, widget):
         imputTest = widget.get_text()
@@ -66,7 +106,9 @@ class userWindow(Gtk.Window):
             self.liststore.append([resultOfSearch[0][1]])
             self.communicator("Company Chosen")
             self.companyId = resultOfSearch[0][0] #[0] for unique row, [0] for Id
+            self.companyName = resultOfSearch[0][1]
 
     def selectRow(self, widget):
-        print('testtt')
+        model, colum = widget.get_selected()
+        self.companyName = model[colum][0]
         
