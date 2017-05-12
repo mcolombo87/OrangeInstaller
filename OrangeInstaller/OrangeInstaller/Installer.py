@@ -35,7 +35,8 @@ class Installer(object):
 
     '''Des'''
     def startInstall(self):
-        self.svn = svnControl.svnControl()
+        if (self.svn == None):
+            self.svn = svnControl.svnControl()
         for a in range(len(self.modulesInfo)):
             moduleToInstall = self.modulesInfo[a]
             moduleName = moduleToInstall[0]
@@ -79,6 +80,10 @@ class Installer(object):
         except:
             print("Can't create Setting.xml") #Create new file
         openSettingsMaker.openSettingsMaker().createSettings(outXMLfile, self.modulesInfo, companyInfo)
+    
+    def setSvnControlFromOut(self):
+        kwargs = {"Interface":True}
+        self.svn = svnControl.svnControl(**kwargs)
 
     
 

@@ -11,7 +11,7 @@ class svnControl(object):
     svnPassword ='password'
 
     def __init__ (self, **kwargs):
-        if (not interface):
+        if (not kwargs['Interface']):
             self.logon()
 
     '''Des'''
