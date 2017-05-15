@@ -10,18 +10,26 @@ class Installer(object):
     modulesInfo = None
     installPath = None
     svn = None
+    msgBuffer = 'Test'
 
     def __init__(self, **kwargs):
         self.currentSystem = systemTools.systemInfo()
         self.currentSystem = self.currentSystem[0]
         self.__setDefaultPath()
         self.dataConnect = dataConnection.dataConnection()
+        self.endInstallControl = False
 
     def setInstallPath (self, path):
         self.installPath = path
 
     def getInstallPath (self):
         return self.installPath
+
+    def getMsgBuffer(self):
+        return self.msgBuffer
+    
+    def setMsgBuffer(self, msg):
+        self.msgBuffer = msg
 
     '''Des'''
     def initialization(self, companyId):
@@ -40,22 +48,23 @@ class Installer(object):
         for a in range(len(self.modulesInfo)):
             moduleToInstall = self.modulesInfo[a]
             moduleName = moduleToInstall[0]
-            print ('Installing: '+moduleName)
-            functions.logging.debug('Installing: {}'.format(moduleName))
+            # msg = 'Installing: {}'.format(moduleName)
+            # print (msg)
+            # functions.logging.debug(msg)
+            #self.msgBuffer = msg
             if (moduleName == 'repo' or moduleName == 'DevelopAr'): 
                 moduleName = ''
-            self.svn.checkout(moduleName, str(moduleToInstall[2]), moduleToInstall[4],self.installPath)
-        if (self.currentSystem == 'Windows'):
-            extraDirPath = self.installPath+'\\extra'
-            if (path.isdir(extraDirPath)): #Create __init__.py if exist extra folder and the file is not there
-                if(not path.exists(extraDirPath+'\\__init__.py')):
-                    open(extraDirPath+'\\__init__.py', 'w')
-        if (self.currentSystem == 'Linux'):
-            if (path.isdir(self.installPath+'/extra')): #Create __init__.py if exist extra folder and the file is not there
-                if(not path.exists(self.installPath+'/extra/__init__.py')):
-                    open(self.installPath+'/extra/__init__.py', 'w')
-        print('Creating Settings.xml') #For Console use
-        self.settingsMaker()
+            self.svn.checkout(moduleName, str(moduleToInstall[2]), moduleToInstall[4],self.installPath, self)
+        # msg = 'Creating Settings.xml'
+        # print(msg) #For Console use
+        # self.msgBuffer = msg
+        # self.settingsMaker()
+
+        # msg = 'Installated in: {}'.format(self.installPath)
+        # print(msg)
+        # functions.logging.debug(msg)
+        # self.msgBuffer(msg)
+        # self.endInstallControl = True
 
     '''Des'''
     def __setDefaultPath(self):
@@ -67,9 +76,9 @@ class Installer(object):
     '''Des'''
     def setCompanyModules(self, companyId): 
         self.modulesInfo = self.dataConnect.getData('modules',companyId,['module, ', 'level, ', 'revision, ', 'svnurl, ', 'path, ', 'idcompany'])
-        functions.logging.debug('DB > Get Data: {}'.format(self.modulesInfo))
-        # print(modulesInfo) #Test line, delete after
-
+        msg = 'DB > Get Data: {}'.format(self.modulesInfo)
+        functions.logging.debug(msg)
+        
     def settingsMaker (self):
         companyInfo = self.dataConnect.getData('company', self.modulesInfo[0][5], [' * ']) #5 for idcompany in vector
         settingsPath = self.installPath+'\\settings\\'
@@ -78,12 +87,43 @@ class Installer(object):
         try:
             outXMLfile = open(settingsPath+'settings.xml','w') #Truncate file if already exist
         except:
-            print("Can't create Setting.xml") #Create new file
+            msg = "Can't create Setting.xml"
+            print(msg) #Create new file
+            functions.logging.debug(msg)
+            self.msgBuffer = msg
         openSettingsMaker.openSettingsMaker().createSettings(outXMLfile, self.modulesInfo, companyInfo)
     
     def setSvnControlFromOut(self):
         kwargs = {"Interface":True}
         self.svn = svnControl.svnControl(**kwargs)
+
+    def checkStatus(self):
+        if (self.endInstallControl == True):
+            return True
+        else: return False
+
+    def createInitExtra(self):
+        if (self.currentSystem == 'Windows'):
+            extraDirPath = self.installPath+'\\extra'
+            if (path.isdir(extraDirPath)): #Create __init__.py if exist extra folder and the file is not there
+                if(not path.exists(extraDirPath+'\\__init__.py')):
+                    open(extraDirPath+'\\__init__.py', 'w')
+        if (self.currentSystem == 'Linux'):
+            if (path.isdir(self.installPath+'/extra')): #Create __init__.py if exist extra folder and the file is not there
+                if(not path.exists(self.installPath+'/extra/__init__.py')):
+                    open(self.installPath+'/extra/__init__.py', 'w')
+
+    def makeSetting(self):
+        msg = 'Creating Settings.xml'
+        print(msg) #For Console use
+        self.msgBuffer = msg
+        self.settingsMaker()
+
+        msg = str('Installated in: '+self.installPath)
+        print(msg)
+        functions.logging.debug(msg)
+        self.msgBuffer = msg
+        self.endInstallControl = True
 
     
 

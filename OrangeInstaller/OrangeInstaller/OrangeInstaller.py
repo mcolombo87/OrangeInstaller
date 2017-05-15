@@ -50,8 +50,6 @@ def consoleApplication():
     else:
         functions.logging.debug('Ready to install OpenOrange for {}'.format(selection[1]))
         installation.startInstall()
-        print('Installated in: {}'.format(installation.getInstallPath()))
-        functions.logging.debug('Installated in: {}'.format(installation.getInstallPath()))
 
 def userInterface():
     functions.createInstallationLog()

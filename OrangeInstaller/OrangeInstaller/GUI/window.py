@@ -1,7 +1,7 @@
 import gi
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk
-import dataConnection, Installer
+from gi.repository import Gtk, GObject, GLib
+import dataConnection, Installer, installThread
 from Functions import functions
 
 class userWindow(Gtk.Window):
@@ -39,7 +39,7 @@ class userWindow(Gtk.Window):
         self.liststore = self.builder.get_object('liststore')
         self.listview = self.builder.get_object('treeview')
         self.statusbar = self.builder.get_object('statusbar')
-        self.statusbar1 = self.builder.get_object('statusbar1')
+        self.statusbarInstall = self.builder.get_object('statusbarInstall')
         self.selectorList = self.builder.get_object('treeview-selection')
         self.companyLabel = self.builder.get_object('companyLabel')
         self.installPathLabel = self.builder.get_object('installPathLabel')
@@ -47,6 +47,9 @@ class userWindow(Gtk.Window):
         self.inputSVNUser = self.builder.get_object('inputSVNUser')
         self.inputSVNPassword = self.builder.get_object('inputSVNPassword')
         self.installButton = self.builder.get_object('installButton')
+        self.slidesNote = self.builder.get_object('notebook')
+        self.finishButton = self.builder.get_object('finishButton')
+        self.spinner = self.builder.get_object('spinner1')
 
         #check database Status
         dbcheck = self.dataConnect.testConnection()
@@ -101,8 +104,8 @@ class userWindow(Gtk.Window):
     def communicator(self, message):
         if (self.actualWindowPos == 1):
             self.statusbar.push(1,message)
-        if (self.actualWindowPos == 2):
-            self.statusbar1.push(1,message)
+        if (self.actualWindowPos == 3): #thirt screen
+            self.statusbarInstall.push(1,message)
 
     def search(self, widget):
         imputTest = widget.get_text()
@@ -146,6 +149,27 @@ class userWindow(Gtk.Window):
     def startInstall(self, widget):
         self.nextWindow(widget)
         self.installation.setSvnControlFromOut()
-        #FALTA ENVIAR USUARIO Y CONTRASEÑA DE SVN ACA ANTES DE INSTALLAR
-        if (self.installation.svn):
-            self.installation.startInstall()
+        self.installation.svn.svnUserName = self.inputSVNUser.get_text()
+        self.installation.svn.svnPassword = self.inputSVNPassword.get_text()
+        self.installation.startInstall()
+        self.installStatus()
+        # while (self.installation.checkStatus() == False):
+        #     catchProgress = self.installation.getMsgBuffer()
+        #     self.communicator(catchProgress)
+        #statusThread = installThread.statusThread(self.installation, self.statusbarInstall)
+        #statusThread.start()
+
+    def installStatus(self):
+        timeout = GObject.timeout_add(10000, self.imagesSlides)
+
+    def checkProgress(self): #decrept
+        catchProgress = self.installation.getMsgBuffer()
+        self.communicator(catchProgress)
+    
+    def imagesSlides(self):
+        self.slidesNote.next_page()
+        if(self.installation.checkStatus() == True):
+            self.finishButton.set_opacity(1)
+            self.finishButton.set_sensitive(True)
+            self.spinner.stop()
+        else: self.installStatus()
