@@ -27,6 +27,7 @@ class userWindow(Gtk.Window):
             "changeInstallDirectory": self.changeInstallDirectory,
             "readyToInstall": self.readyToInstall,
             "startInstall": self.startInstall,
+            "userFinish": self.userFinished,
         }
         self.builder.connect_signals(self.handlers)
         self.win = self.builder.get_object('window')
@@ -50,6 +51,7 @@ class userWindow(Gtk.Window):
         self.slidesNote = self.builder.get_object('notebook')
         self.finishButton = self.builder.get_object('finishButton')
         self.spinner = self.builder.get_object('spinner1')
+        self.installLabel = self.builder.get_object('installLabel')
 
         #check database Status
         dbcheck = self.dataConnect.testConnection()
@@ -63,6 +65,10 @@ class userWindow(Gtk.Window):
 		
     def userExit(self, widget):
         functions.exitProgram(2) #End by user
+        exit()
+    
+    def userFinished(self, widget):
+        functions.exitProgram(0) #Installation Finished
         exit()
 
     def nextWindow(self, widget):
@@ -153,23 +159,23 @@ class userWindow(Gtk.Window):
         self.installation.svn.svnPassword = self.inputSVNPassword.get_text()
         self.installation.startInstall()
         self.installStatus()
-        # while (self.installation.checkStatus() == False):
-        #     catchProgress = self.installation.getMsgBuffer()
-        #     self.communicator(catchProgress)
-        #statusThread = installThread.statusThread(self.installation, self.statusbarInstall)
-        #statusThread.start()
+        self.checkProgress()
 
     def installStatus(self):
         timeout = GObject.timeout_add(10000, self.imagesSlides)
 
     def checkProgress(self): #decrept
+        GObject.timeout_add(1000, self.checkProgress)
         catchProgress = self.installation.getMsgBuffer()
         self.communicator(catchProgress)
     
     def imagesSlides(self):
-        self.slidesNote.next_page()
+        if (self.slidesNote.get_current_page() == (self.slidesNote.get_n_pages() - 1) ):
+            self.slidesNote.set_current_page(0)  # back to first
+        else: self.slidesNote.next_page()
         if(self.installation.checkStatus() == True):
             self.finishButton.set_opacity(1)
             self.finishButton.set_sensitive(True)
             self.spinner.stop()
+            self.installLabel.set_text('Installation Finished')
         else: self.installStatus()

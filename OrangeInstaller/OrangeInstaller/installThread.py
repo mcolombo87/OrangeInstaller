@@ -6,7 +6,7 @@ class installThread(threading.Thread):
     construction = None
     shellActive = None
 
-    def __init__(self, const, shellAct, sp, mName, objInstaller, operationID):
+    def __init__(self, const, shellAct, sp, mName, objInstaller):
         threading.Thread.__init__(self)
 
         self.construction = const
@@ -14,12 +14,14 @@ class installThread(threading.Thread):
         self.semaphore = sp
         self.moduleName = mName
         self.objInstaller = objInstaller
-        self.operationID = operationID
         
     def run(self):
+        self.objInstaller.pushCheckoutStacks()
         self.semaphore.acquire()
         if (self.moduleName != 0):
             msg = str('Installing: '+self.moduleName)
+            if (self.moduleName == ''):
+                msg = str('Installing: Base and Standard')
             print (msg)
             functions.logging.debug(msg)
             self.objInstaller.setMsgBuffer(msg)
@@ -27,21 +29,8 @@ class installThread(threading.Thread):
         report = subprocess.Popen(self.construction, stdout=subprocess.PIPE,stderr=subprocess.PIPE, shell=self.shellActive)
         functions.logging.debug('SVN Response: {}'.format(report.stdout.read()))
         report.terminate()
-        if (self.operationID == 1):
-            self.objInstaller.createInitExtra()
-        if (self.operationID == 2):
-            self.objInstaller.makeSetting()
         self.semaphore.release()
-
-class statusThread(threading.Thread):
-
-    def __init__(self, installObjec, communicatorObj):
-        threading.Thread.__init__(self)
-        self.installObject = installObjec
-        self.communicatorObject = communicatorObj
-        
-    def run(self):
-        self.communicatorObject.push(1,"test")
-        while (self.installObject.checkStatus() == False):
-            catchProgress = self.installObject.getMsgBuffer()
-            self.communicatorObject.push(1,"test2")
+        self.objInstaller.popCheckoutStacks()
+        if (self.objInstaller.getCheckoutStacks() == 0):
+            self.objInstaller.createInitExtra()
+            self.objInstaller.makeSetting()

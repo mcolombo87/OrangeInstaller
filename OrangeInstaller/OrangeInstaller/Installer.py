@@ -18,6 +18,7 @@ class Installer(object):
         self.__setDefaultPath()
         self.dataConnect = dataConnection.dataConnection()
         self.endInstallControl = False
+        self.checkoutStacks = 0
 
     def setInstallPath (self, path):
         self.installPath = path
@@ -124,6 +125,16 @@ class Installer(object):
         functions.logging.debug(msg)
         self.msgBuffer = msg
         self.endInstallControl = True
+
+    def pushCheckoutStacks(self):
+        self.checkoutStacks = self.checkoutStacks + 1
+    
+    def popCheckoutStacks(self):
+        self.checkoutStacks = self.checkoutStacks - 1
+
+    def getCheckoutStacks(self):
+        return self.checkoutStacks
+
 
     
 

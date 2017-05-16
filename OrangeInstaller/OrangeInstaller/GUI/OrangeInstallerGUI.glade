@@ -48,7 +48,7 @@
     <property name="default_width">1200</property>
     <property name="default_height">600</property>
     <property name="icon">openorange.ico</property>
-    <signal name="delete-event" handler="delete-event" swapped="no"/>
+    <signal name="delete-event" handler="userExit" swapped="no"/>
     <child>
       <object class="GtkBox" id="box4">
         <property name="visible">True</property>
@@ -428,7 +428,7 @@
     <property name="default_height">600</property>
     <property name="icon">openorange.ico</property>
     <property name="transient_for">window1</property>
-    <signal name="delete-event" handler="delete-event" swapped="no"/>
+    <signal name="delete-event" handler="userExit" swapped="no"/>
     <child>
       <object class="GtkBox" id="box1">
         <property name="visible">True</property>
@@ -683,6 +683,7 @@
     <property name="default_width">1200</property>
     <property name="default_height">600</property>
     <property name="icon">openorange.ico</property>
+    <signal name="delete-event" handler="userExit" swapped="no"/>
     <child>
       <object class="GtkBox" id="box11">
         <property name="visible">True</property>
@@ -756,7 +757,7 @@
             <property name="can_focus">False</property>
             <property name="homogeneous">True</property>
             <child>
-              <object class="GtkLabel" id="label11">
+              <object class="GtkLabel" id="installLabel">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="label" translatable="yes">OpenOrange is being installing now, please wait.</property>
@@ -851,6 +852,50 @@
                     <property name="tab_fill">False</property>
                   </packing>
                 </child>
+                <child>
+                  <object class="GtkImage" id="imgInstall4">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="hexpand">False</property>
+                    <property name="vexpand">False</property>
+                    <property name="pixbuf">OO Slides 4.jpg</property>
+                  </object>
+                  <packing>
+                    <property name="position">3</property>
+                  </packing>
+                </child>
+                <child type="tab">
+                  <object class="GtkLabel" id="label11">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                  </object>
+                  <packing>
+                    <property name="position">3</property>
+                    <property name="tab_fill">False</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkImage" id="imgInstall5">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="hexpand">False</property>
+                    <property name="vexpand">False</property>
+                    <property name="pixbuf">OO Slides 5.jpg</property>
+                  </object>
+                  <packing>
+                    <property name="position">4</property>
+                  </packing>
+                </child>
+                <child type="tab">
+                  <object class="GtkLabel" id="label13">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                  </object>
+                  <packing>
+                    <property name="position">4</property>
+                    <property name="tab_fill">False</property>
+                  </packing>
+                </child>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -859,10 +904,43 @@
               </packing>
             </child>
             <child>
-              <object class="GtkSpinner" id="spinner1">
+              <object class="GtkBox" id="box15">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="active">True</property>
+                <property name="orientation">vertical</property>
+                <child>
+                  <object class="GtkStatusbar" id="statusbarInstall">
+                    <property name="visible">True</property>
+                    <property name="sensitive">False</property>
+                    <property name="can_focus">False</property>
+                    <property name="margin_left">10</property>
+                    <property name="margin_right">10</property>
+                    <property name="margin_start">10</property>
+                    <property name="margin_end">10</property>
+                    <property name="margin_top">6</property>
+                    <property name="margin_bottom">6</property>
+                    <property name="spacing">2</property>
+                    <property name="homogeneous">True</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkSpinner" id="spinner1">
+                    <property name="visible">True</property>
+                    <property name="sensitive">False</property>
+                    <property name="can_focus">False</property>
+                    <property name="active">True</property>
+                  </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
               </object>
               <packing>
                 <property name="expand">True</property>
@@ -908,6 +986,7 @@
                 <property name="margin_top">5</property>
                 <property name="margin_bottom">5</property>
                 <property name="image_position">right</property>
+                <signal name="clicked" handler="userFinish" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">True</property>
