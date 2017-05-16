@@ -10,7 +10,7 @@ class Installer(object):
     modulesInfo = None
     installPath = None
     svn = None
-    msgBuffer = 'Test'
+    msgBuffer = ''
 
     def __init__(self, **kwargs):
         self.currentSystem = systemTools.systemInfo()
