@@ -1,5 +1,6 @@
 import logging
 import configparser
+import sys
 
 '''
 reasonId = 0 : Normally end.
@@ -19,7 +20,7 @@ def exitProgram(reasonId):
         if (reasonId == 2):
             print('Terminated by User')
             logging.debug('Terminated by User')
-        exit()
+        sys.exit()
 
 '''Des'''
 def createInstallationLog():

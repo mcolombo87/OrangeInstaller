@@ -14,6 +14,7 @@ Documentation: https://drive.google.com/drive/folders/0B4CKD2TRMlffOXlyUWVzSFE5Z
 Project Repository: https://github.com/mcolombo87/OrangeInstaller
 '''
 
+#For use in console. Broken in v0.10, to fix in not too long away future (who care this function anyway)
 def consoleApplication():
 
     functions.createInstallationLog()
@@ -51,6 +52,7 @@ def consoleApplication():
         functions.logging.debug('Ready to install OpenOrange for {}'.format(selection[1]))
         installation.startInstall()
 
+#For use with GUI, this is main way to use
 def userInterface():
     functions.createInstallationLog()
     functions.logging.debug('Program started')
@@ -58,7 +60,7 @@ def userInterface():
     Gtk.main()
     functions.exitProgram(2)
     
-
+#Start Testing
 def testing():
     #testObject = svnControl.svnControl()
     #testObject.checkout()

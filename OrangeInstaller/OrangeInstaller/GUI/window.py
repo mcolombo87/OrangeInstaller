@@ -3,9 +3,10 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GObject, GLib
 import dataConnection, Installer, installThread
 from Functions import functions
+import os
 
 class userWindow(Gtk.Window):
-    """desc"""
+    """Graphical User Interface. Use GTK3 and glade."""
     dataConnect = None
     builder = None
     companyId = None
@@ -16,7 +17,9 @@ class userWindow(Gtk.Window):
         self.installation = Installer.Installer() #Instance of Installer class
 
         self.builder = Gtk.Builder()
-        self.builder.add_from_file("./GUI/OrangeInstallerGUI.glade")
+        path = os.path.dirname(os.path.abspath(__file__))
+        gladeFile = path+"\\OrangeInstallerGUI.glade"
+        self.builder.add_from_file(gladeFile)
         self.handlers = {
             "delete-event": Gtk.main_quit,
             "userExit": self.userExit,
@@ -65,11 +68,11 @@ class userWindow(Gtk.Window):
 		
     def userExit(self, widget):
         functions.exitProgram(2) #End by user
-        exit()
+        sys.exit()
     
     def userFinished(self, widget):
         functions.exitProgram(0) #Installation Finished
-        exit()
+        sys.exit()
 
     def nextWindow(self, widget):
         #check if company was selected

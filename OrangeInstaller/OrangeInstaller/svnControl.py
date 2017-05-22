@@ -7,23 +7,31 @@ from Functions import functions, systemTools
 class svnControl(object):
     """SVN controller. Interface with svnclient."""
 
-    svnRemoteClient = 'svn://svn.openorange.com/' #by default
-    svnUserName = 'username'
-    svnPassword ='password'
+    svnRemoteClient = 'svn://svn.openorange.com/' #by default, is the repository of take
+    svnUserName = 'username' #SVN username
+    svnPassword ='password' #SVN password
 
     def __init__ (self, **kwargs):
         if (not kwargs['Interface']):
             self.logon()
-        self.semaphore = threading.BoundedSemaphore(1)
+        self.semaphore = threading.BoundedSemaphore(1) #Semaphore for thread control (used in installThread))
 
-    '''Des'''
+    ''' 
+    DESC= Build svn command and create a process for it execute, first to cleanup later to checkout. Start a new thread for each command.
+    IN= ModuleNamePath: Name to module to install (afip, ar, repo, etc).
+        revision: svn repository revision
+        svnPath: svn route within repository (eg /extra/Develop, /ar.repo)
+        installRoute: destination path
+        objInstaller: Instance of Installer class
+    OUT= None
+    '''   
     def checkout (self, moduleNamePath, revision, svnPath, installRoute,objInstaller):
         currentSystem = systemTools.systemInfo()
         currentSystem = currentSystem[0] #Take first position >> OS Name
         if (currentSystem == 'Windows'):
             svnclientPath = os.path.abspath("svnclient/svn.exe")
             svnclientPath.replace("\\", "/")
-            shellActive = False #CheckLater
+            shellActive = True #CheckLater
             if (moduleNamePath):
                 installRoute += '\\'+moduleNamePath
                 installRoute.replace("\\", "/")
@@ -56,7 +64,11 @@ class svnControl(object):
         #functions.logging.debug('CheckOut Report: {}'.format(moduleInstall.stdout.read()))
         #moduleInstall.terminate()
 
-    '''Des'''
+    ''' 
+    DESC= set credentials for SVN
+    IN= None
+    OUT= None
+    '''   
     def logon (self):
         self.svnUserName = raw_input('SVN Username: ')
         self.svnPassword = getpass.getpass('SVN password: ')
