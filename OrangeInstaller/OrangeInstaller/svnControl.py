@@ -31,7 +31,7 @@ class svnControl(object):
         if (currentSystem == 'Windows'):
             svnclientPath = os.path.abspath("svnclient/svn.exe")
             svnclientPath.replace("\\", "/")
-            shellActive = True #CheckLater
+            shellActive = False #CheckLater
             if (moduleNamePath):
                 installRoute += '\\'+moduleNamePath
                 installRoute.replace("\\", "/")

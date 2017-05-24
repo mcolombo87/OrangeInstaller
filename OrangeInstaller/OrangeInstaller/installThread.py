@@ -26,9 +26,10 @@ class installThread(threading.Thread):
             functions.logging.debug(msg)
             self.objInstaller.setMsgBuffer(msg)
         functions.logging.debug('Send to SVN: {}'.format(self.construction)) 
-        report = subprocess.Popen(self.construction, stdout=subprocess.PIPE,stderr=subprocess.PIPE, shell=self.shellActive)
-        functions.logging.debug('SVN Response: {}'.format(report.stdout.read()))
-        report.terminate()
+        logSVNFileErr = open("svnErr.log", "a")
+        report = subprocess.call(self.construction, stdout=logSVNFileOut, stderr=logSVNFileErr)
+        functions.logging.debug('SVN Response: {}'.format("Process finished, check svn out for info"))
+        logSVNFileOut.close()
         self.semaphore.release()
         self.objInstaller.popCheckoutStacks()
         if (self.objInstaller.getCheckoutStacks() == 0):
