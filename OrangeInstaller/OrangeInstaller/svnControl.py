@@ -15,6 +15,8 @@ class svnControl(object):
         if (not kwargs['Interface']):
             self.logon()
         self.semaphore = threading.BoundedSemaphore(1) #Semaphore for thread control (used in installThread))
+        self.logSVNFileErr = open("svnErr.log", "w")
+        self.logSVNFileOut = open("svnOut.log", "w")
 
     ''' 
     DESC= Build svn command and create a process for it execute, first to cleanup later to checkout. Start a new thread for each command.
@@ -31,13 +33,13 @@ class svnControl(object):
         if (currentSystem == 'Windows'):
             svnclientPath = os.path.abspath("svnclient/svn.exe")
             svnclientPath.replace("\\", "/")
-            shellActive = True #CheckLater
+            #shellActive = False #CheckLater
             if (moduleNamePath):
                 installRoute += '\\'+moduleNamePath
                 installRoute.replace("\\", "/")
         if (currentSystem == 'Linux'):
             svnclientPath = 'svn'
-            shellActive = True
+            #shellActive = True
             if (moduleNamePath):
                 installRoute += '/'+moduleNamePath
                 installRoute.replace("\\", "/")
@@ -45,10 +47,11 @@ class svnControl(object):
             functions.logging.debug('Error: System not recognized >> {}'.format(currentSystem))
             functions.exitProgram(1) #End with Err
         print('Route of install: {}'.format(installRoute))
+        logFiles = (self.logSVNFileOut, self.logSVNFileErr)
         #CleanUp
         construction = (svnclientPath+ ' --no-auth-cache --non-interactive cleanup '+installRoute)
 
-        thread = installThread.installThread(construction, shellActive, self.semaphore, 0, objInstaller)
+        thread = installThread.installThread(construction, logFiles, self.semaphore, 0, objInstaller)
         thread.start()
 
         if (revision == 0 or revision == None or revision == '' or revision == 'NULL'):
@@ -56,13 +59,8 @@ class svnControl(object):
         construction = (svnclientPath+' checkout'+' --no-auth-cache --force' +' -r '+ revision+' --username '+self.svnUserName+' --password ' +self.svnPassword+' '+self.svnRemoteClient+svnPath+
                         ' '+installRoute)
         
-        thread = installThread.installThread(construction, shellActive, self.semaphore, moduleNamePath, objInstaller)
+        thread = installThread.installThread(construction, logFiles, self.semaphore, moduleNamePath, objInstaller)
         thread.start()
-
-        #functions.logging.debug('Send to SVN: {}'.format(construction))#ONLY FOR PRE-RELEASE VERSION, DELETE LATER (PRINT USERNAME AND PASS FOR SVN)
-        #moduleInstall = subprocess.Popen(construction, stdout=subprocess.PIPE,stderr=subprocess.PIPE, shell=shellActive)
-        #functions.logging.debug('CheckOut Report: {}'.format(moduleInstall.stdout.read()))
-        #moduleInstall.terminate()
 
     ''' 
     DESC= set credentials for SVN
@@ -72,4 +70,5 @@ class svnControl(object):
     def logon (self):
         self.svnUserName = raw_input('SVN Username: ')
         self.svnPassword = getpass.getpass('SVN password: ')
+
 

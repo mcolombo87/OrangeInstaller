@@ -4,16 +4,19 @@ from Functions import functions
 
 class installThread(threading.Thread):
     construction = None
-    shellActive = None
+    logFiles = None
 
-    def __init__(self, const, shellAct, sp, mName, objInstaller):
+    def __init__(self, const, logFiles, sp, mName, objInstaller):
         threading.Thread.__init__(self)
 
         self.construction = const
-        self.shellActive = shellAct
+        self.logFiles = logFiles
         self.semaphore = sp
         self.moduleName = mName
         self.objInstaller = objInstaller
+        self.subprocessInfo = subprocess.STARTUPINFO()
+        self.subprocessInfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+
         
     def run(self):
         self.objInstaller.pushCheckoutStacks()
@@ -26,9 +29,8 @@ class installThread(threading.Thread):
             functions.logging.debug(msg)
             self.objInstaller.setMsgBuffer(msg)
         functions.logging.debug('Send to SVN: {}'.format(self.construction)) 
-        report = subprocess.Popen(self.construction, stdout=subprocess.PIPE,stderr=subprocess.PIPE, shell=self.shellActive)
-        functions.logging.debug('SVN Response: {}'.format(report.stdout.read()))
-        report.terminate()
+        report = subprocess.call(self.construction, stdout=self.logFiles[0], stderr=self.logFiles[1], startupinfo=self.subprocessInfo)
+        functions.logging.debug('SVN Response: {}'.format("Process finished, check svn out for info"))
         self.semaphore.release()
         self.objInstaller.popCheckoutStacks()
         if (self.objInstaller.getCheckoutStacks() == 0):
