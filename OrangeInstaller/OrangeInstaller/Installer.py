@@ -90,15 +90,15 @@ class Installer(object):
         companyInfo = self.dataConnect.getData('company', self.modulesInfo[0][5], [' * ']) #5 for idcompany in vector
         settingsPath = self.installPath+'\\settings\\'
         if (self.currentSystem == 'Linux'):
-            settingsPath.replace("\\", "/")
+            settingsPath = self.installPath+'/settings/'
         try:
             outXMLfile = open(settingsPath+'settings.xml','w') #Truncate file if already exist
+            openSettingsMaker.openSettingsMaker().createSettings(outXMLfile, self.modulesInfo, companyInfo)
         except:
             msg = "Can't create Setting.xml"
             print(msg) #Create new file
             functions.logging.debug(msg)
             self.msgBuffer = msg
-        openSettingsMaker.openSettingsMaker().createSettings(outXMLfile, self.modulesInfo, companyInfo)
     
     ''' 
     DESC= GUI use this function for instancing svnControl and passing an signal for avoid call SVN logon (method of svnControl). 
@@ -164,6 +164,9 @@ class Installer(object):
 
     def getCheckoutStacks(self):
         return self.checkoutStacks
+
+    def getCurrentSystem(self):
+        return self.currentSystem
 
 
     
