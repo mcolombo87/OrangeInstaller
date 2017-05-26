@@ -31,10 +31,10 @@ class installThread(threading.Thread):
             self.objInstaller.setMsgBuffer(msg)
         functions.logging.debug('Send to SVN: {}'.format(self.construction))
         print(self.construction)
-        
+
         if (self.objInstaller.getCurrentSystem() == 'Linux'):
             report = subprocess.call(self.construction, stdout=self.logFiles[0], stderr=self.logFiles[1], shell=True)
-	    else:
+        else:
             report = subprocess.call(self.construction, stdout=self.logFiles[0], stderr=self.logFiles[1], startupinfo=self.subprocessInfo)
 
         functions.logging.debug('SVN Response: {}'.format("Process finished, check svn out for info"))
