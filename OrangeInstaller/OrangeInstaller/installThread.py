@@ -14,8 +14,9 @@ class installThread(threading.Thread):
         self.semaphore = sp
         self.moduleName = mName
         self.objInstaller = objInstaller
-        self.subprocessInfo = subprocess.STARTUPINFO()
-        self.subprocessInfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        if (self.objInstaller.getCurrentSystem() != 'Linux'):
+            self.subprocessInfo = subprocess.STARTUPINFO()
+            self.subprocessInfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
 
         
     def run(self):
@@ -28,8 +29,14 @@ class installThread(threading.Thread):
             print (msg)
             functions.logging.debug(msg)
             self.objInstaller.setMsgBuffer(msg)
-        functions.logging.debug('Send to SVN: {}'.format(self.construction)) 
-        report = subprocess.call(self.construction, stdout=self.logFiles[0], stderr=self.logFiles[1], startupinfo=self.subprocessInfo)
+        functions.logging.debug('Send to SVN: {}'.format(self.construction))
+        print(self.construction)
+        
+        if (self.objInstaller.getCurrentSystem() == 'Linux'):
+            report = subprocess.call(self.construction, stdout=self.logFiles[0], stderr=self.logFiles[1], shell=True)
+	    else:
+            report = subprocess.call(self.construction, stdout=self.logFiles[0], stderr=self.logFiles[1], startupinfo=self.subprocessInfo)
+
         functions.logging.debug('SVN Response: {}'.format("Process finished, check svn out for info"))
         self.semaphore.release()
         self.objInstaller.popCheckoutStacks()
