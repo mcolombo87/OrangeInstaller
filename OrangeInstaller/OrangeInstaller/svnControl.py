@@ -35,21 +35,22 @@ class svnControl(object):
             svnclientPath.replace("\\", "/")
             #shellActive = False #CheckLater
             if (moduleNamePath):
+                moduleNamePath = moduleNamePath.replace("/","\\")
                 installRoute += '\\'+moduleNamePath
-                installRoute.replace("\\", "/")
+                #installRoute.replace("\\", "/")
         if (currentSystem == 'Linux'):
             svnclientPath = 'svn'
             #shellActive = True
             if (moduleNamePath):
                 installRoute += '/'+moduleNamePath
-                installRoute.replace("\\", "/")
+                #installRoute.replace("\\", "/")
         if (currentSystem != 'Windows' and currentSystem != 'Linux'):
             functions.logging.debug('Error: System not recognized >> {}'.format(currentSystem))
             functions.exitProgram(1) #End with Err
         print('Route of install: {}'.format(installRoute))
         logFiles = (self.logSVNFileOut, self.logSVNFileErr)
         #CleanUp
-        construction = (svnclientPath+ ' --no-auth-cache --non-interactive cleanup '+installRoute)
+        construction = (svnclientPath+ ' --no-auth-cache --non-interactive cleanup '+'"'+installRoute+'"')
 
         thread = installThread.installThread(construction, logFiles, self.semaphore, 0, objInstaller)
         thread.start()
@@ -57,7 +58,7 @@ class svnControl(object):
         if (revision == 0 or revision == None or revision == '' or revision == 'NULL'):
             revision = 'HEAD' #Check revision and go to Head if is null, zero, None or empty
         construction = (svnclientPath+' checkout'+' --no-auth-cache --force' +' -r '+ revision+' --username '+self.svnUserName+' --password ' +self.svnPassword+' '+self.svnRemoteClient+svnPath+
-                        ' '+installRoute)
+                        ' '+'"'+installRoute+'"')
         
         thread = installThread.installThread(construction, logFiles, self.semaphore, moduleNamePath, objInstaller)
         thread.start()

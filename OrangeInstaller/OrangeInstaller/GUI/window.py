@@ -145,6 +145,7 @@ class userWindow(Gtk.Window):
     def changeInstallDirectory(self, widget):
         newPath = self.folderChooser.get_uri().split('file:///')
         newPath = newPath[1] #Discard first split
+        newPath = newPath.replace("%20", " ") #Fix spaces
         self.installation.setInstallPath(newPath)
         self.installPathLabel.set_text(self.installation.getInstallPath())
 
