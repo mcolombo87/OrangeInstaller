@@ -73,7 +73,7 @@ class userWindow(Gtk.Window):
     def userExit(self, widget):
         functions.exitProgram(2) #End by user
         sys.exit()
-    
+
     """User press Finish button"""
     def userFinished(self, widget):
         functions.exitProgram(0) #Installation Finished
