@@ -8,6 +8,7 @@ class dataConnection(object):
     connector = None
   
     def __init__(self, **kwargs):
+        #All this data is taken from conf.cfg file. It's for stablish conection with DB
         self.dbEnigne = functions.readConfigFile('database','dbEnigne')
         self.basename = functions.readConfigFile('database','basename')
         self.host = functions.readConfigFile('database','host')
@@ -15,7 +16,11 @@ class dataConnection(object):
         self.username = functions.readConfigFile('database','username')
         self.password = functions.readConfigFile('database','password')
 
-    '''Des'''
+    ''' 
+    DESC= Test DB Server connection
+    IN= None
+    OUT= Return True if the connection was successful, or false if wasn't
+    '''
     def testConnection(self):
         test = self.stablishConnection()
         if (test):
@@ -26,7 +31,11 @@ class dataConnection(object):
             return False
             
 
-    '''Des'''
+    ''' 
+    DESC= Stablish connection with the database.
+    IN= None
+    OUT= Return True if the connection was successful, or false if something's happened and connection fail
+    '''
     def stablishConnection(self):
         try:
             self.connector = pymysql.connect(host=self.host, 
@@ -41,7 +50,13 @@ class dataConnection(object):
         else:
             return True
 
-    '''Des'''
+    """
+    DESC= Read data from DB. This method was built too generic so required indicate table, key and columns (to show).
+        Any error end the execution of the program.
+    IN= Table: Table on DB where search data. Id: primary key. Columns: vector that contains columns from select statement.
+        This vector must be of the form ["Column1 ,", "Column2"], take specially atention of separator ',' on each columns except in the last.
+    OUT= Return a list of all data which match of select statement (data)
+    """
     def getData(self, table, id, columns):
         try:
             self.stablishConnection()
@@ -60,7 +75,15 @@ class dataConnection(object):
             functions.logging.debug('Query ERROR')
             functions.exitProgram(1)
 
-    '''Des'''
+    ''' 
+    DESC= Read data from DB. The difference with getData is that this don't send a primary key, work like a searcher of ...
+        ...data inside of specific field on "company" table.
+        Any error end the execution of the program.
+    IN= Table: Table on DB where search data. Field: columns where data is stored. Key: Word to search.
+    OUT= Return a list of all data which match of select statement (data)
+    '''
+    #ADVERTENCY: getDataSearch is NOT for use in any table because (for error) select statement take specific fields
+    #***This will be patched in future and will work as getData()***
     def getDataSearch(self, table, field, key):
         try:
             self.stablishConnection()
@@ -75,5 +98,10 @@ class dataConnection(object):
             functions.logging.debug('Query ERROR')
             functions.exitProgram(1)
 
+    ''' 
+    DESC= End connection with database
+    IN= None
+    OUT= None
+    '''
     def terminated (self):
         self.connector.close()

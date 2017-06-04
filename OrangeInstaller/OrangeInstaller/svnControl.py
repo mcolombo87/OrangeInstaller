@@ -12,8 +12,10 @@ class svnControl(object):
     svnPassword ='password' #SVN password
 
     def __init__ (self, **kwargs):
-        if (not kwargs['Interface']):
-            self.logon()
+        if(kwargs):
+            if (not kwargs['Interface']):
+                self.logon()
+        else: self.logon()
         self.semaphore = threading.BoundedSemaphore(1) #Semaphore for thread control (used in installThread))
         self.logSVNFileErr = open("svnErr.log", "w")
         self.logSVNFileOut = open("svnOut.log", "w")
@@ -55,7 +57,7 @@ class svnControl(object):
         thread = installThread.installThread(construction, logFiles, self.semaphore, 0, objInstaller)
         thread.start()
 
-        if (revision == 0 or revision == None or revision == '' or revision == 'NULL'):
+        if (revision == 0 or revision == '0' or revision == None or revision == '' or revision == 'NULL'):
             revision = 'HEAD' #Check revision and go to Head if is null, zero, None or empty
         construction = (svnclientPath+' checkout'+' --no-auth-cache --force' +' -r '+ revision+' --username '+self.svnUserName+' --password ' +self.svnPassword+' '+self.svnRemoteClient+svnPath+
                         ' '+'"'+installRoute+'"')

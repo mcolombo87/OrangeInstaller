@@ -12,6 +12,11 @@ class openSettingsMaker(object):
     def __init__(self, **kwargs):
         pass
 
+    ''' 
+    DESC= Create Settings file from the company modules installed.
+    IN= outXMLfile: opened file for write the xml. modules: each module loaded from DB. companyInfo: Info taken from company table in DB
+    OUT= Nothing return, but write into file (outXMLfile) the settings file.
+    '''
     def createSettings(self, outXMLfile, modules, companyInfo):
         companyInfo = companyInfo[0] #Extract lonely vector from list (this come from getData)
         settingsXML = xml.Element('settings')
