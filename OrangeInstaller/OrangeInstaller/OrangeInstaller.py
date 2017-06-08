@@ -59,7 +59,7 @@ def consoleApplication():
         if (newPath == 'help'):
             msg = 'OS not recognized, help is not available'
             if (installation.getCurrentSystem() == 'Linux'):
-                msg = 'Examples for Linux\n\tThe installation be make always over user/home, then only type the folders up it: ExampleFolder\Open Orange\Company'
+                msg = 'Examples for Linux\n\tThe installation be make always over home/user, then only type the folders up it: home/user/ExampleFolder/Open Orange/Company'
             else:
                 msg = 'Examples for Windows\n\tFull path: C:\ExampleFolder\Orange Installer\Company'
             print(msg)
