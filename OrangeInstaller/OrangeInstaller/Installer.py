@@ -25,7 +25,10 @@ class Installer(object):
                                 #...finished or not is through this. Once this count started, will return to cero when the installation is over.
 
     def setInstallPath (self, path):
-        self.installPath = path
+	if(self.currentSystem == 'Linux'):
+            self.installPath = '/'+path
+	else:
+            self.installPath = path
 
     def getInstallPath (self):
         return self.installPath

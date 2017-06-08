@@ -48,7 +48,7 @@
     <property name="default_width">1200</property>
     <property name="default_height">600</property>
     <property name="icon">openorange.ico</property>
-    <signal name="delete-event" handler="userExit" swapped="no"/>
+    <signal name="delete-event" handler="delete-event" swapped="no"/>
     <child>
       <object class="GtkBox" id="box4">
         <property name="visible">True</property>
@@ -428,7 +428,7 @@
     <property name="default_height">600</property>
     <property name="icon">openorange.ico</property>
     <property name="transient_for">window1</property>
-    <signal name="delete-event" handler="userExit" swapped="no"/>
+    <signal name="delete-event" handler="delete-event" swapped="no"/>
     <child>
       <object class="GtkBox" id="box1">
         <property name="visible">True</property>
@@ -683,7 +683,7 @@
     <property name="default_width">1200</property>
     <property name="default_height">600</property>
     <property name="icon">openorange.ico</property>
-    <signal name="delete-event" handler="userExit" swapped="no"/>
+    <signal name="delete-event" handler="delete-event" swapped="no"/>
     <child>
       <object class="GtkBox" id="box11">
         <property name="visible">True</property>

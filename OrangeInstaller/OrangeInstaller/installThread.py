@@ -2,21 +2,26 @@ import threading
 import subprocess
 from Functions import functions
 
+
 class installThread(threading.Thread):
+    ''' 
+    Class on charge of generated threads for each module to send to svnclient.
+    Encapsulate each connection in a single thread.
+    '''
     construction = None
     logFiles = None
 
     def __init__(self, const, logFiles, sp, mName, objInstaller):
         threading.Thread.__init__(self)
 
-        self.construction = const
-        self.logFiles = logFiles
-        self.semaphore = sp
-        self.moduleName = mName
-        self.objInstaller = objInstaller
+        self.construction = const #Construction of the sentence to send to process, svnControl build it
+        self.logFiles = logFiles #Log files where will saving the process output
+        self.semaphore = sp #Semaphore that controller all threads
+        self.moduleName = mName #module name to install.
+        self.objInstaller = objInstaller #Instance of Installer Class
         if (self.objInstaller.getCurrentSystem() != 'Linux'):
             self.subprocessInfo = subprocess.STARTUPINFO()
-            self.subprocessInfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            self.subprocessInfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW  #For don't show console windows in each process call (in windows)
 
         
     def run(self):
@@ -39,7 +44,7 @@ class installThread(threading.Thread):
 
         functions.logging.debug('SVN Response: {}'.format("Process finished, check svn out for info"))
         self.semaphore.release()
-        self.objInstaller.popCheckoutStacks()
-        if (self.objInstaller.getCheckoutStacks() == 0):
-            self.objInstaller.createInitExtra()
-            self.objInstaller.makeSetting()
+        self.objInstaller.popCheckoutStacks() #pop Stack of threads (if is empty, all checkouts is over)
+        if (self.objInstaller.getCheckoutStacks() == 0): #If all checkouts finished...
+            self.objInstaller.createInitExtra() #...Make __init__.py in extra folder
+            self.objInstaller.makeSetting() #...Make settings.xml
