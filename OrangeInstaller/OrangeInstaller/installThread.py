@@ -2,6 +2,7 @@ import threading
 import subprocess
 from Functions import functions
 
+tr = functions.tr
 
 class installThread(threading.Thread):
     ''' 
@@ -23,14 +24,13 @@ class installThread(threading.Thread):
             self.subprocessInfo = subprocess.STARTUPINFO()
             self.subprocessInfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW  #For don't show console windows in each process call (in windows)
 
-        
     def run(self):
         self.objInstaller.pushCheckoutStacks()
         self.semaphore.acquire()
         if (self.moduleName != 0):
-            msg = str('Installing: '+self.moduleName)
+            msg = str(tr("Installing: ") + self.moduleName)
             if (self.moduleName == ''):
-                msg = str('Installing: Base and Standard')
+                msg = str(tr("Installing: ") + "Base and Standard")
             print (msg)
             functions.logging.debug(msg)
             self.objInstaller.setMsgBuffer(msg)

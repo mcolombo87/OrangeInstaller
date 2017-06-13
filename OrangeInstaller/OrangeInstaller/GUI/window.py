@@ -5,22 +5,24 @@ import dataConnection, Installer, installThread
 from Functions import functions
 import os
 
+tr = functions.tr
+
 class userWindow(Gtk.Window):
     """Graphical User Interface. Use GTK3 and glade."""
     dataConnect = None
     builder = None
     companyId = None
     companyName = None
-    
+
     def __init__(self):
         self.dataConnect = dataConnection.dataConnection()
         self.installation = Installer.Installer() #Instance of Installer class
 
         self.builder = Gtk.Builder()
         path = os.path.dirname(os.path.abspath(__file__))
-        gladeFile = path+"\\OrangeInstallerGUI.glade"
+        gladeFile = path + "\\OrangeInstallerGUI.glade"
         if (self.installation.getCurrentSystem() == 'Linux'):
-            gladeFile = path+"/OrangeInstallerGUI.glade"
+            gladeFile = path + "/OrangeInstallerGUI.glade"
         self.builder.add_from_file(gladeFile)
         self.handlers = {
             "delete-event": Gtk.main_quit,
@@ -61,14 +63,14 @@ class userWindow(Gtk.Window):
         #check database Status
         dbcheck = self.dataConnect.testConnection()
         if dbcheck:
-            self.communicator('Success connecting to database')
-        else: self.communicator('Fail to connect with database')
+            self.communicator(tr("Connection to DB: OK"))
+        else: self.communicator(tr("Fail to connect with DB"))
 
         #List all results for search and show up in screen
         renderer = Gtk.CellRendererText()
         column = Gtk.TreeViewColumn("Company", renderer, text=0)
         self.listview.append_column(column)
-		
+
     """User press exit button"""
     def userExit(self, widget):
         functions.exitProgram(2) #End by user
@@ -83,10 +85,10 @@ class userWindow(Gtk.Window):
     def nextWindow(self, widget):
         #check if company was selected
         if (self.companyId == None and self.companyName != None):
-            resultOfSearch = self.dataConnect.getDataSearch('company','name',self.companyName)
+            resultOfSearch = self.dataConnect.getDataSearch('company', 'name', self.companyName, "*")
             self.companyId = resultOfSearch[0][0]
         if (self.companyId == None and self.companyName == None):
-            self.communicator("First you must choose a Company")
+            self.communicator(tr("First you must choose a Company"))
         else:
             nextWindowPos = self.actualWindowPos + 1
             if (self.actualWindowPos == 1):
@@ -117,32 +119,32 @@ class userWindow(Gtk.Window):
             self.win2.hide()
             self.win.show_all()
         self.actualWindowPos = prevWindowPos #is more clearly
-    
+
     """Take one message and show in screen"""
     def communicator(self, message):
         if (self.actualWindowPos == 1):
-            self.statusbar.push(1,message)
-        if (self.actualWindowPos == 3): #thirt screen
-            self.statusbarInstall.push(1,message)
+            self.statusbar.push(1, message)
+        if (self.actualWindowPos == 3): #third screen
+            self.statusbarInstall.push(1, message)
 
     """Engine of search bar. Through this, one company will be selected"""
     def search(self, widget):
         imputTest = widget.get_text()
-        resultOfSearch = self.dataConnect.getDataSearch('company','name',imputTest)
+        resultOfSearch = self.dataConnect.getDataSearch('company', 'name', imputTest, "*")
         #clear treeView
         self.liststore.clear()
         if (len(resultOfSearch) == 0):
-            self.communicator('Company not Found, try again')
+            self.communicator(tr("Company not Found, try again"))
         if (len(resultOfSearch) > 1):
-            self.communicator("Too many result, select one if it's here")
+            self.communicator(tr("Too many results, choose one from this list"))
             for i in range(len(resultOfSearch)):
                 if (i > 9):
-                    self.communicator("Some result not shown in screen.")
+                    self.communicator(tr("Some result not shown in screen."))
                     break
                 self.liststore.append([resultOfSearch[i][1]])
         if (len(resultOfSearch) == 1):
             self.liststore.append([resultOfSearch[0][1]])
-            self.communicator("Company Chosen")
+            self.communicator(tr("Company Chosen"))
             self.companyId = resultOfSearch[0][0] #[0] for unique row, [0] for Id
             self.companyName = resultOfSearch[0][1]
 

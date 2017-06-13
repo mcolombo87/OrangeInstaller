@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.19.0 -->
+<!-- Generated with glade 3.18.3 -->
 <interface>
   <requires lib="gtk+" version="3.12"/>
   <object class="GtkAdjustment" id="adjustment1">
@@ -60,7 +60,7 @@
           <object class="GtkBox" id="box6">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="halign">start</property>
+            <property name="halign">center</property>
             <property name="margin_left">10</property>
             <property name="margin_right">10</property>
             <property name="margin_top">5</property>
@@ -118,6 +118,7 @@
           <object class="GtkBox" id="box7">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
+            <property name="halign">center</property>
             <property name="margin_left">10</property>
             <property name="margin_right">10</property>
             <property name="homogeneous">True</property>
@@ -155,7 +156,7 @@
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="padding">14</property>
+            <property name="padding">7</property>
             <property name="position">2</property>
           </packing>
         </child>
@@ -170,6 +171,11 @@
               <object class="GtkBox" id="box9">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
+                <property name="halign">center</property>
+                <property name="margin_left">6</property>
+                <property name="margin_right">1</property>
+                <property name="margin_top">4</property>
+                <property name="margin_bottom">13</property>
                 <property name="orientation">vertical</property>
                 <child>
                   <object class="GtkLabel" id="label5">
@@ -203,7 +209,7 @@
                   <object class="GtkEntry" id="inputSVNUser">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
-                    <property name="halign">start</property>
+                    <property name="halign">center</property>
                     <property name="valign">center</property>
                     <property name="margin_left">5</property>
                     <property name="placeholder_text" translatable="yes">SVN Username</property>
@@ -221,7 +227,7 @@
                   <object class="GtkEntry" id="inputSVNPassword">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
-                    <property name="halign">start</property>
+                    <property name="halign">center</property>
                     <property name="valign">center</property>
                     <property name="margin_left">5</property>
                     <property name="visibility">False</property>
@@ -248,6 +254,7 @@
               <object class="GtkBox" id="box10">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
+                <property name="margin_bottom">8</property>
                 <property name="hexpand">False</property>
                 <property name="orientation">vertical</property>
                 <child>
@@ -417,8 +424,8 @@
     </child>
   </object>
   <object class="GtkWindow" id="window">
-    <property name="width_request">600</property>
-    <property name="height_request">300</property>
+    <property name="width_request">400</property>
+    <property name="height_request">400</property>
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="title" translatable="yes">OrangeInstaller</property>
@@ -440,7 +447,7 @@
           <object class="GtkBox" id="box2">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="halign">start</property>
+            <property name="halign">center</property>
             <property name="margin_left">10</property>
             <property name="margin_right">10</property>
             <property name="margin_top">5</property>
@@ -498,6 +505,7 @@
           <object class="GtkBox" id="box3">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
+            <property name="halign">center</property>
             <property name="margin_left">10</property>
             <property name="margin_right">10</property>
             <property name="homogeneous">True</property>
@@ -544,30 +552,29 @@
           </packing>
         </child>
         <child>
+          <object class="GtkStatusbar" id="statusbar">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="margin_left">10</property>
+            <property name="margin_right">10</property>
+            <property name="margin_start">10</property>
+            <property name="margin_end">10</property>
+            <property name="margin_top">6</property>
+            <property name="margin_bottom">6</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">False</property>
+            <property name="position">3</property>
+          </packing>
+        </child>
+        <child>
           <object class="GtkBox" id="box5">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <property name="margin_left">10</property>
             <property name="margin_right">10</property>
             <property name="homogeneous">True</property>
-            <child>
-              <object class="GtkStatusbar" id="statusbar">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="margin_left">10</property>
-                <property name="margin_right">10</property>
-                <property name="margin_start">10</property>
-                <property name="margin_end">10</property>
-                <property name="margin_top">6</property>
-                <property name="margin_bottom">6</property>
-                <property name="spacing">2</property>
-              </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
             <child>
               <object class="GtkScrolledWindow" id="scrolledwindow1">
                 <property name="visible">True</property>
@@ -601,7 +608,7 @@
             <property name="expand">True</property>
             <property name="fill">True</property>
             <property name="padding">3</property>
-            <property name="position">3</property>
+            <property name="position">4</property>
           </packing>
         </child>
         <child>
@@ -614,7 +621,7 @@
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">4</property>
+            <property name="position">5</property>
           </packing>
         </child>
         <child>
@@ -664,7 +671,7 @@
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">5</property>
+            <property name="position">6</property>
           </packing>
         </child>
       </object>
@@ -697,7 +704,7 @@
           <object class="GtkBox" id="box12">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="halign">start</property>
+            <property name="halign">center</property>
             <property name="margin_left">10</property>
             <property name="margin_right">10</property>
             <property name="margin_top">5</property>
