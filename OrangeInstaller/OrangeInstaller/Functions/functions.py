@@ -48,14 +48,14 @@ def langdict(lang=None):
             __langdict[k] = v
     return __langdict
 
-def tr(*args):        # old definition was tr(msg, default=-1):
+def tr(*args):
     eles = []
     for ele in args:
         if isinstance(ele, unicode):
             sele = ele
         else:
             if hasattr(ele, "__str__"):
-                sele = ele.__str__() #__str__ funciona mejor cuando el objeto es un errorresponse
+                sele = ele.__str__()
             else:
                 sele = str(ele)
         a =  {True: langdict().get(ele,langdict("en").get(ele,ele)), False: sele}[bool(langdict().get(ele,langdict("en").get(ele,ele)))]

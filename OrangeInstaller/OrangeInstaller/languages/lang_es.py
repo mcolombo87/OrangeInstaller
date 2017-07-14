@@ -1,5 +1,6 @@
 #coding: utf-8
-#LanguageName=Español
+#Language=ES
+#Spanish
 lang_dict = {
 "Search Company: ":"Buscar compania: ",
 "OrangeInstaller for OpenOrange Software.\n":"Instalador de OpenOrange para Software OpenOrange\n",
