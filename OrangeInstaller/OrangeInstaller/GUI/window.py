@@ -35,11 +35,14 @@ class userWindow(Gtk.Window):
             "readyToInstall": self.readyToInstall,
             "startInstall": self.startInstall,
             "userFinish": self.userFinished,
+            "messageOk" : self.hideMessage
         }
         self.builder.connect_signals(self.handlers)
         self.win = self.builder.get_object('window')
         self.win1 = self.builder.get_object('window1')
         self.win2 = self.builder.get_object('window2')
+        self.message = self.builder.get_object('message')
+        self.checkUserMessage = self.builder.get_object('checkUserMessage')
 
         self.actualWindowPos = 1 #First Windows, this is an index for navigator
         self.win.show_all()
@@ -173,13 +176,20 @@ class userWindow(Gtk.Window):
 
     """Start all installation Engine"""
     def startInstall(self, widget):
-        self.nextWindow(widget)
+        self.checkUserMessage.show_all()
         self.installation.setSvnControlFromOut()
         self.installation.svn.svnUserName = self.inputSVNUser.get_text()
         self.installation.svn.svnPassword = self.inputSVNPassword.get_text()
-        self.installation.startInstall()
-        self.installStatus()
-        self.checkProgress()
+        if self.installation.svn.checkCredentials():
+            self.checkUserMessage.hide()
+            self.nextWindow(widget)
+            self.installation.startInstall()
+            self.installStatus()
+            self.checkProgress()
+        else:
+            #self.message.text="SVN Username or Password invalid"
+            self.checkUserMessage.hide()
+            self.message.show_all()
 
     """Restart refresh timer"""
     def installStatus(self):
@@ -202,3 +212,6 @@ class userWindow(Gtk.Window):
             self.spinner.stop()
             self.installLabel.set_text('Installation Finished')
         else: self.installStatus()
+
+    def hideMessage(self, widget):
+        self.message.hide()
