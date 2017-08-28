@@ -89,6 +89,7 @@ def userInterface():
 #Start Testing
 def testing():
     test = Testing.test()
+    test.checkSystemTools()
     #checkModule
     companyId = 1
     moduleToTest1 = "munozvet"
@@ -101,7 +102,10 @@ def testing():
 parser = argparse.ArgumentParser(description = "OrangeInstaller Software Help")
 parser.add_argument("--console", default = 0, action="store_true", help = "for console use")
 parser.add_argument("-c", default = 0, action = "store_true", help = "for console use")
+parser.add_argument("--test", default = 0, action = "store_true", help = "for test soft, don't use")
 args = parser.parse_args()
+if (args.test == True):
+    testing() # run test
 if (args.console == True or args.c == True):
     consoleApplication() # Console Interface
 else:

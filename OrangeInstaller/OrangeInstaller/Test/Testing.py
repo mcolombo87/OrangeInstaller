@@ -1,7 +1,7 @@
 import svnControl
 import dataConnection
 import Installer
-from Functions import functions
+from Functions import functions, systemTools
 
 class test(object):
     """
@@ -21,3 +21,9 @@ class test(object):
             moduleName = moduleToInstall[0]
             if (moduleName == moduleToTest1 or moduleName == moduleToTest2): 
                 svn.checkout(moduleName, str(moduleToInstall[2]), moduleToInstall[4],testObject.installPath, testObject)
+
+    def checkSystemTools(self):
+        if systemTools.isWindows():
+            print "Is windows"
+        if systemTools.isLinux():
+            print "Is Linux"

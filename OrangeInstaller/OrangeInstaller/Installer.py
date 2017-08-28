@@ -17,8 +17,7 @@ class Installer(object):
     msgBuffer = '' #This is a buffer for each message, next these are captured by the user interface to display on screen
 
     def __init__(self, **kwargs):
-        self.currentSystem = systemTools.systemInfo() #Current System, for discrimination between windows or Linux
-        self.currentSystem = self.currentSystem[0]
+        self.currentSystem = systemTools.osName()
         self.__setDefaultPath()
         self.dataConnect = dataConnection.dataConnection()
         self.endInstallControl = False #Flag for indicate if the installation finished or not
@@ -26,7 +25,7 @@ class Installer(object):
                                 #...finished or not is through this. Once this count started, will return to cero when the installation is over.
 
     def setInstallPath (self, path):
-        if(self.currentSystem == 'Linux'):
+        if(systemTools.isLinux()):
             self.installPath = path
         else:
             self.installPath = path
@@ -130,12 +129,12 @@ class Installer(object):
     OUT= None
     '''  
     def createInitExtra(self):
-        if (self.currentSystem == 'Windows'):
+        if (systemTools.isWindows()):
             extraDirPath = self.installPath + '\\extra'
             if (path.isdir(extraDirPath)): #Create __init__.py if exist extra folder and the file is not there
                 if(not path.exists(extraDirPath + '\\__init__.py')):
                     open(extraDirPath + '\\__init__.py', 'w')
-        if (self.currentSystem == 'Linux'):
+        if (systemTools.isLinux()):
             if (path.isdir(self.installPath + '/extra')): #Create __init__.py if exist extra folder and the file is not there
                 if(not path.exists(self.installPath + '/extra/__init__.py')):
                     open(self.installPath + '/extra/__init__.py', 'w')

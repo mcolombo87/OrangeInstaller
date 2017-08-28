@@ -12,6 +12,24 @@ def systemInfo():
     releaseSystem = platform.release()
     return (currentSystem, releaseSystem)
 
+"Return currently OS name"
+def osName():
+    currentSystem = systemInfo()
+    currentSystem = currentSystem[0]
+    return currentSystem
+
+"Return True if OS is Linux"
+def isLinux():
+    name = osName()
+    if name == "Linux": return True
+    else: return False
+
+"Return True if OS is Windows"
+def isWindows():
+    name = osName()
+    if name == "Windows": return True
+    else: return False
+
 '''Des'''
 def isPreviuosInstallation():
     return True

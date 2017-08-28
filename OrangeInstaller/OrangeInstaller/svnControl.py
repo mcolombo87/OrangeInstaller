@@ -35,15 +35,13 @@ class svnControl(object):
     OUT= None
     '''
     def checkout (self, moduleNamePath, revision, svnPath, installRoute,objInstaller):
-        currentSystem = systemTools.systemInfo()
-        currentSystem = currentSystem[0] #Take first position >> OS Name
         self.setSvnCLientPath()
         if (moduleNamePath):
-            if (currentSystem == 'Windows'):
+            if (systemTools.isWindows()):
                 moduleNamePath = moduleNamePath.replace("/","\\")
                 installRoute += '\\'+moduleNamePath
                 #installRoute.replace("\\", "/")
-            if (currentSystem == 'Linux'):
+            if (systemTools.isLinux()):
                 installRoute += '/' + moduleNamePath
 
         print(tr("Route of install: ") + "{}".format(installRoute))
@@ -72,14 +70,12 @@ class svnControl(object):
         self.svnPassword = getpass.getpass('SVN password: ')
 
     def setSvnCLientPath(self):
-        currentSystem = systemTools.systemInfo()
-        currentSystem = currentSystem[0] #Take first position >> OS Name
-        if (currentSystem == 'Windows'):
+        if (systemTools.isWindows()):
             self.svnclientPath = os.path.abspath("svnclient/svn.exe")
             self.svnclientPath.replace("\\", "/")
-        if (currentSystem == 'Linux'):
+        if (systemTools.isLinux()):
             self.svnclientPath = 'svn'
-        if (currentSystem != 'Windows' and currentSystem != 'Linux'):
+        if (not systemTools.isWindows() and not systemTools.isLinux()):
             functions.logging.debug('Error: System not recognized >> {}'.format(currentSystem))
             functions.exitProgram(1) #End with Err
         
@@ -96,26 +92,32 @@ class svnControl(object):
         revision = '0'
         svnPath = 'afip'
         installRoute = folderCheck
-
-        checkOutFile = open("checkSVN.oins", "w")
+        if systemTools.isWindows():
+            osCondition = False
+        if systemTools.isLinux():
+            osCondition = True
         #End Set
         construction = (self.svnclientPath + ' checkout' + ' --no-auth-cache --force' + ' -r ' + revision +' --username ' + self.svnUserName + ' --password ' + self.svnPassword + ' ' + self.svnRemoteClient + svnPath +
                         ' ' + '"' + installRoute + '"')
-        testingCheckout = subprocess.Popen(construction, stdout=checkOutFile,stderr=checkOutFile)#subprocess.check_output(construction, stderr=subprocess.STDOUT, shell=False, universal_newlines=False)
+        testingCheckout = subprocess.Popen(construction, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=osCondition)#subprocess.check_output(construction, stderr=subprocess.STDOUT, shell=False, universal_newlines=False)
 
-        time.sleep(2)
-        checkOutFile.close()
-        buffer = ''
-        #checkOutFile.close()
-        #checkOutFile = open("checkSVN.oins", "r")
-        checkOutFile = open("checkSVN.oins", "r")
-        while buffer == '' or not buffer:
-            print("Still working...")
-            buffer = checkOutFile.read()
-            print (buffer)
-            time.sleep(0.5)
-        checkOutFile.close()
-        if "Checked out revision 0" in buffer:
+        timeout = 0 
+        while timeout < 10:
+            if testingCheckout.poll() == None:
+                time.sleep(0.5)
+                timeout += 1
+                print("Process didn't yet terminate...")
+            else: break
+        
+        testingCheckout.terminate()
+        try:
+            outs, errs = testingCheckout.communicate()
+        except TimeoutExpired:
+            testingCheckout.kill()
+            outs, errs = testingCheckout.communicate()
+
+        print outs, errs
+        if "revision 0" in outs :
             return True
         else: 
             return False
