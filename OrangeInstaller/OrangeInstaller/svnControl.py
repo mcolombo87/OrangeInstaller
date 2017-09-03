@@ -25,7 +25,7 @@ class svnControl(object):
         self.logSVNFileOut = open("svnOut.log", "w")
         self.svnclientPath = ''
 
-    ''' 
+    '''
     DESC= Build svn command and create a process for it execute, first to cleanup later to checkout. Start a new thread for each command.
     IN= ModuleNamePath: Name to module to install (afip, ar, repo, etc).
         revision: svn repository revision
@@ -60,11 +60,11 @@ class svnControl(object):
         thread = installThread.installThread(construction, logFiles, self.semaphore, moduleNamePath, objInstaller)
         thread.start()
 
-    ''' 
+    '''
     DESC= set credentials for SVN
     IN= None
     OUT= None
-    '''   
+    '''
     def logon (self):
         self.svnUserName = raw_input('SVN Username: ')
         self.svnPassword = getpass.getpass('SVN password: ')
@@ -78,14 +78,17 @@ class svnControl(object):
         if (not systemTools.isWindows() and not systemTools.isLinux()):
             functions.logging.debug('Error: System not recognized >> {}'.format(currentSystem))
             functions.exitProgram(1) #End with Err
-        
 
-    ''' 
+
+    '''
     DESC= Check credentials for SVN
     IN= None
-    OUT= True or False 
-    ''' 
+    OUT= True or False
+    '''
     def checkCredentials (self):
+
+        import shlex
+
         #Set testing
         self.setSvnCLientPath()
         folderCheck = 'checkSVNCred'
@@ -99,27 +102,30 @@ class svnControl(object):
         #End Set
         construction = (self.svnclientPath + ' checkout' + ' --no-auth-cache --force' + ' -r ' + revision +' --username ' + self.svnUserName + ' --password ' + self.svnPassword + ' ' + self.svnRemoteClient + svnPath +
                         ' ' + '"' + installRoute + '"')
-        testingCheckout = subprocess.Popen(construction, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=osCondition)#subprocess.check_output(construction, stderr=subprocess.STDOUT, shell=False, universal_newlines=False)
+        testingCheckout = subprocess.Popen(construction, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=osCondition)
 
-        timeout = 0 
+        timeout = 0
+        outs, errs = '',''
+
         while timeout < 10:
             if testingCheckout.poll() == None:
                 time.sleep(0.5)
                 timeout += 1
                 print("Process didn't yet terminate...")
             else: break
-        
-        testingCheckout.terminate()
-        try:
-            outs, errs = testingCheckout.communicate()
-        except TimeoutExpired:
-            testingCheckout.kill()
-            outs, errs = testingCheckout.communicate()
 
+        try:
+            if systemTools.isWindows():
+                testingCheckout.terminate()
+                outs, errs = testingCheckout.communicate()
+            if systemTools.isLinux():
+                outs, errs = testingCheckout.communicate()
+                testingCheckout.terminate()
+        except:
+            functions.logging.debug('OrangeInstaller cannot validate SVN Username and Password')
         print outs, errs
+
         if "revision 0" in outs :
             return True
-        else: 
+        else:
             return False
-        
-
