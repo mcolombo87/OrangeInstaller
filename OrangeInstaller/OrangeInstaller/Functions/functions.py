@@ -36,6 +36,7 @@ def readConfigFile(section, value):
     config.read('conf.cfg')
     return config[section][value]
 
+'''Import lang file'''
 def langdict(lang=None):
     if not lang: lang = readConfigFile('System', 'Language')
     global __langdict
@@ -49,6 +50,7 @@ def langdict(lang=None):
             __langdict[k] = v
     return __langdict
 
+'''Translate string'''
 def tr(*args):
     eles = []
     for ele in args:
@@ -59,7 +61,10 @@ def tr(*args):
                 sele = ele.__str__()
             else:
                 sele = str(ele)
-        a =  {True: langdict().get(ele,langdict("en").get(ele,ele)), False: sele}[bool(langdict().get(ele,langdict("en").get(ele,ele)))]
+        try:
+            a =  {True: langdict().get(ele,langdict("en").get(ele,ele)), False: sele}[bool(langdict().get(ele,langdict("en").get(ele,ele)))]
+        except:
+            a = ele
         eles.append("%s" %(a))
     if (eles):
         res = " ".join(eles)
@@ -68,6 +73,7 @@ def tr(*args):
     if isinstance(res, unicode): return res
     return unicode(res, 'utf8', 'replace')
 
+'''Return processed SVN error message'''
 def processSVNout(errs):
     errors = []
 
