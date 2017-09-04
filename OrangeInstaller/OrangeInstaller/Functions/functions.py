@@ -1,3 +1,4 @@
+#encoding: utf8
 import logging
 import configparser
 import sys
@@ -66,3 +67,20 @@ def tr(*args):
         res = ""
     if isinstance(res, unicode): return res
     return unicode(res, 'utf8', 'replace')
+
+def processSVNout(errs):
+    errors = []
+
+    for err in errs.split("\n"):
+        if err == "svn: E170013: Unable to connect to a repository at URL 'svn://svn.openorange.com/afip'":
+            errors.append(tr("Unable to connect to a repository at URL 'svn://svn.openorange.com/afip'"))
+        elif err == "svn: E170001: Error de autentificación del servidor: Username not found":
+            errors.append(tr("Username not found."))
+        elif err == "svn: E170001: Error de autentificación del servidor: Password incorrect":
+            errors.append(tr("Password incorrect."))
+        elif "E170013" in err:
+            errors.append(tr("Unable to connect to repository"))
+        elif "E170001" in err:
+            errors.append(tr("Username or password incorrect."))
+
+    return ".\n".join(errors)

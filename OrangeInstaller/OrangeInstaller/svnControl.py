@@ -112,7 +112,7 @@ class svnControl(object):
             if testingCheckout.poll() == None:
                 time.sleep(0.5)
                 timeout += 1
-                print("Process didn't yet terminate...")
+                print(tr("Process haven't finished yet..."))
             else: break
 
         try:
@@ -123,12 +123,11 @@ class svnControl(object):
                 outs, errs = testingCheckout.communicate()
                 testingCheckout.terminate()
         except:
-            functions.logging.debug('OrangeInstaller cannot validate SVN Username and Password')
+            functions.logging.debug(tr("OrangeInstaller cannot validate SVN Username and Password"))
         print outs, errs
 
-        texto = ["n obtenida","revision 0"]
-        for text in texto:
-            if text in outs:
-                return True
-            else:
-                return False
+        if errs:
+            functions.logging.debug(functions.processSVNout(errs))
+            return functions.processSVNout(errs)
+        else:
+            return True

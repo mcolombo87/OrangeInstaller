@@ -22,7 +22,7 @@ tr = functions.tr
 def consoleApplication():
 
     functions.createInstallationLog()
-    functions.logging.debug('Program started')
+    functions.logging.debug(tr("Program started"))
     msg  = tr("OrangeInstaller for OpenOrange Software.\n")
     msg += tr("Type 'exit' to cancel")
     print(msg)

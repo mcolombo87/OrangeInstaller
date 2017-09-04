@@ -109,7 +109,7 @@ class userWindow(Gtk.Window):
     """Show company name in screen and install patch"""
     def preparateWin1(self):
         self.companyLabel.set_text(self.companyName)
-        self.installPathLabel.set_text("Default Path: " + self.installation.getInstallPath())
+        self.installPathLabel.set_text(tr("Default Path: ") + self.installation.getInstallPath())
 
     """For previous buttons (return buttons)"""
     def prevWindow(self, widget):
@@ -161,7 +161,7 @@ class userWindow(Gtk.Window):
         newPath = newPath[1] #Discard first split
         newPath = newPath.replace("%20", " ") #Fix spaces
         self.installation.setInstallPath(newPath)
-        self.installPathLabel.set_text("Install Path: " + self.installation.getInstallPath())
+        self.installPathLabel.set_text(tr("Install Path: ") + self.installation.getInstallPath())
 
     """Check if the conditions for starting installation are ready or not"""
     def readyToInstall(self, widget):
@@ -175,18 +175,18 @@ class userWindow(Gtk.Window):
 
     """Start all installation Engine"""
     def startInstall(self, widget):
-        self.installPathLabel.set_text("Checking Username and Password from SVN")
+        self.installPathLabel.set_text(tr("Checking Username and Password from SVN"))
         self.installation.setSvnControlFromOut()
         self.installation.svn.svnUserName = self.inputSVNUser.get_text()
         self.installation.svn.svnPassword = self.inputSVNPassword.get_text()
-        if self.installation.svn.checkCredentials():
-            self.installPathLabel.set_text("Great Success!")
+        if self.installation.svn.checkCredentials() == True:
+            self.installPathLabel.set_text(tr("Great Success!"))
             self.nextWindow(widget)
             self.installation.startInstall()
             self.installStatus()
             self.checkProgress()
         else:
-            self.installPathLabel.set_text("Please, check your username or password and try again.")
+            self.installPathLabel.set_text(tr(self.installation.svn.checkCredentials()))
             self.message.show_all()
 
     """Restart refresh timer"""
@@ -208,7 +208,7 @@ class userWindow(Gtk.Window):
             self.finishButton.set_opacity(1)
             self.finishButton.set_sensitive(True)
             self.spinner.stop()
-            self.installLabel.set_text('Installation Finished')
+            self.installLabel.set_text(tr('Installation Finished'))
         else: self.installStatus()
 
     def hideMessage(self, widget):
