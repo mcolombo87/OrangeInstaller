@@ -42,7 +42,6 @@ class userWindow(Gtk.Window):
         self.win1 = self.builder.get_object('window1')
         self.win2 = self.builder.get_object('window2')
         self.message = self.builder.get_object('message')
-        self.checkUserMessage = self.builder.get_object('checkUserMessage')
 
         self.actualWindowPos = 1 #First Windows, this is an index for navigator
         self.win.show_all()
@@ -110,7 +109,7 @@ class userWindow(Gtk.Window):
     """Show company name in screen and install patch"""
     def preparateWin1(self):
         self.companyLabel.set_text(self.companyName)
-        self.installPathLabel.set_text(self.installation.getInstallPath())
+        self.installPathLabel.set_text("Default Path: " + self.installation.getInstallPath())
 
     """For previous buttons (return buttons)"""
     def prevWindow(self, widget):
@@ -162,7 +161,7 @@ class userWindow(Gtk.Window):
         newPath = newPath[1] #Discard first split
         newPath = newPath.replace("%20", " ") #Fix spaces
         self.installation.setInstallPath(newPath)
-        self.installPathLabel.set_text(self.installation.getInstallPath())
+        self.installPathLabel.set_text("Install Path: " + self.installation.getInstallPath())
 
     """Check if the conditions for starting installation are ready or not"""
     def readyToInstall(self, widget):
@@ -176,19 +175,18 @@ class userWindow(Gtk.Window):
 
     """Start all installation Engine"""
     def startInstall(self, widget):
-        self.checkUserMessage.show_all()
+        self.installPathLabel.set_text("Checking Username and Password from SVN")
         self.installation.setSvnControlFromOut()
         self.installation.svn.svnUserName = self.inputSVNUser.get_text()
         self.installation.svn.svnPassword = self.inputSVNPassword.get_text()
         if self.installation.svn.checkCredentials():
-            self.checkUserMessage.hide()
+            self.installPathLabel.set_text("Great Success!")
             self.nextWindow(widget)
             self.installation.startInstall()
             self.installStatus()
             self.checkProgress()
         else:
-            #self.message.text="SVN Username or Password invalid"
-            self.checkUserMessage.hide()
+            self.installPathLabel.set_text("Please, check your username or password and try again.")
             self.message.show_all()
 
     """Restart refresh timer"""

@@ -12,71 +12,6 @@
     <property name="can_focus">False</property>
     <property name="stock">gtk-apply</property>
   </object>
-  <object class="GtkMessageDialog" id="checkUserMessage">
-    <property name="sensitive">False</property>
-    <property name="can_focus">False</property>
-    <property name="margin_top">2</property>
-    <property name="margin_bottom">2</property>
-    <property name="type">popup</property>
-    <property name="resizable">False</property>
-    <property name="modal">True</property>
-    <property name="window_position">center</property>
-    <property name="type_hint">dialog</property>
-    <property name="skip_taskbar_hint">True</property>
-    <property name="urgency_hint">True</property>
-    <property name="decorated">False</property>
-    <property name="deletable">False</property>
-    <child internal-child="vbox">
-      <object class="GtkBox" id="messagedialog-vbox4">
-        <property name="can_focus">False</property>
-        <property name="orientation">vertical</property>
-        <child internal-child="action_area">
-          <object class="GtkButtonBox" id="messagedialog-action_area4">
-            <property name="can_focus">False</property>
-            <property name="layout_style">end</property>
-            <child>
-              <placeholder/>
-            </child>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">False</property>
-            <property name="position">0</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkSpinner" id="spinner2">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="active">True</property>
-          </object>
-          <packing>
-            <property name="expand">True</property>
-            <property name="fill">True</property>
-            <property name="padding">1</property>
-            <property name="position">2</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkLabel" id="installLabel1">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="label" translatable="yes">Checking username and password</property>
-            <attributes>
-              <attribute name="style" value="italic"/>
-              <attribute name="weight" value="ultrabold"/>
-              <attribute name="foreground" value="#fa05a39e28d6"/>
-            </attributes>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">False</property>
-            <property name="position">4</property>
-          </packing>
-        </child>
-      </object>
-    </child>
-  </object>
   <object class="GtkImage" id="exitPIC">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
@@ -251,28 +186,17 @@
             <property name="margin_right">10</property>
             <property name="homogeneous">True</property>
             <child>
+              <placeholder/>
+            </child>
+            <child>
               <object class="GtkLabel" id="label1">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="halign">end</property>
-                <property name="margin_right">5</property>
                 <property name="label" translatable="yes">Change install directory </property>
                 <attributes>
                   <attribute name="style" value="italic"/>
                 </attributes>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkFileChooserButton" id="folderChooser">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="action">select-folder</property>
-                <signal name="selection-changed" handler="changeInstallDirectory" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -386,6 +310,22 @@
                 <property name="hexpand">False</property>
                 <property name="orientation">vertical</property>
                 <child>
+                  <object class="GtkFileChooserButton" id="folderChooser">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="margin_left">5</property>
+                    <property name="margin_right">5</property>
+                    <property name="margin_bottom">10</property>
+                    <property name="action">select-folder</property>
+                    <signal name="selection-changed" handler="changeInstallDirectory" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
                   <object class="GtkLabel" id="label6">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
@@ -398,7 +338,7 @@
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">True</property>
-                    <property name="position">0</property>
+                    <property name="position">1</property>
                   </packing>
                 </child>
                 <child>
@@ -411,43 +351,11 @@
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">True</property>
-                    <property name="position">1</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkLabel" id="label7">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="vexpand">True</property>
-                    <property name="label" translatable="yes">Current Install Directory</property>
-                    <attributes>
-                      <attribute name="weight" value="semibold"/>
-                    </attributes>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">True</property>
                     <property name="position">2</property>
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkLabel" id="installPathLabel">
-                    <property name="width_request">40</property>
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="halign">center</property>
-                    <property name="valign">center</property>
-                    <property name="hexpand">False</property>
-                    <property name="label" translatable="yes">Default by config file</property>
-                    <property name="selectable">True</property>
-                    <property name="max_width_chars">40</property>
-                    <property name="lines">2</property>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">False</property>
-                    <property name="position">3</property>
-                  </packing>
+                  <placeholder/>
                 </child>
               </object>
               <packing>
@@ -465,6 +373,30 @@
           </packing>
         </child>
         <child>
+          <object class="GtkLabel" id="installPathLabel">
+            <property name="width_request">120</property>
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="halign">center</property>
+            <property name="valign">center</property>
+            <property name="margin_bottom">2</property>
+            <property name="hexpand">True</property>
+            <property name="label" translatable="yes">Current Install Directory: Default by config file</property>
+            <property name="selectable">True</property>
+            <property name="ellipsize">end</property>
+            <property name="max_width_chars">80</property>
+            <property name="lines">3</property>
+            <attributes>
+              <attribute name="foreground" value="#fcfcafaf3e3d"/>
+            </attributes>
+          </object>
+          <packing>
+            <property name="expand">True</property>
+            <property name="fill">True</property>
+            <property name="position">4</property>
+          </packing>
+        </child>
+        <child>
           <object class="GtkSeparator" id="separator5">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
@@ -474,7 +406,7 @@
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">4</property>
+            <property name="position">5</property>
           </packing>
         </child>
         <child>
@@ -545,7 +477,7 @@
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">5</property>
+            <property name="position">6</property>
           </packing>
         </child>
       </object>
