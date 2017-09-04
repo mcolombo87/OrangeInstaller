@@ -107,18 +107,19 @@ class svnControl(object):
 
         timeout = 0
         outs, errs = '',''
+        exit = False
 
-        while timeout < 10:
+        while timeout < 10 and exit == False:
             if testingCheckout.poll() == None:
                 time.sleep(0.5)
                 timeout += 1
                 print(tr("Process haven't finished yet..."))
-            else: break
+            else: exit = True
 
         try:
             if systemTools.isWindows():
-                testingCheckout.terminate()
                 outs, errs = testingCheckout.communicate()
+                testingCheckout.terminate()
             if systemTools.isLinux():
                 outs, errs = testingCheckout.communicate()
                 testingCheckout.terminate()
