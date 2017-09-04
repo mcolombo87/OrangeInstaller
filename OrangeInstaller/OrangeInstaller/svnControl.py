@@ -1,3 +1,4 @@
+#encoding: utf8
 import sys, os
 import installThread
 import subprocess
@@ -125,7 +126,9 @@ class svnControl(object):
             functions.logging.debug('OrangeInstaller cannot validate SVN Username and Password')
         print outs, errs
 
-        if "revision 0" in outs :
-            return True
-        else:
-            return False
+        texto = ["n obtenida","revision 0"]
+        for text in texto:
+            if text in outs:
+                return True
+            else:
+                return False
