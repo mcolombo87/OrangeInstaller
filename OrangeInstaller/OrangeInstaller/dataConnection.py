@@ -2,11 +2,13 @@ import pymysql
 from pymysql import cursors
 from Functions import functions
 
+tr = functions.tr
+
 class dataConnection(object):
     """Management and data flow with program and DBMS"""
 
     connector = None
-  
+
     def __init__(self, **kwargs):
         #All this data is taken from conf.cfg file. It's for stablish conection with DB
         self.dbEnigne = functions.readConfigFile('database','dbEnigne')
@@ -24,12 +26,11 @@ class dataConnection(object):
     def testConnection(self):
         test = self.stablishConnection()
         if (test):
-            functions.logging.debug('Connection to DB: OK')
+            functions.logging.debug(tr("Connection to DB: OK"))
             return True
         else:
-            functions.logging.debug('Fail to connect with DB')
+            functions.logging.debug(tr("Fail to connect with DB"))
             return False
-            
 
     ''' 
     DESC= Stablish connection with the database.
@@ -38,14 +39,14 @@ class dataConnection(object):
     '''
     def stablishConnection(self):
         try:
-            self.connector = pymysql.connect(host=self.host, 
-                                    port=self.port, 
-                                    user=self.username, 
+            self.connector = pymysql.connect(host=self.host,
+                                    port=self.port,
+                                    user=self.username,
                                     passwd=self.password,
-                                    db=self.dbEnigne)
+                                    db=self.basename)
         except:
-            functions.logging.debug('Error when try connect to database')
-            print ('Error when try connect to database')
+            functions.logging.debug(tr("Error when try connect to database"))
+            print (tr("Error when try connect to database"))
             return False
         else:
             return True
@@ -63,8 +64,7 @@ class dataConnection(object):
             columnsBuild = ''
             for a in range(len(columns)):
                 columnsBuild += columns[a]
-            #print (columnsBuild) Delete Later
-            sql = "SELECT {} FROM {}.{} WHERE idcompany={}".format(columnsBuild, self.basename, table,id)
+            sql = "SELECT {} FROM {}.{} WHERE idcompany = {}".format(columnsBuild, self.basename, table, id)
             cursor = self.connector.cursor()
             cursor.execute(sql)
             data = []
@@ -72,7 +72,7 @@ class dataConnection(object):
                 data.append(a)
             return data
         except:
-            functions.logging.debug('Query ERROR')
+            functions.logging.debug("Query ERROR")
             functions.exitProgram(1)
 
     ''' 
@@ -82,12 +82,13 @@ class dataConnection(object):
     IN= Table: Table on DB where search data. Field: columns where data is stored. Key: Word to search.
     OUT= Return a list of all data which match of select statement (data)
     '''
-    #ADVERTENCY: getDataSearch is NOT for use in any table because (for error) select statement take specific fields
-    #***This will be patched in future and will work as getData()***
-    def getDataSearch(self, table, field, key):
+    def getDataSearch(self, table, field, key, columns):
         try:
             self.stablishConnection()
-            sql = "SELECT idcompany, name, skin FROM {}.{} WHERE {} LIKE '%{}%'".format(self.basename, table, field, key)
+            columnsBuild = ''
+            for a in range(len(columns)):
+                columnsBuild += columns[a]
+            sql = "SELECT {} FROM {}.{} WHERE {} LIKE '%{}%'".format(columnsBuild, self.basename, table, field, key)
             cursor = self.connector.cursor()
             cursor.execute(sql)
             data = []
@@ -95,7 +96,7 @@ class dataConnection(object):
                 data.append(a)
             return data
         except:
-            functions.logging.debug('Query ERROR')
+            functions.logging.debug("Query ERROR")
             functions.exitProgram(1)
 
     ''' 

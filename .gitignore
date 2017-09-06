@@ -93,3 +93,6 @@ ENV/
 /.vs
 /OrangeInstaller/.vs/OrangeInstaller/v15
 /OrangeInstaller/UpgradeLog.htm
+OrangeInstaller/OrangeInstaller/checkSVNCred/.svn/entries
+OrangeInstaller/OrangeInstaller/checkSVN.oins
+OrangeInstaller/OrangeInstaller/conf.cfg

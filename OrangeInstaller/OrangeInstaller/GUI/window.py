@@ -5,22 +5,24 @@ import dataConnection, Installer, installThread
 from Functions import functions
 import os
 
+tr = functions.tr
+
 class userWindow(Gtk.Window):
     """Graphical User Interface. Use GTK3 and glade."""
     dataConnect = None
     builder = None
     companyId = None
     companyName = None
-    
+
     def __init__(self):
         self.dataConnect = dataConnection.dataConnection()
         self.installation = Installer.Installer() #Instance of Installer class
 
         self.builder = Gtk.Builder()
         path = os.path.dirname(os.path.abspath(__file__))
-        gladeFile = path+"\\OrangeInstallerGUI.glade"
+        gladeFile = path + "\\OrangeInstallerGUI.glade"
         if (self.installation.getCurrentSystem() == 'Linux'):
-            gladeFile = path+"/OrangeInstallerGUI.glade"
+            gladeFile = path + "/OrangeInstallerGUI.glade"
         self.builder.add_from_file(gladeFile)
         self.handlers = {
             "delete-event": Gtk.main_quit,
@@ -33,11 +35,13 @@ class userWindow(Gtk.Window):
             "readyToInstall": self.readyToInstall,
             "startInstall": self.startInstall,
             "userFinish": self.userFinished,
+            "messageOk" : self.hideMessage
         }
         self.builder.connect_signals(self.handlers)
         self.win = self.builder.get_object('window')
         self.win1 = self.builder.get_object('window1')
         self.win2 = self.builder.get_object('window2')
+        self.message = self.builder.get_object('message')
 
         self.actualWindowPos = 1 #First Windows, this is an index for navigator
         self.win.show_all()
@@ -61,14 +65,14 @@ class userWindow(Gtk.Window):
         #check database Status
         dbcheck = self.dataConnect.testConnection()
         if dbcheck:
-            self.communicator('Success connecting to database')
-        else: self.communicator('Fail to connect with database')
+            self.communicator(tr("Connection to DB: OK"))
+        else: self.communicator(tr("Fail to connect with DB"))
 
         #List all results for search and show up in screen
         renderer = Gtk.CellRendererText()
         column = Gtk.TreeViewColumn("Company", renderer, text=0)
         self.listview.append_column(column)
-		
+
     """User press exit button"""
     def userExit(self, widget):
         functions.exitProgram(2) #End by user
@@ -83,10 +87,10 @@ class userWindow(Gtk.Window):
     def nextWindow(self, widget):
         #check if company was selected
         if (self.companyId == None and self.companyName != None):
-            resultOfSearch = self.dataConnect.getDataSearch('company','name',self.companyName)
+            resultOfSearch = self.dataConnect.getDataSearch('company', 'name', self.companyName, "*")
             self.companyId = resultOfSearch[0][0]
         if (self.companyId == None and self.companyName == None):
-            self.communicator("First you must choose a Company")
+            self.communicator(tr("First you must choose a Company"))
         else:
             nextWindowPos = self.actualWindowPos + 1
             if (self.actualWindowPos == 1):
@@ -105,7 +109,7 @@ class userWindow(Gtk.Window):
     """Show company name in screen and install patch"""
     def preparateWin1(self):
         self.companyLabel.set_text(self.companyName)
-        self.installPathLabel.set_text(self.installation.getInstallPath())
+        self.installPathLabel.set_text(tr("Default Path: ") + self.installation.getInstallPath())
 
     """For previous buttons (return buttons)"""
     def prevWindow(self, widget):
@@ -117,32 +121,32 @@ class userWindow(Gtk.Window):
             self.win2.hide()
             self.win.show_all()
         self.actualWindowPos = prevWindowPos #is more clearly
-    
+
     """Take one message and show in screen"""
     def communicator(self, message):
         if (self.actualWindowPos == 1):
-            self.statusbar.push(1,message)
-        if (self.actualWindowPos == 3): #thirt screen
-            self.statusbarInstall.push(1,message)
+            self.statusbar.push(1, message)
+        if (self.actualWindowPos == 3): #third screen
+            self.statusbarInstall.push(1, message)
 
     """Engine of search bar. Through this, one company will be selected"""
     def search(self, widget):
         imputTest = widget.get_text()
-        resultOfSearch = self.dataConnect.getDataSearch('company','name',imputTest)
+        resultOfSearch = self.dataConnect.getDataSearch('company', 'name', imputTest, "*")
         #clear treeView
         self.liststore.clear()
         if (len(resultOfSearch) == 0):
-            self.communicator('Company not Found, try again')
+            self.communicator(tr("Company not Found, try again"))
         if (len(resultOfSearch) > 1):
-            self.communicator("Too many result, select one if it's here")
+            self.communicator(tr("Too many results, choose one from this list"))
             for i in range(len(resultOfSearch)):
                 if (i > 9):
-                    self.communicator("Some result not shown in screen.")
+                    self.communicator(tr("Some result not shown in screen."))
                     break
                 self.liststore.append([resultOfSearch[i][1]])
         if (len(resultOfSearch) == 1):
             self.liststore.append([resultOfSearch[0][1]])
-            self.communicator("Company Chosen")
+            self.communicator(tr("Company Chosen"))
             self.companyId = resultOfSearch[0][0] #[0] for unique row, [0] for Id
             self.companyName = resultOfSearch[0][1]
 
@@ -157,7 +161,7 @@ class userWindow(Gtk.Window):
         newPath = newPath[1] #Discard first split
         newPath = newPath.replace("%20", " ") #Fix spaces
         self.installation.setInstallPath(newPath)
-        self.installPathLabel.set_text(self.installation.getInstallPath())
+        self.installPathLabel.set_text(tr("Install Path: ") + self.installation.getInstallPath())
 
     """Check if the conditions for starting installation are ready or not"""
     def readyToInstall(self, widget):
@@ -171,13 +175,19 @@ class userWindow(Gtk.Window):
 
     """Start all installation Engine"""
     def startInstall(self, widget):
-        self.nextWindow(widget)
+        self.installPathLabel.set_text(tr("Checking Username and Password from SVN"))
         self.installation.setSvnControlFromOut()
         self.installation.svn.svnUserName = self.inputSVNUser.get_text()
         self.installation.svn.svnPassword = self.inputSVNPassword.get_text()
-        self.installation.startInstall()
-        self.installStatus()
-        self.checkProgress()
+        if self.installation.svn.checkCredentials() == True:
+            self.installPathLabel.set_text(tr("Great Success!"))
+            self.nextWindow(widget)
+            self.installation.startInstall()
+            self.installStatus()
+            self.checkProgress()
+        else:
+            self.installPathLabel.set_text(tr(self.installation.svn.checkCredentials()))
+            self.message.show_all()
 
     """Restart refresh timer"""
     def installStatus(self):
@@ -198,5 +208,8 @@ class userWindow(Gtk.Window):
             self.finishButton.set_opacity(1)
             self.finishButton.set_sensitive(True)
             self.spinner.stop()
-            self.installLabel.set_text('Installation Finished')
+            self.installLabel.set_text(tr('Installation Finished'))
         else: self.installStatus()
+
+    def hideMessage(self, widget):
+        self.message.hide()
