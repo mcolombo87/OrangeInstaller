@@ -144,7 +144,7 @@ class userWindow(Gtk.Window):
                 if (i > 9):
                     self.communicator(tr("Some result not shown in screen."))
                     break
-                self.liststore.append([resultOfSearch[i][1]])
+                self.liststore.append(["id: %i - %s" % (resultOfSearch[i][0], resultOfSearch[i][1])])
         if (len(resultOfSearch) == 1):
             self.liststore.append([resultOfSearch[0][1]])
             self.communicator(tr("Company Chosen"))
@@ -154,7 +154,11 @@ class userWindow(Gtk.Window):
     """For pick company from list on screen"""
     def selectRow(self, widget):
         model, colum = widget.get_selected()
-        self.companyName = model[colum][0]
+        if model and colum:
+            if len(model[colum][0].split(" ")) > 1:
+                self.companyId = model[colum][0].split(" ")[1]
+            else:
+                self.companyName = model[colum][0]
 
     """If directory path change, this set the new one"""
     def changeInstallDirectory(self, widget):
