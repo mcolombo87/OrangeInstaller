@@ -1,0 +1,8 @@
+#encoding: utf-8
+# Agosto 2009 - Martin Salcedo
+from OpenOrange import *
+
+ParentBankAccountWindow = SuperClass("AuxiliaryTableWindow","MasterWindow",__file__)
+class BankAccountWindow(ParentBankAccountWindow):
+
+    pass

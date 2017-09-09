@@ -1,0 +1,55 @@
+#encoding: utf-8
+from OpenOrange import *
+
+
+ParentRecipeWindow = SuperClass("RecipeWindow","MasterWindow",__file__)
+class RecipeWindow(ParentRecipeWindow):
+
+    def afterEdit(self, fieldname):
+        ParentRecipeWindow.afterEdit(self, fieldname)
+        de = self.getRecord()
+        if (fieldname == "Code"):
+            de.pasteCode()
+
+    def afterEditRow(self, fieldname, rowfieldname, rownr):
+        ParentRecipeWindow.afterEditRow(self, fieldname, rowfieldname, rownr)
+        de = self.getRecord()
+        if (fieldname == "RecipeRows"):
+            grrow = de.RecipeRows[rownr] 
+            if (rowfieldname == "ArtCode"):
+                grrow.pasteArtCode(de)
+                grrow.sumUp(de)
+                de.sumUp()
+            elif (rowfieldname in ("Qty","Cost")):
+                grrow.pasteQty(de)
+                grrow.sumUp(de)
+                de.sumUp()
+            if (rowfieldname == "Unit"):
+                grrow.pasteUnit(de)
+                grrow.sumUp(de)
+                de.sumUp()
+
+    def updateCost(self):
+        record = self.getRecord()
+        record.updateCost()
+        
+
+    def showItemWithThisRecipe(self):
+        from ItemsUsingRecipe import ItemsUsingRecipe
+        iur = ItemsUsingRecipe()
+        iur.getRecord().Recipe = self.getRecord().Code
+        iur.open(False)
+        
+    def openRowRecipe(self):
+        rowNr = -1
+        if self.currentField() == "RecipeRows":
+            rowNr = self.currentRow("RecipeRows")
+        if rowNr < 0:
+            message("Please Select A Row")
+            return
+        from Recipe import Recipe
+        recipe = Recipe.bring(self.getRecord().RecipeRows[rowNr].ArtCode)
+        if recipe:
+            recipe.openInWindow()
+        else:
+            message(recipe)

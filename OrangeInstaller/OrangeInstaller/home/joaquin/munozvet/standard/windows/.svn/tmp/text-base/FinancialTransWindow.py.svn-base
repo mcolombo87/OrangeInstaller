@@ -1,0 +1,25 @@
+#encoding: utf-8
+from OpenOrange import *
+
+ParentFinancialTransWindow = SuperClass("FinancialTransWindow", "TransactionWindow", __file__)
+class FinancialTransWindow(ParentFinancialTransWindow):
+
+    def afterEdit(self, fieldname):
+        ParentFinancialTransWindow.afterEdit(self, fieldname)
+        record = self.getRecord()
+        if (fieldname == "Currency"):
+            result = record.pasteCurrency()
+            self.updateViewDecimals()
+            record.sumUp()            
+        elif (fieldname == "TransDate"):
+            record.pasteTransDate()
+            
+    def filterPasteWindowPaymentRow(self, row, fieldname):
+        from PayMode import PayMode
+        if fieldname == "ChequeNr":
+            payMode = PayMode.bring(row.PayMode)
+            if payMode and payMode.PayType == payMode.OWNCHEQUE and payMode.FinancialAccount:
+                return "{BankAcc} = s|%s|" % (payMode.FinancialAccount)
+                
+
+            

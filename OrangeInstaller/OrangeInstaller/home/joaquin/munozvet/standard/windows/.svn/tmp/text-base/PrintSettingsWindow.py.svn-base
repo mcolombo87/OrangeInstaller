@@ -1,0 +1,13 @@
+#encoding: utf-8
+# Dic/09 - MSP
+from OpenOrange import *
+
+ParentPrintSettingsWindow = SuperClass("PrintSettingsWindow","SettingWindow",__file__)
+class PrintSettingsWindow(ParentPrintSettingsWindow):
+
+    def fillPasteWindowRow(self, pastewindowname, fieldname, rowfieldname,rownr):
+        if pastewindowname == "XPasteWindow":
+            if fieldname == "TableSettings":
+                from XWindow import XWindow
+                return XWindow.getRecordQuery()
+        return None

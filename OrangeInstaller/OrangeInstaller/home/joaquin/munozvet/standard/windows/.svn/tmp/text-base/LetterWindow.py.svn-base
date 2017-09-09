@@ -1,0 +1,173 @@
+#encoding: utf-8
+from OpenOrange import *
+from GlobalTools import *
+
+ParentLetterWindow = SuperClass("LetterWindow","NumerableWindow",__file__)
+class LetterWindow(ParentLetterWindow):
+
+    def afterEdit(self, fieldname):
+        ParentLetterWindow.afterEdit(self, fieldname)
+        record = self.getRecord()
+        if (fieldname == "CustCode"):
+          record.pasteCustCode()
+        elif (fieldname == "Bank"):
+            record.pasteBank()
+        elif (fieldname == "LetterNr"):
+            record.pasteLetterNr()
+        elif (fieldname == "ExpDate"):
+            record.pasteExpDate()
+        elif (fieldname == "Region"):
+            record.pasteClearing()
+        elif (fieldname == "Amount"):
+            record.Saldo = record.Amount
+        elif (fieldname == "Type"):
+            record.pasteType()
+        elif (fieldname == "Contact1"):
+            record.pasteContact(1)
+        elif (fieldname == "Contact2"):
+            record.pasteContact(2)
+        elif (fieldname == "ProvinceCode"):
+            record.pasteProvinceCode()
+
+    def openReceipt(self):
+        chq = self.getRecord()
+        from Receipt import Receipt
+        from ReceiptWindow import ReceiptWindow
+        r = chq.getReceipt()
+        if r:
+            wnd = ReceiptWindow()
+            wnd.setRecord(r)
+            wnd.open()
+        else:
+           message(tr("Record not found!"))
+           return
+
+    def renovateBillofExchange(self):
+        chq = self.getRecord()
+        from IOURenovation import IOURenovation
+        ioureno = IOURenovation()
+        ioureno.OldLetter = chq.SerNr
+        if not ioureno.load():
+            newchq = chq.clone()
+            newchq.SerNr = None
+            res = newchq.save()
+            if res:
+              ioureno.defaults()
+              ioureno.CustCode = chq.CustCode
+              ioureno.pasteCustCode()
+              ioureno.OldLetter = chq.SerNr
+              ioureno.OldChqAmount = chq.Amount
+              ioureno.NewLetter = newchq.SerNr
+              ioureno.NewChqAmount = chq.Amount
+              commit()
+            else:
+              rollback()
+        ioureno.openInWindow()
+
+
+    def openEndorsedPayment(self):
+        chq = self.getRecord()
+        from Payment import Payment
+        from PaymentWindow import PaymentWindow
+        r = chq.getPayment()
+        if r:
+            wnd = PaymentWindow()
+            wnd.setRecord(r)
+            wnd.open()
+        else:
+           message(tr("Record not found!"))
+           return
+
+    def openDeposit(self):
+        chq = self.getRecord()
+        from Deposit import Deposit
+        from DepositWindow import DepositWindow
+        r = chq.getDeposit()
+        if r:
+            wnd = DepositWindow()
+            wnd.setRecord(r)
+            wnd.open()
+        else:
+           message(tr("Record not found!"))
+           return
+
+    def openCaution(self):
+        chq = self.getRecord()
+        from LetterCaution import LetterCaution
+        from LetterCautionWindow import LetterCautionWindow
+        r = chq.getCaution()
+        if r:
+            wnd = LetterCautionWindow()
+            wnd.setRecord(r)
+            wnd.open()
+        else:
+           message(tr("Record not found!"))
+           return
+
+    def cancelLetter(self):
+        chq = self.getRecord()
+        if (chq.Status == 4):
+           message("El cheque nro %s ya se encuentra anulado" % (self.getRecord().SerNr))
+           return
+        chq.Status = 4
+        res = chq.store()
+        if not res:
+            message(res)
+        else:
+            commit()
+
+    def showLetterHistory(self):
+        record = self.getRecord()
+        from LetterHistory import LetterHistory
+        report = LetterHistory()
+        specs = report.getRecord()
+        report.defaults()
+        specs.LetterNr = record.SerNr
+        report.open(False)
+
+    def fieldIsEditable(self, fname, rfname=None, rownr=None):
+        res = ParentLetterWindow.fieldIsEditable(self, fname, rfname, rownr)
+        if (not res): return res
+        if (fname == "TransDate" and not currentUserCanDo("CanModifyLetterTransDate")):
+            return False
+        return res
+
+    def filterPasteWindow(self, fieldname):
+        res = ParentLetterWindow.filterPasteWindow(self, fieldname)
+        record = self.getRecord()
+        if fieldname in ("Contact1","Contact2"):
+            from Person import Person
+            return "{ContactType} = i|%s| AND {CustCode} = s|%s| " %(Person.CUSTOMER,record.CustCode)
+        return res
+
+    def genDebitNoteSupp(self):
+        record = self.getRecord()
+        if (record.isNew() or record.isModified()):
+            message(tr("REGISTERNOTSAVED"))
+            return
+        dnote = record.genDebitNoteSupp()
+        if (dnote):
+            dnote.openInWindow()
+
+    def genDebitNoteCust(self):
+        record = self.getRecord()
+        if (record.isNew() or record.isModified()):
+            message(tr("REGISTERNOTSAVED"))
+            return
+        dnote = record.genDebitNoteCust()
+        if (dnote):
+            dnote.openInWindow()
+
+    def showLetterHistory(self):
+        record = self.getRecord()
+        from LetterTransList import LetterTransList
+        report = LetterTransList()
+        specs = report.getRecord()
+        report.defaults()
+        specs.FromDate = date(1900,1,1)
+        specs.LetterNr = record.SerNr
+        specs.ViewOption = 0
+        specs.OrderBy = 3
+        report.open(False)
+
+        

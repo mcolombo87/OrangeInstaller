@@ -1,0 +1,16 @@
+#encoding: utf-8
+from OpenOrange import *
+
+ParentCampaignWindow = SuperClass("CampaignWindow","MasterWindow",__file__)
+class CampaignWindow(ParentCampaignWindow):
+    
+    def genCampaignForm(self):
+        record = self.getRecord()
+        if (record.isModified() or record.isNew()):
+            message(tr("You need to save the current record first!"))
+            return False
+        form = record.genCampaignForm()
+        if not form:
+           message(form)
+           return
+        form.openInWindow()

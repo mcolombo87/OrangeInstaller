@@ -1,0 +1,121 @@
+#encoding: utf-8
+from OpenOrange import *
+
+ParentWayBillWindow = SuperClass("WayBillWindow","TransactionWindow",__file__)
+class WayBillWindow(ParentWayBillWindow):
+
+    def afterEdit(self, fieldname):
+        ParentWayBillWindow.afterEdit(self,fieldname)
+        record = self.getRecord()
+        if (fieldname == "Vehicle"):
+            record.pasteVehicle()
+        elif (fieldname == "Driver"):
+            record.pasteDriver()
+        elif (fieldname == "Companion"):
+            record.pasteCompanion()
+        elif (fieldname == "Companion2"):
+            record.pasteCompanion2()
+        elif (fieldname == "Companion3"):
+            record.pasteCompanion3()
+        elif (fieldname == "DeliveryDate"):
+            record.DeliveryDateFilter = True
+        elif (fieldname == "TransCompany"):
+            record.pasteTransCompany()
+
+    def afterEditRow(self, fieldname, rowfieldname, rownr):
+        ParentWayBillWindow.afterEditRow(self,fieldname, rowfieldname,rownr)
+
+        record = self.getRecord()
+
+        if fieldname == "WayBillRows":
+            row = record.WayBillRows[rownr]
+
+            if rowfieldname == "Number":
+                record.sortRows()
+            elif rowfieldname == "DeliveryNr":
+                row.pasteDeliveryNr(record)
+            elif rowfieldname == "CustCode":
+                record.WayBillRows[rownr].pasteCustCode()
+            elif rowfieldname in ("PackageQTY","CashReceived", "CheckReceived", "AmountReceived"):
+                record.WayBillRows[rownr].sumUp()
+                record.sumUp()
+
+    def afterDeleteRow(self, fieldname, rownr):
+        ParentWayBillWindow.afterDeleteRow(self, fieldname, rownr)
+        if fieldname == "WayBillRows":
+            self.getRecord().sumUp()
+
+    def beforeDeleteRow(self, detailName, rownr):
+        res = ParentWayBillWindow.beforeDeleteRow(self, detailName, rownr)
+        if not res: return res
+        if detailName == "WayBillRows":
+            self.getRecord().RemovedDeliveries += str(self.getRecord().WayBillRows[rownr].DeliveryNr) + ','
+        return True
+                
+    def buttonClicked(self, buttonname):
+        ParentWayBillWindow.buttonClicked(self,buttonname)
+        if buttonname == "showShipsToDeliverReport" or buttonname == "pasteAllDelivery":
+            from ShipsToDeliverReport import ShipsToDeliverReport
+            sdr = ShipsToDeliverReport()
+            sdr.setView(self.getReportView("ShipsToDeliverReportView"))
+            sdr.waybill = self.getRecord()
+            if buttonname == "showShipsToDeliverReport":
+                sdr.open(False)
+                sdr.waybill.ShowShipsToDeliverExecuted=True
+            if buttonname == "pasteAllDelivery" and sdr.waybill.ShowShipsToDeliverExecuted:
+                sdr.pasteAllDelivery()
+                sdr.open(False)       
+
+    def openWaybillItemList(self):
+        record = self.getRecord()
+        from WayBillItemList import WayBillItemList
+        report = WayBillItemList()
+        report.WayBillNr = record.SerNr
+        report.open(False)
+
+    def openWaybillAddressList(self):
+        record = self.getRecord()
+        from WayBillAddressList import WayBillAddressList
+        report = WayBillAddressList()
+        report.WayBillNr = record.SerNr
+        report.open(False)
+
+    def openWaybillReport(self):
+        record = self.getRecord()
+        from WayBillReport import WayBillReport
+        report = WayBillReport()
+        report.WayBillNr = record.SerNr
+        report.open(False)
+        
+    def showOnMap(self):
+        record = self.getRecord()
+        from geo import openMap,distance,list2map,geocode
+        import webbrowser
+        import os
+        from GeoSettings import GeoSettings
+        gs = GeoSettings.bring()
+        if gs.WayBillAddress:
+            import Web
+            pointlist = []
+            for (customer, address) in record.getAddresses():
+                (latitude, longitude) = geocode(Web.replaceWithHTMLChars(address))
+                if latitude and longitude:
+                    pointlist.append((latitude, longitude, customer))    
+        else:
+            pointlist =  record.getCoordinates()
+        list2map(pointlist, True)
+        webbrowser.open("file:///%s/showdir.html" % os.getcwd())
+        
+    def filterPasteWindowRow(self, detailfieldname, rowfieldname, rownr):
+        filters = []
+        res = ParentWayBillWindow.filterPasteWindowRow(self,detailfieldname, rowfieldname, rownr)
+        if res:
+            filters.append(res)
+        record = self.getRecord()
+        if detailfieldname == "WayBillRows":
+            if rowfieldname == "DeliveryNr":
+                mlist= [str(row.DeliveryNr) for row in record.WayBillRows if row.DeliveryNr ]
+                if mlist:
+                    filters.append(" {SerNr} NOT IN (%s) " % ",".join(mlist))
+        return " AND ".join(filters)
+

@@ -1,0 +1,590 @@
+#encoding: utf-8
+from OpenOrange import *
+from SalesOrder import *
+from GlobalTools import *
+
+ParentSalesOrderWindow = SuperClass("SalesOrderWindow","SalesTransactionWindow",__file__)
+class SalesOrderWindow(ParentSalesOrderWindow):
+    DefaultAfterEditRow = False
+    def activateNextCell(self, matrixname, row, col):
+        columns = self.getMatrixColumns(matrixname)
+        if (matrixname in ("ItemsVATIncl","ItemsVATExcl")):
+            if columns[col] == "ArtCode": # To Qty
+                row, col = getNextCol(columns,row,col,"Qty")
+            elif columns[col] == "Qty": # To Next Row
+                col = 0
+                row += 1
+            else:
+                row,col = getNextCol(columns,row,col,"")
+            return (row,col)
+        elif (matrixname == "Reserves"):
+            if columns[col] == "ArtCode": # To Qty
+                row, col = getNextCol(columns,row,col,"Qty")
+            elif columns[col] == "SerialNr": # To Next Row
+                row += 1
+            else:
+                row,col = getNextCol(columns,row,col,"")
+            return (row,col)
+        return (row,col)
+
+    def afterShowRecord(self):
+        ParentSalesOrderWindow.afterShowRecord(self)
+        from SalesSettings import SalesSettings
+        ss = SalesSettings.bring()
+        if ss.ItemPages == 2:
+            self.setTabPageVisibility("Items", "ItemsVATExclPage", True)
+            self.setTabPageVisibility("Items", "ItemsVATInclPage", False)
+        elif ss.ItemPages == 3:
+            self.setTabPageVisibility("Items", "ItemsVATExclPage", False)
+            self.setTabPageVisibility("Items", "ItemsVATInclPage", True)
+        if (not currentUserCanDo("CanViewSalesOrderDiscountsTab")):
+            self.setTabPageVisibility("Items", "DiscountsPage", False)
+        if self.getRecord().isNew():
+            self.clearItemSearchReport()
+
+    def clearItemSearchReport(self):
+        from GenericReport import GenericReport
+        report = GenericReport()
+        report.setView(self.getReportView("ItemSearchView"))
+        report.open()
+
+    def checkItemPages(self):
+        ParentSalesOrderWindow.afterShowRecord(self)
+        from SalesSettings import SalesSettings
+        ss = SalesSettings.bring()
+        if ss.ItemPages == 1:
+            from PriceDeal import PriceDeal
+            pd = PriceDeal.bring(self.getRecord().PriceDeal)
+            if pd:
+                if pd.InclVAT:
+                    self.setTabPageVisibility("Items", "ItemsVATInclPage", True)
+                    self.setTabPageVisibility("Items", "ItemsVATExclPage", False)
+                else:
+                    self.setTabPageVisibility("Items", "ItemsVATExclPage", True)
+                    self.setTabPageVisibility("Items", "ItemsVATInclPage", False)
+
+    def afterEdit(self, fieldname):
+        ParentSalesOrderWindow.afterEdit(self, fieldname)
+        if (fieldname == "CustCode"):
+            self.checkItemPages()
+        elif (fieldname == "PayTerm"):
+            self.getRecord().pastePayTerm()
+        elif (fieldname == "Contact"):
+            self.getRecord().pasteContact()
+        elif (fieldname == "ReceptionManager"):
+            self.getRecord().pasteReceptionManager()
+        elif (fieldname == "SalesMan"):
+            self.getRecord().pasteSalesMan()
+        elif (fieldname == "InvAddressCode"):
+            self.getRecord().pasteInvAddressCode()
+        elif (fieldname == "DelAddressCode"):
+            self.getRecord().pasteDelAddressCode()
+        elif (fieldname == "InvProvinceCode"):
+            self.getRecord().pasteInvProvinceCode()
+        elif (fieldname == "DelProvinceCode"):
+            self.getRecord().pasteDelProvinceCode()
+        elif (fieldname == "InvZipCode"):
+            self.getRecord().pasteInvZipCode()
+        elif (fieldname == "DelZipCode"):
+            self.getRecord().pasteDelZipCode()
+        elif (fieldname == "InvLocalityCode"):
+            self.getRecord().pasteInvLocalityCode()
+        elif (fieldname == "DelLocalityCode"):
+            self.getRecord().pasteDelLocalityCode()
+        elif (fieldname == "ArtCodeName"):
+            from SalesOrder import SalesOrderItemRow 
+            self.showItemSearchReport(SalesOrderItemRow)
+        elif (fieldname == "PriceDeal"):
+            self.getRecord().pastePriceDeal()
+            self.checkItemPages()
+        elif (fieldname == "SupCode"):
+            self.getRecord().pasteSupCode()
+        elif (fieldname == "DiscountDeal"):
+            self.getRecord().pasteDiscountDeal()
+
+    def beforeEditRow(self, fieldname, rowfieldname, rownr):
+        res = ParentSalesOrderWindow.beforeEditRow(self, fieldname, rowfieldname, rownr)
+        if (not res): return res
+        res = self.getRecord().fieldIsEditable(fieldname, rowfieldname, rownr)
+        if (not res): return res
+        record = self.getRecord()
+        if (fieldname == "Reserves"):
+            if (record.oldFields("ReserveStatus").getValue() == True):
+                res = False
+            if (record.ReserveStatus):
+                res = False
+            curArtCode = record.Reserves[rownr].ArtCode
+            record.updateReserveStatusFields(curArtCode)
+        return res
+
+    def afterEditRow(self, fieldname, rowfieldname, rownr):
+        ParentSalesOrderWindow.afterEditRow(self, fieldname, rowfieldname, rownr)
+        salesorder = self.getRecord()
+        if (fieldname == "Items"):
+            soItem = salesorder.Items[rownr]
+            if (rowfieldname == "ArtCode"):
+                from Item import Item
+                i=Item()
+                i.Code=soItem.ArtCode
+                i.load()
+                if i:
+                    if i.Recipe and i.ItemType == i.COMPOUND:
+                        pos=0
+                        for it in salesorder.Items:
+                            if it.ArtCode==soItem.ArtCode and pos!=rownr:
+                                alert("No puede repetir articulos compuesto. Incremente la cantidad de ser necesario")            
+                                salesorder.Items.remove(rownr)
+                            pos+=1
+                artbefore = soItem.ArtCode
+                soItem.showArtCodeWarning(salesorder)
+                soItem.pasteArtCode(salesorder)
+                if (artbefore.lower()<>soItem.ArtCode.lower()):    # fue codigo de barra o codigo alternativa
+                    soItem.Qty = 1
+                    salesorder.setFocusOnField("Items","Qty",rownr) # salta una fila
+                soItem.sumUp(salesorder)
+                soItem.findDiscount(salesorder)
+                soItem.sumUp(salesorder)
+                salesorder.sumUp()
+            elif (rowfieldname == "Qty"):
+                soItem.pasteQty(salesorder)
+                soItem.sumUp(salesorder)
+                soItem.findDiscount(salesorder)
+                soItem.sumUp(salesorder)
+                salesorder.sumUp()
+            elif rowfieldname == "Price":
+                soItem.pastePrice(salesorder)
+                soItem.sumUp(salesorder)
+                soItem.findDiscount(salesorder)
+                soItem.sumUp(salesorder)
+                salesorder.sumUp()
+            elif (rowfieldname == "GProfit"):
+                soItem.pasteGProfit(salesorder)
+                soItem.sumUp(salesorder)
+                salesorder.sumUp()
+            elif (rowfieldname == "Markup"):
+                soItem.pasteMarkup(salesorder)
+                soItem.sumUp(salesorder)
+                salesorder.sumUp()
+            elif rowfieldname == "VATPrice":
+                soItem.pasteVATPrice(salesorder)
+                soItem.sumUp(salesorder)
+                salesorder.sumUp()
+            elif (rowfieldname == "RowNet"):
+                soItem.Discount = 100.00 - ((soItem.RowNet)* 100.0 / (soItem.Price * soItem.Qty))
+                soItem.sumUp(salesorder)
+                salesorder.sumUp()
+            elif (rowfieldname == "RowTotal"):
+                soItem.Discount = 100.00 - ((soItem.RowTotal)* 100.0 / (soItem.VATPrice * soItem.Qty))
+                soItem.sumUp(salesorder)
+                salesorder.sumUp()
+            elif (rowfieldname =="Discount"):
+                soItem.pasteDiscount(salesorder)
+                soItem.sumUp(salesorder)
+                salesorder.sumUp()
+            elif (rowfieldname == "Unit"):
+                soItem.pasteUnit(soItem.Unit)
+                soItem.sumUp(salesorder)
+                salesorder.sumUp()
+            elif (rowfieldname == "SerialNr"):
+                soItem.pasteSerialNr(salesorder)
+                salesorder.sumUp()
+            elif (rowfieldname == "VATCode"):
+                soItem.pasteVATCode(salesorder)
+                soItem.sumUp(salesorder)
+                salesorder.sumUp()
+            salesorder.sumUp()
+            salesorder.showMessages()
+        elif (fieldname == "Reserves"):
+            rItem = salesorder.Reserves[rownr]
+            if (rowfieldname == "ArtCode"):
+                rItem.pasteArtCode(salesorder)
+            elif (rowfieldname == "SerialNr"):
+                rItem.pasteSerialNr(salesorder)
+            elif (rowfieldname == "Qty"):
+                rItem.pasteQty(salesorder)
+            salesorder.sumUp()
+        elif (fieldname == "Taxes"):
+            if (rowfieldname == "Amount"):
+                salesorder.sumUp()
+            
+    def beforeDeleteRow(self, detailName, rownr):
+        res = ParentSalesOrderWindow.beforeDeleteRow(self, detailName, rownr)
+        if not res: return res
+        so = self.getRecord()
+        if (detailName == "Items"):
+            sorow = so.Items[rownr]
+            if so.hasDeliveries():
+                message("La orden ha sido entregada.")
+                return False
+            elif so.hasInvoices():
+                message("La orden ha sido facturada.")
+                return False
+            elif so.hasReturnCustomers():
+                message("La orden ha sido devuelta.")
+                return False
+            for rline in so.Reserves:
+                if (sorow.ArtCode == rline.ArtCode):
+                    res = getSelection("Existen reservas de este artículo. Desea eliminar tambien las reservas?", (tr("No"),tr("Yes")))
+                    if res == tr("Yes"):
+                        if so.oldFields("ReserveStatus").getValue()==False and so.ReserveStatus==False:
+                            for idx in range(so.Reserves.count()-1,-1,-1):
+                                if (so.Reserves[idx].ArtCode == rline.ArtCode):
+                                    so.Reserves.remove(idx)
+                            return True
+                        else:
+                            message("La orden tiene reservas confirmadas.")
+                            return False                      
+                    else:
+                        return False
+        elif (detailName == "Reserves"):
+            if (so.isModified()):
+                if (so.oldFields("ReserveStatus").getValue() == True):
+                    message("REGISTERNOTSAVED")
+                    return False
+            if (so.ReserveStatus):
+                return False
+            if (so.oldFields("Invalid").getValue() == 1 or so.oldFields("Closed").getValue() == 1):
+                return False
+        return True
+
+    def beforeInsertRow(self, detailName, rownr):
+        res = ParentSalesOrderWindow.beforeInsertRow(self, detailName, rownr)
+        if not res: return res
+        so = self.getRecord()
+        if (detailName == "Items"):
+            if rownr < so.Items.count():
+                if so.hasDeliveries():
+                    message("La orden ha sido entregada.")
+                    return False
+                elif so.hasInvoices():
+                    message("La orden ha sido facturada.")
+                    return False
+                elif so.hasReturnCustomers():
+                    message("La orden ha sido devuelta.")
+                    return False
+        elif (detailName == "Reserves"):
+            if (so.isModified()):
+                if (so.oldFields("ReserveStatus").getValue() == True):
+                    message("REGISTERNOTSAVED")
+                    return False
+            if (so.ReserveStatus):
+                return False
+            if (so.oldFields("Invalid").getValue() == 1 or so.oldFields("Closed").getValue() == 1):
+                return False
+        return True
+
+    def afterDeleteRow(self, dfname, rownr):
+        record = self.getRecord()
+        if (dfname in ("Items","Taxes")):
+            record.sumUp()
+
+    def afterInsertRow(self, detailfieldname, rownr):
+        ParentSalesOrderWindow.afterInsertRow(self, detailfieldname, rownr)
+        so = self.getRecord()
+        if detailfieldname == "Items":
+            so.Items[rownr].setDefaultValues(so)
+
+    def canAuthorize(self):
+        so = self.getRecord()
+        res = so.checkCredLimit()
+        if not res: return res
+        from User import User
+        user = User.bring(currentUser())
+        if user:
+            return user.canDo("CanAuthorizeSalesOrders")
+        return True
+
+    def authorize(self):
+        res = self.canAuthorize()
+        if res:
+            self.getRecord().authorize()
+        else:
+            message(res)
+        return res
+
+    @checkTransactionForAction
+    def genDelivery(self):
+        so = self.getRecord()
+        so.refresh() #very important!!!!
+        if (so.Closed):
+            message("SALESORDERCLOSED")
+            return False
+        from Currency import Currency
+        currency = Currency.getBase1()
+        if currency:
+            deliv = so.genDelivery(Currency=currency)
+            if deliv:
+                if deliv.Items.count() > 0:
+                    deliv.openInWindow()
+                    self.closeAfterGen()
+                else:
+                    message("No quedan articulos para entregar")
+            else:
+                message(deliv)
+        return deliv
+
+    def getCurrencySelection(self):
+        from SalesSettings import SalesSettings
+        so = self.getRecord()
+        curr = SalesSettings.getSOToInvCurrency(so)
+        currency = None
+        if (len(curr) > 1):
+            clist = []
+            clist.append("%s| %s" %(curr[0],tr("From Sales Order")))
+            clist.append("%s| %s" %(curr[1],tr("From Customer")))
+            clist.append("%s| %s" %(curr[2],tr("Base 1")))
+            clist.append("%s| %s" %(curr[3],tr("Base 2")))
+            res = getSelection(tr("Select Currency of Transaction"), tuple(clist))
+            if (not res): return
+            currency = res.split("|")[0]
+        else:
+            currency = curr[0]
+        return currency
+
+    @checkTransactionForAction
+    def genInvoice(self):
+        so = self.getRecord()
+        if (so.Closed):
+            message("SALESORDERCLOSED")
+            return False
+        currency = self.getCurrencySelection()
+        if (not currency):
+            return
+        inv = so.genInvoice(Currency = currency)
+        if inv:
+            if inv.Items.count() > 0:
+                inv.openInWindow()
+                from Customer import Customer
+                customer = Customer.bring(inv.CustCode)
+                if customer and customer.hasOnAccounts():
+                    message(tr("This Company has pending downpayments"))
+                self.closeAfterGen()
+            else:
+                message(tr("No Items to Invoice"))
+        else:
+            message(inv)
+            return None
+        return inv
+
+    @checkTransactionForAction
+    def genInvoiceFromDeliveries(self):
+        if (self.getRecord().Closed):
+            message("SALESORDERCLOSED")
+            return False
+        currency = self.getCurrencySelection()
+        if (not currency):
+            return
+        inv = self.getRecord().genInvoice(FromDeliveries=True, Currency = currency)
+        if inv:
+            if inv.Items.count() > 0:
+                inv.openInWindow()
+                self.closeAfterGen()
+            else:
+                message(tr("No Items to Invoice"))
+        else:
+            message(inv)
+        return inv
+
+    @checkTransactionForAction
+    def genProject(self):
+        modulesInfo = getModulesInfo()
+        if ("Project" in modulesInfo.keys()):
+          so = self.getRecord()
+          if so.isModified():
+            message(tr("You need to save the current record first!"))
+            return
+          from Project import Project
+          pro = Project.genProjectFromSalesOrder(so)
+          if pro:
+              pro.openInWindow()
+              self.closeAfterGen()
+
+    def genPurchaseOrder(self):
+        record = self.getRecord()
+        if (record.Closed):
+            message("SALESORDERCLOSED")
+            return False
+        if (record.isNew() or record.isModified()):
+            message(tr("REGISTERNOTSAVED"))
+            return False
+        if not record.confirmed():
+            message(tr("ONLYALLOWED4APPROVEDTRANS"))
+            return False
+        from PurchaseOrder import PurchaseOrder
+        po = PurchaseOrder()
+        po.OriginNr = record.SerNr
+        po.OriginType = record.name()
+        if po.load():
+            po.openInWindow()
+        else:
+            po = record.genPurchaseOrder()
+            if po:
+                po.openInWindow()
+            else:
+                message(po)
+
+    def fillPasteWindowRow(self, pastewindowname, fieldname, rowfieldname, rownr):
+        ParentSalesOrderWindow.fillPasteWindowRow(self, pastewindowname, fieldname, rowfieldname, rownr)
+        if (fieldname in ("Items","Reserves")):
+            if (pastewindowname == "SerialNrPasteWindow"):
+                record = self.getRecord()
+                itemrow = record.details(fieldname)[rownr]
+                query = Query()
+                query.sql = "SELECT Stock.ArtCode, {BestBefore} as DueDate, Stock.{SerialNr}, {StockDepo}, {StockPos}, SUM(Qty) as {Qty} FROM [Stock] "
+                query.sql += "LEFT JOIN BatchText bt ON bt.ArtCode = Stock.ArtCode and bt.SerialNr = Stock.SerialNr\n"
+                query.sql += "WHERE?AND Stock.{SerialNr} <> s|| "
+                #query.sql += "WHERE?AND Stock.{SerialNr} NOT IN ('%s') " % ("','".join(serialNrInclude))
+                query.sql += "WHERE?AND Stock.{ArtCode} = s|%s| " % itemrow.ArtCode
+                query.sql += "WHERE?AND {StockDepo} = s|%s| " % record.StockDepo
+                if itemrow.Pos: query.sql += "WHERE?AND {StockPos} = s|%s| " % itemrow.Pos
+                query.sql += "GROUP BY Stock.{SerialNr} "
+                if not itemrow.Pos: query.sql += ", {StockPos} "
+                query.sql += " HAVING {Qty} > 0 "
+                query.sql += " ORDER BY {DueDate} ASC, Stock.{SerialNr} "
+                if query.open():
+                    return query
+        
+    def filterPasteWindow(self, fieldname):
+        if fieldname in ("DelAddressCode","InvAddressCode"):
+            if self.getRecord().CustCode:
+                return "{Entity} = s|%s| and {EntityType}=i|0| " % self.getRecord().CustCode
+        if fieldname == "InvLocalityCode":
+            if self.getRecord().InvZipCode:
+                return "{ZipCode} = s|%s|" % self.getRecord().InvZipCode
+        if fieldname == "DelLocalityCode":
+            if self.getRecord().DelZipCode:
+                return "{ZipCode} = s|%s|" % self.getRecord().DelZipCode
+        elif fieldname == "Contact":
+            if self.getRecord().CustCode:
+                return "{CustCode} = s|%s|" % self.getRecord().CustCode
+        elif fieldname == "ReceptionManager":
+            if self.getRecord().CustCode:
+                return "{CustCode} = s|%s|" % self.getRecord().CustCode
+        elif fieldname == "PayTerm":
+            from PayTerm import PayTerm
+            return "({OperationType} IS NULL OR {OperationType} IN (i|%i|, i|%i|))" % (PayTerm.ALL_OPERATIONS,PayTerm.SALES)
+        return ParentSalesOrderWindow.filterPasteWindow(self,fieldname)
+
+    def filterPasteWindowRow(self, detailfieldname, rowfieldname,rownr):
+        record = self.getRecord()
+        filterquery = " (UseType = i|0| OR UseType = i|1| OR UseType IS NULL ) "
+        if detailfieldname in ("Items"):
+            if rowfieldname == "ArtCode":
+                return filterquery
+        if detailfieldname in ("Reserves"):
+            if rowfieldname == "ArtCode":
+                if len(record.Items):
+                    return  filterquery + " AND {Code} IN (%s) " % ",".join(map(lambda item: "'%s'" % item.ArtCode, record.Items))
+        return ParentSalesOrderWindow.filterPasteWindowRow(self,detailfieldname, rowfieldname, rownr)
+
+    def showSalesOrderStatusReport(self):
+        from SalesOrderStatusReport import SalesOrderStatusReport
+        report = SalesOrderStatusReport()
+        report.getRecord().SalesOrderNr = self.getRecord().SerNr
+        report.open(False)
+
+    def buttonClicked(self, buttonname):
+        ParentSalesOrderWindow.buttonClicked(self, buttonname)
+        record = self.getRecord()
+        if buttonname == "ShowItemSearchReport":
+            from SalesOrder import SalesOrderItemRow 
+            self.showItemSearchReport(SalesOrderItemRow)
+        elif buttonname == "CopyValue":
+            self.getRecord().AmountReceived = self.getRecord().CashAmount
+            self.getRecord().pasteAmountReceived()
+        elif (buttonname == "createNewAddress"):
+            from CompanyAddress import CompanyAddress
+            da = CompanyAddress()
+            da.EntityType = 0
+            da.Entity = record.CustCode
+            da.pasteEntity()
+            da.openInWindow()
+
+    def showItemStatusReport(self):
+        fn = self.currentField()
+        if fn == "Items":
+            matrixname = self.currentMatrixName()
+            if matrixname:
+                rownr = self.currentRow(matrixname)
+                if rownr >= 0:
+                    artcode = self.getRecord().Items[rownr].ArtCode
+                    if artcode:
+                        from ItemStatusReport import ItemStatusReport
+                        report = ItemStatusReport()
+                        report.getRecord().ArtCode = artcode
+                        report.open(False)
+
+    #           Fue a Sales Transaction
+    #def showItemSearchReport(self):
+    #    from Report import Report
+    #    from ItemSearchReport import ItemSearchReport
+    #    report = ItemSearchReport()
+    #    report.getRecord().Name = self.getRecord().ArtCodeName
+    #    report.getRecord().StockDepo = self.getRecord().StockDepo
+    #    report.getRecord().UseType = 0
+    #    report.setView(self.getReportView("ItemSearchView"))
+    #    report.record = self.getRecord()
+    #    report.window = self
+    #    report.itemclass = SalesOrderItemRow
+    #    report.open(False)
+
+
+    @checkTransactionForAction
+    def genReturnCustomer(self):
+        rc = self.getRecord().genReturnCustomer()
+        if rc:
+            rc.openInWindow()
+        else:
+            message(rc)
+        return rc
+
+    def updateReserveStatus(self):
+        record = self.getRecord()
+        rownr = self.currentRow("Reserves")
+        currow = record.Reserves[rownr]
+        self.showReserveStatusReport(currow.ArtCode)
+
+    def genDownPaymentInvoice(self):
+        so = self.getRecord()
+        if (so.Closed):
+            message("SALESORDERCLOSED")
+            return False
+        if so.isModified():
+          message(tr("You need to save the current record first!"))
+          return
+        inv = so.genDownPaymentInvoice()
+        if inv:
+            if inv.Items.count() > 0:
+                from InvoiceWindow import InvoiceWindow
+                invw = InvoiceWindow()
+                invw.setRecord(inv)
+                invw.open()
+        else:
+            message(inv)
+            return None
+        return inv
+
+    def genCreditNoteFromCustReturn(self):
+        record = self.getRecord()
+        if record.isNew() or record.isModified():
+            message("REGISTERNOTSAVED")
+        elif not record.confirmed():
+            message(tr("ONLYALLOWED4APPROVEDTRANS"))
+        else:
+            creditnote = record.genCreditNoteCustReturn()
+            if not creditnote:
+               message(creditnote)
+            elif not creditnote.Items.count():
+               message(tr("No items to invoice"))
+            else:
+                creditnote.openInWindow()
+
+    def reserveAll(self):
+        self.getRecord().genAutomaticReserve()
+        
+    def genDownPayment(self):
+        res = self.getRecord().genDownPayment()
+        if res:
+            res.openInWindow()
+        else:
+            message(res)

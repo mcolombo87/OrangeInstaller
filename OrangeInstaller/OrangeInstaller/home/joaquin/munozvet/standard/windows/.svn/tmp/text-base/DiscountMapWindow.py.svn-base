@@ -1,0 +1,16 @@
+#encoding: utf-8
+from OpenOrange import *
+
+ParentDiscountMapWindow = SuperClass("DiscountMapWindow","MasterWindow",__file__)
+class DiscountMapWindow(ParentDiscountMapWindow):
+    
+    def getPasteWindowNameRow(self,fieldname,rowfieldname,rownr):
+        record = self.getRecord()
+        if (fieldname == "DiscountMapRows"):
+            row = record.DiscountMapRows[rownr]
+            if(rowfieldname == "ItemGroup"):
+                if (row.Type == 0):
+                    return "ItemGroupPasteWindow"
+                else:
+                    return "ItemPasteWindow"
+        return ParentDiscountMapWindow.getPasteWindowNameRow(self,fieldname,rowfieldname,rownr)

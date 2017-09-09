@@ -1,0 +1,19 @@
+#encoding: utf-8
+from OpenOrange import *
+
+ParentWindow = SuperClass("PromotionPlanCombinationWindow","Window",__file__)
+class PromotionPlanCombinationWindow(ParentWindow):
+
+    def afterEditRow(self, fieldname, rowfieldname, rownr):
+        ParentWindow.afterEditRow(self, fieldname, rowfieldname, rownr)
+        record = self.getRecord()
+        if fieldname == "Items":
+            if rowfieldname == "ArtCode":
+                record.Items[rownr].pasteArtCode()
+
+    def buttonClicked(self, buttonname):
+        record = self.getRecord()
+        if buttonname == "pasteItemGroup":
+            record.pasteItemGroup(record.ItemGroup)
+        else:
+            ParentWindow.buttonClicked(self, buttonname)

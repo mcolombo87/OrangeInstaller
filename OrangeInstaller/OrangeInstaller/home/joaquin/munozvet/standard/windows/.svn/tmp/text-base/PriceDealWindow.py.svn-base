@@ -1,0 +1,64 @@
+#encoding: utf-8
+from OpenOrange import *
+
+ParentPriceDealWindow = SuperClass("PriceDealWindow","MasterWindow",__file__)
+class PriceDealWindow(ParentPriceDealWindow):    
+
+    def filterPasteWindowRow(self, fieldname,rowfieldname,rownr):
+        if fieldname == "PriceDealRows" and rowfieldname=="PriceList":
+            if self.getRecord().InclVAT:
+                return "{InclVAT} = i|%i| " % self.getRecord().InclVAT
+
+    def genPriceListPrices(self):
+        record = self.getRecord()
+        updPD = []
+        if (self.currentField() == "PriceDealRows"):
+            rownr = self.currentRow("PriceDealRows")
+            pdr = record.PriceDealRows[rownr]
+            if (pdr.PriceList):
+                updPD.append(pdr.PriceList)
+        else:
+            updPDToSel = {}
+            for pdrow in record.PriceDealRows:
+                if not pdrow.fields("FromDate").isNone() and not pdrow.fields("ToDate").isNone():
+                    if not updPDToSel.has_key(pdrow.PriceList) or \
+                    ( updPDToSel.has_key(pdrow.PriceList) and pdrow.FromDate > updPDToSel[pdrow.PriceList]["FromDate"]):
+                        updPDToSel[pdrow.PriceList] = {}
+                        updPDToSel[pdrow.PriceList]["Desc"] = "%s %s %s %s" % (pdrow.PriceList, pdrow.FromDate.strftime("%d/%m%Y"), "To", pdrow.ToDate.strftime("%d/%m%Y"))
+                        updPDToSel[pdrow.PriceList]["FromDate"] = pdrow.FromDate
+                else:
+                    if not updPDToSel.has_key(pdrow.PriceList):
+                        updPDToSel[pdrow.PriceList] = {}
+                        updPDToSel[pdrow.PriceList]["Desc"] = "%s " % (pdrow.PriceList)
+                        updPDToSel[pdrow.PriceList]["FromDate"] = ""
+            
+            listofoption = map(lambda x: updPDToSel[x]["Desc"], updPDToSel.keys())
+            listofoption.append("All ")
+            selection = getSelection("Select Price Deal to Genrate", tuple(listofoption))
+            
+            if selection.split(" ")[0] != "All":
+                updPD.append(selection.split(" ")[0])
+            else:
+                for pl in updPDToSel.keys():
+                    updPD.append(pl)
+        for plist in updPD:
+            from UpdatePrices import UpdatePrices
+            uprices = UpdatePrices()
+            uprices.routineFromAction = True
+            urecord = uprices.getRecord()
+            urecord.PriceList = plist
+            uprices.run()
+            message(tr("%s" % plist, "Ready!"))
+
+
+    def showPrices(self):
+        record = self.getRecord()
+        from PricesReport import PricesReport
+        report = PricesReport()
+        report.defaults()
+        specs = report.getRecord()
+        specs.Detail = 3
+        specs.PriceDeal = record.Code
+        report.open(False)
+
+   

@@ -1,0 +1,150 @@
+#encoding: utf-8
+from OpenOrange import *
+import ListViewItem
+from GlobalTools import *
+
+__author__ = 'PDB'
+
+class SearchItem(ListViewItem.ListViewItem):
+
+    def keyPressed(self, text, state):
+        if text in ("ENTER", "RETURN"): self.selected()
+        elif text == "ESCAPE":
+            self.window.setNoModAndNew()
+            self.window.close()
+        elif text == "BACKSPACE":
+            self.window.getRecord().setFocusOnField("Data")
+
+    def selected(self):
+        self.window.setNoModAndNew()
+        self.originrow.ArtCode = self.id
+        #Comento la siguiente linea. Con el afterEditRow de la siguiente ya se ejecuta el paste
+        #self.originrow.pasteArtCode(self.originwindow.getRecord())
+        self.originwindow.afterEditRow(self.originfieldname, "ArtCode", self.originrow.rowNr)
+        self.window.close()
+        self.originwindow.setFocus()
+        self.originwindow.getRecord().setFocusOnField(self.originfieldname, "Qty", self.originrow.rowNr)
+
+ParentItemDataSearchWindow = SuperClass("ItemDataSearchWindow","DataSearchWindow",__file__)
+class ItemDataSearchWindow(ParentItemDataSearchWindow):
+    CharsMap = {'a': (u'á',u'Á'), 'e': (u'é',u'É'), 'i': (u'í', u'Í'), 'o': (u'ó', u'Ó'), 'u': (u'ú',u'Ú'), 'n': (u'ñ',u'Ñ')}
+
+    def afterShowRecord(self):
+        ParentItemDataSearchWindow.afterShowRecord(self)
+        listview = self.getListView("ResultView")
+        listview.setColumns((tr("Code"),tr("Entry/Data")))
+        self.getRecord().setFocusOnField("Data")
+        self.getRecord().Data = ""
+        self.search("")
+        record = self.getRecord()
+        self.setNoModAndNew()
+
+    def setNoModAndNew(self):
+        self.getRecord().setNew(False)
+        self.getRecord().setModified(False)
+
+    def beforeEdit(self, fieldname):
+        res = ParentItemDataSearchWindow.beforeEdit(self, fieldname)
+        self.oldstatus_modified = self.getRecord().isModified()
+        return res
+
+    def afterEdit(self, fieldname):
+        res = ParentItemDataSearchWindow.afterEdit(self, fieldname)
+        if fieldname == "Data":
+            self.getRecord().setModified(False)
+        return res
+
+    def getTitle(self):
+        return tr("Item Search")
+
+    def getSearchableRecords(self):
+        return ["Item"]
+
+    def getSearchFields(self, recordname):
+        d = {}
+        d["Item"]= ["Name"]
+        return d[recordname]
+
+    def searchModuleEntry(self, data):
+        def match(d, v):
+            d = self.replaceChars(d)
+            vs = [x.strip() for x in v.split(" ") if x]
+            for vv in vs:
+                if d.find(vv) < 0: return False
+            return True
+        listview = self.getListView("ResultView")
+        data = data.lower()
+        record = self.getRecord()
+        fgcolor = record.getRecordsFGColor()
+        bgcolor = record.getRecordsBGColor()
+                  
+        #item = SearchItem(listview)
+        #item.type = "RecordEntry"
+        #item.name = "ItemListWindow"
+        #item.setText((">"+m["Label"],entry["Label"]))
+        #item.setText(("Item",""))
+        #item.setText(("Item",data))
+        #item.window = self
+        #item.setFGColor(fgcolor)
+        #item.setBGColor(bgcolor)
+
+    def searchTable(self, data, recordname, fields, fgcolor, bgcolor):
+        listview = self.getListView("ResultView")
+        data = data.lower()
+        tokens = [t.strip() for t in data.split(" ") if t.strip()]
+        fields = [fn.strip() for fn in fields.split(",") if fn.strip()]
+        wheres = []
+        additionalfields = ""
+        for t in tokens:
+            ws = []
+            for fn in fields:
+                fns = fn.split(".")
+                if len(fns) == 1:
+                    ws.append("{%s} LIKE s|%%%s%%|" % (fn, t))
+                elif len(fns) == 2: #detalle
+                    drn = self.getRecordsInfo()[recordname]["Details"][fns[0]]["RecordName"]
+                    ws.append("EXISTS (SELECT * FROM [%s] rr WHERE rr.masterId = r.internalId AND {%s} LIKE s|%%%s%%|)" % (drn, fns[1], t))
+            wheres.append('(' + ' OR '.join(ws) + ')')
+        if not wheres: return
+        where = ' AND '.join(wheres)
+        for fn in fields:
+            fns = fn.split(".")
+            if len(fns) == 2:
+                drn = self.getRecordsInfo()[recordname]["Details"][fns[0]]["RecordName"]
+                ws = []
+                for t in tokens:
+                    ws.append("(rr.{%s} LIKE s|%%%s%%|)" % (fns[1], t))
+                wwhere = '(' + ' OR '.join(ws) + ')'
+                additionalfields += ",(SELECT GROUP_CONCAT(rr.{%s} SEPARATOR '\\n---\\n') FROM [%s] rr WHERE rr.masterId = r.internalId AND %s) as {%s_%s}" % (fns[1], drn, wwhere, fns[0], fns[1])
+        q = Query()
+        q.sql = "SELECT r.* %s FROM [%s] r WHERE %s AND IFNULL({Closed}, i|0|) = i|0|  LIMIT 100" % (additionalfields, recordname, where)
+        q.setResultClass(NewRecord(recordname).__class__)
+        if q.open():
+            for rec in q:
+                item = SearchItem(listview)
+                item.type = "Record"
+                item.originrow = self.originrow
+                item.originwindow = self.originwindow
+                item.originfieldname = self.originfieldname
+                item.id = rec.getPortableId()
+                item.recordname = recordname
+                info = []
+                for fn in fields:
+                    fns = fn.split(".")
+                    if len(fns) == 1:
+                        v = rec.fields(fn).getValue()
+                        info.append(tr(fn) + ": %s" % v)
+                    elif len(fns) == 2:
+                        v = rec.fields("%s_%s" % (fns[0], fns[1])).getValue()
+                        info.append(".".join([tr(fn) for fn in fns]) + ": %s" % v)
+                info = '\n'.join(info)
+                item.setText((rec.__str__(), info))
+                item.window = self
+                item.setFGColor(fgcolor)
+                item.setBGColor(bgcolor)
+
+    def openSettings(self):
+        from ItemDataSearchSettingsWindow import ItemDataSearchSettingsWindow
+        w = ItemDataSearchSettingsWindow()
+        w.setRecord(self.getRecord())
+        w.open()

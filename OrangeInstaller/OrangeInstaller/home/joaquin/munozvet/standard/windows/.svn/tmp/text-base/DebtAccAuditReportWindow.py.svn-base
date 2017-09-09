@@ -1,0 +1,16 @@
+#encoding: utf-8
+from OpenOrange import *
+
+ParentDebtAccAuditReportWindow = SuperClass("DebtAccAuditReportWindow","Window",__file__)
+class DebtAccAuditReportWindow(ParentDebtAccAuditReportWindow):
+
+
+    def getPasteWindowName(self,fieldName):
+        record = self.getRecord()
+        if fieldName == "Entity":
+            if (record.Module == 0):
+                return "CustomerPasteWindow"
+            elif (record.Module == 1):
+                return "SupplierPasteWindow"
+            elif (record.Module == 2):
+                return "CustomerPasteWindow"

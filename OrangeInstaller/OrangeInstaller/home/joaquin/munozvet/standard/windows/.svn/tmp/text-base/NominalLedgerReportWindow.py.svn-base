@@ -1,0 +1,38 @@
+from OpenOrange import *
+
+ParentNominalLedgerReportWindow = SuperClass("NominalLedgerReportWindow","ReportWindow",__file__)
+class NominalLedgerReportWindow(ParentNominalLedgerReportWindow):
+
+    def afterEdit(self,fieldname):
+        report = self.getRecord()
+        if (fieldname == "UncheckAllFilters"):
+          if report.UncheckAllFilters:
+            report.IncludeNLT = False
+            report.IncludeInvoice = False
+            report.IncludeReceipt = False
+            report.IncludePurchaseInvoice = False
+            report.IncludePayment = False
+            report.IncludeCashOut = False
+            report.IncludeCouponCons = False
+            report.IncludeCashIn = False
+            report.IncludeGoodsReceipt = False
+            report.IncludeDelivery = False
+            report.IncludeStockDepreciation = False
+            report.IncludeStockTransformation = False
+            report.IncludeDeposit = False
+            report.IncludeExpenses = False
+            report.IncludeCloseNLTYear = False
+            report.IncludeAccreditation = False
+            report.IncludeChequeBounce = False
+            report.IncludeBankReceipt = False
+            report.IncludeBankPayment = False
+            report.IncludeReturnCustomer = False
+            report.IncludeReturnSupplier = False
+            report.IncludeLetterTrans = False
+            report.IncludeOwnChequeBounce = False
+            report.IncludeDeferral = False
+            report.IncludeMoneyExchange = False
+            report.IncludeBarTab = False
+            report.IncludeBankExtractReader = False
+
+                

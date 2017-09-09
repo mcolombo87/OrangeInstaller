@@ -1,0 +1,37 @@
+#encoding: utf-8
+from OpenOrange import *
+from Inquiry import Inquiry
+
+ParentInquiryWindow = SuperClass("InquiryWindow", "MasterWindow", __file__)
+class InquiryWindow(ParentInquiryWindow):
+    
+    def buttonClicked(self, buttonname):
+        ParentInquiryWindow.buttonClicked(self, buttonname)
+        if buttonname == "openBrowser":
+            self.openBrowser()
+
+    def openBrowser(self):
+        record = self.getRecord()
+        if not record.PersonCode and not record.WithoutPersonAssigned:
+            message("Debe indicar un código de persona")
+            return 
+        from webbrowser import open_new
+        if record.WithoutPersonAssigned:
+          link = record.getLink("addPerson")
+        else:
+          link = record.getLink()
+        if link:
+            open_new(link)
+
+    def runInquiry(self):
+        from InquiryList import InquiryList
+        record = self.getRecord()
+        personcode = record.PersonCode
+        if not personcode:
+            from User import User
+            person = User.bring(currentUser()).getPersonRecord()
+            if person: personcode = person.Code
+        report = InquiryList()
+        report.getRecord().Inquiry = record.Code
+        report.getRecord().PersonCode = personcode
+        report.open(False)

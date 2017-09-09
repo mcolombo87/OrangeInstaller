@@ -1,0 +1,552 @@
+#encoding: utf-8
+from OpenOrange import *
+from TranslationWizard import *
+import sys
+import codecs
+import os
+
+ParentTranslationWizardWindow = SuperClass("TranslationWizardWindow","Window",__file__)
+class TranslationWizardWindow(ParentTranslationWizardWindow):
+    glang = {}
+    ISO = "iso-8859-15"
+    UTF8 = "utf-8"
+    DefaultEncoding = UTF8
+
+    def afterShowRecord(self):
+        record = self.getRecord()
+        self.getStandardLanguages()
+        self.checkBackups()
+        self.readStandardLanguages()
+        langlist = []
+        for lrow in record.Languages:
+            lname = "%s : %s" %(lrow.Code,lrow.Name)
+            langlist.append(lname)
+        langlist.sort()
+        langlist.append("** : Todos")
+        if (not getLanguage()):
+            res = getSelection("Seleccione el idioma para trabajar en esta sesión?", tuple(langlist))
+            lcode,lname = res.split(" : ")
+        else:
+            lcode = getLanguage()
+        self.activateLanguage(lcode)
+
+    def checkBackups(self):
+        res = self.existBackups()
+        if (res):
+            res = getSelection("Existen archivos backup de traducciones \n anteriores desea restablecer los archivos?", ("No", "Si"))
+            if (res == "Si"):
+                self.readBackupLanguages()
+                return
+            else:
+                self.removeBackupLanguages()
+
+    def activateLanguage(self, lcode):
+        record = self.getRecord()
+        for lrow in record.Languages:
+            if (lcode == "**"):
+                lrow.Enabled = True
+            else:
+                if (lrow.Code == lcode):
+                    lrow.Enabled = True
+                    break
+
+    def afterEdit(self, fieldname):
+        record = self.getRecord()
+        if (fieldname == "Text"):
+            if (record.Text and not record.Filter):
+                record.Filter = "key"
+        elif (fieldname == "LanguagePath"):
+            TranslationWizardWindow.glang = {}
+            self.getStandardLanguages()
+            self.checkBackups()
+            self.readStandardLanguages()
+        elif (fieldname == "Editing"):
+            if (record.Editing):
+                if (self.existglang(self.getRecord().Editing)):
+                    self.editKey(self.getRecord().Editing)
+                else:
+                    self.editKey(self.getRecord().Editing,"add")
+
+    def beforeEditRow(self, fname, rfname, rownr):
+        res = ParentTranslationWizardWindow.beforeEditRow(self, fname, rfname, rownr)
+        record = self.getRecord()
+        if (fname == "FileStatus"):
+            row = record.FileStatus[rownr]
+            import codecs
+            file_obj = codecs.open(row.FullPath,"r")
+            record.FileLine = "%s" %(file_obj.readlines()[row.LineNr])
+            self.FileFullPath = row.FullPath
+            self.FileLineNr = row.LineNr
+            record.setFocusOnField("FileLine")
+        return res
+        
+    def afterEditRow(self, fieldname, rowfieldname, rownr):
+        ParentTranslationWizardWindow.afterEditRow(self, fieldname, rowfieldname, rownr)
+        record = self.getRecord()
+
+        if (fieldname == "Languages"):
+            record = self.getRecord()
+            if (rowfieldname == "Coding"):
+                lrow = record.Languages[rownr]
+                if (not os.path.exists("%s" %(lrow.Path))):
+                    res = askYesNo("¿Archivo inexistente, desea crearlo?")
+                    if (res == 1):
+                        glang = {}
+                        glang["First Example"] = {}
+                        glang["First Example"][lrow.Code] = "Primer Ejemplo"
+                        glang["Second Example"] = {}
+                        glang["Second Example"][lrow.Code] = "Segundo Ejemplo"
+                        res = self.generateLangFile(lrow.Path, lrow.Coding, lrow.Code, lrow.Name, glang)
+                        if (res):
+                            message("File Created Successfully")
+
+    def readStandardLanguages(self):
+        self.readLanguageFile("es")
+        record = self.getRecord()
+        for fline in record.Languages:
+            if (fline.Code <> "es"):
+                self.readLanguageFile(fline.Code)
+
+    def readBackupLanguages(self):
+        self.readBackupFile("es")
+        record = self.getRecord()
+        for fline in record.Languages:
+            self.readBackupFile(fline.Code)
+
+    def existBackups(self):
+        record = self.getRecord()
+        res = False
+        for langs in record.Languages:
+            fname = self.getBackupFile(langs.Code)
+            fullpath = "%s/%s" %(record.LanguagePath,fname)
+            res = os.path.exists(fullpath)
+            if (res):
+                return res
+        return res
+
+    def removeBackupLanguages(self):
+        record = self.getRecord()
+        for lrow in record.Languages:
+            bname = self.getBackupFile(lrow.Code)
+            fullpath = "%s/%s" %(record.LanguagePath,bname)
+            pycfile = bname.replace(".bak",".pyc")
+            if (os.path.exists(fullpath)):
+                os.remove(fullpath)
+            if (os.path.exists(pycfile)):
+                os.remove(pycfile)
+
+    @classmethod
+    def getglang(self):
+        return TranslationWizardWindow.glang
+
+    @classmethod
+    def existglang(self, key):
+        if (TranslationWizardWindow.glang.has_key(key)):
+            return True
+        return False
+
+    @classmethod
+    def getglangtext(self, key, lang):
+        if (TranslationWizardWindow.glang.has_key(key)):
+            return TranslationWizardWindow.glang[key][lang]
+        return False
+    
+    @classmethod
+    def setglangtext(self, key, lang, text):
+        if (not TranslationWizardWindow.glang.has_key(key)):
+            TranslationWizardWindow.glang[key] = {}
+        TranslationWizardWindow.glang[key][lang] = utf8(text)
+        return True
+
+    @classmethod
+    def removeglangtext(self, key):
+        if (TranslationWizardWindow.glang.has_key(key)):
+            del TranslationWizardWindow.glang[key]
+        return True
+
+    def buttonClicked(self, buttonname):
+        record = self.getRecord()
+        if (self.checkIfModulesRealoaded()):
+            return 
+        if (buttonname == "loadLanguages"):
+            record = self.getRecord()
+            rv = self.getReportView("Context")
+            from TranslationWizardReport import TranslationWizardReport
+            report = TranslationWizardReport()
+            report.setView(rv)
+            report.LinkedWindow = self
+            report.open(False)
+        elif (buttonname == "save"):
+            if (record.Editing):
+                if (self.existglang(record.Editing) and record.action <> "modify"):
+                    message("La clave %s ya existe." %record.Editing)
+                else:
+                    if (record.Editing):
+                        for erow in record.Edits:
+                            self.setglangtext(record.Editing,erow.Code,erow.Text)
+                        record.action = ""
+                        record.Editing = None
+                        record.Edits.clear()
+                        if (record.refreshalways):
+                            self.buttonClicked("loadLanguages")
+                glang = self.getglang()
+                for each in record.Languages:
+                    if (each.Enabled):
+                        filename = "%s/lang_%s.bak" %(record.LanguagePath,each.Code)
+                        res = self.generateLangFile(filename, each.Coding, each.Code, each.Name, glang)
+                        if (res):
+                            postMessage("Se han creado archivos .bak de su traducción")
+                        else:
+                            message(res)
+        elif (buttonname == "remove"):
+            if (record.Editing):
+                self.removeglangtext(record.Editing)
+                record.Editing = ""
+                record.Edits.clear()
+                if (record.refreshalways):
+                    self.buttonClicked("loadLanguages")
+        elif (buttonname == "cancel"):
+            record.Edits.clear()
+            record.Editing = ""
+            record.action = ""
+        elif (buttonname == "createLanguagesFiles"):
+            glang = self.getglang()
+            for each in record.Languages:
+                if (each.Enabled):
+
+                    filename = "%s/lang_%s.py" %(record.LanguagePath,each.Code)
+                    res = self.generateLangFile(filename, each.Coding, each.Code, each.Name, glang)
+                    if (not res):
+                        message(res)
+                    else:
+                        postMessage("Archivo lang_%s.py creado " %each.Code,500,500)
+                        if (os.path.exists("%s/lang_%s.bak" %(record.LanguagePath,each.Code))):
+                            os.remove("%s/lang_%s.bak" %(record.LanguagePath,each.Code))
+                        if (os.path.exists("%s/lang_%s.pyc" %(record.LanguagePath,each.Code))):
+                            os.remove("%s/lang_%s.pyc" %(record.LanguagePath,each.Code))
+            message("Archivos de lenguajes generados")
+        elif (buttonname == "useGoogleTranslator"):
+            record = self.getRecord()
+            from GoogleSuggestTranslation import GoogleSuggestTranslation
+            gst = GoogleSuggestTranslation()
+            gst.getRecord().Text = record.Editing
+            gst.parentWindow = self
+            gst.open(False)
+        elif (buttonname == "checkTranslationStatus"):
+            record = self.getRecord()
+            record.FileStatus.clear()
+            record.FileLine = None
+            self.fillTranslationStatus()
+        elif (buttonname == "translateWord"):
+             pass
+        elif (buttonname == "changeFileLine"):
+            read_file_obj = codecs.open(self.FileFullPath,"r",self.DefaultEncoding)
+            lines_to_read = read_file_obj.readlines()
+            lines_to_write = []
+            for line_nr in range(0,len(lines_to_read)):
+                if (line_nr != self.FileLineNr):
+                    lines_to_write.append("%s" %(lines_to_read[line_nr]))
+                else:
+                    lines_to_write.append("%s" %(self.getRecord().FileLine))
+            read_file_obj.close()
+
+            write_file_obj = codecs.open(self.FileFullPath,"w",self.DefaultEncoding)
+            write_file_obj.writelines(lines_to_write)
+            write_file_obj.flush()
+            write_file_obj.close()
+            self.getRecord().FileLine = None
+            self.FileLine = None
+            self.FileLineNr = None
+            self.FileFullPath = None
+        elif (buttonname == "searchDictionaries"):
+            dlist = DictionaryListReport()
+            dlist.setView(self.getReportView("DictionaryListView"))
+            dlist.ParentWindow = self
+            dlist.open(False)
+
+    def generateLangFile(self, filename, coding, langcode, langname, glang):
+        try:
+            finaldict = []
+            for rline in glang.keys():
+                finaldict.append(rline)
+            finaldict.sort()
+            fout = codecs.open(filename,"w",coding)
+            coding = fout.encoding
+            fout.write("#coding: %s\n" %(coding))
+            fout.write("#LanguageName=%s\n" %(langname))
+            fout.write("lang_dict = {\n")
+            line = 0
+            for rline in finaldict:
+                line += 1
+                term = rline
+                meaning = glang[rline].get(langcode,"")
+                wstring = '"%s":"%s"' %(utf8(term),utf8(meaning))
+                if (line != len(finaldict)):
+                    wstring += "," 
+                wstring += "\n"
+                fout.write(wstring)
+            fout.write('}')
+            fout.flush()
+            fout.close()
+        except Exception, e:
+            return ErrorResponse(e)
+        return True
+
+    def checkIfModulesRealoaded(self):
+        res = False
+        record = self.getRecord()
+        glang = self.getglang()
+        if (len(glang.keys()) == 0):
+            curlist = []
+            for lrow in record.Languages:
+                if (lrow.Enabled):
+                    curlist.append(lrow.Code)
+            message("Aparentemente se recargaron los modulos, se volverán a leer los archivos de lenguaje")
+            self.getStandardLanguages()
+            self.readStandardLanguages()
+            for lrow in record.Languages:
+                if (lrow.Code in curlist):
+                    lrow.Enabled = True
+            res = True
+        return res
+
+    def getStandardLanguages(self):
+        from TranslationWizard import TranslationWizard,TranslationWizardLanguageRow
+
+        record = self.getRecord()
+        if (not record.LanguagePath):
+            record.LanguagePath = "./languages"
+        record.Languages.clear()
+        record.Edits.clear()
+        
+        for filename in sorted(os.listdir(record.LanguagePath)):
+            if (filename.startswith("lang_")  and filename.endswith(".py")):
+                lcode = filename.split(".")[0].replace("lang_","")
+                lrow = TranslationWizardLanguageRow()
+                lrow.Code = lcode
+                lrow.FileName = filename
+                lrow.Path = "%s/%s" %(record.LanguagePath,filename) 
+                lrow.Enabled = False
+                try:
+                    fobj = codecs.open(lrow.Path,"r",self.DefaultEncoding)
+                    folines = fobj.readlines()
+                    if ("#LanguageName" in folines[1]):
+                        lrow.Name = folines[1].split("=")[1].replace("\n","")
+                    lrow.Coding = fobj.encoding
+                except Exception,e :
+                    sysprint("%s,%s" %(lrow.Path,e))
+                record.Languages.append(lrow)
+
+        if (record.Languages.count() == 1):
+            record.Languages[0].Enabled = True
+
+    def readLanguageFile(self, langcode):
+        import re
+        record = self.getRecord()
+        fname = "%s/%s" %(record.LanguagePath,self.getLanguageFile(langcode))
+        #langfile = open(fname,"r")
+        llist = []
+        llist = self.loadLangFile(fname)
+        
+        #self.setLanguageName(langcode,lname)
+        
+        for fline in llist:
+            term = fline[0]
+            meaning = fline[1]
+
+            if (langcode == "es"):
+                TranslationWizardWindow.glang[term] = {}
+                TranslationWizardWindow.glang[term][langcode] = meaning
+            else:
+                if (TranslationWizardWindow.glang.has_key(term)):
+                    TranslationWizardWindow.glang[term][langcode] = meaning
+        return
+
+    def loadLangFile(self, filename):
+        import re
+        langfile = codecs.open(filename,"r")
+        coding = langfile.encoding
+        llist = []
+        lname = ""
+        rlines = langfile.readlines()
+        for fline in rlines:
+            if (':' in fline):
+                regexp = '[\"|\']?(.*)[\"|\'] *: *[\"|\']?(.*)[\"|\']'
+                mstring = re.search(regexp,fline)
+                if (mstring):
+                    term = mstring.groups()[0]
+                    meaning = mstring.groups()[1]
+                    #if (not meaning):
+                    #    meaning = term
+                    llist.append((term,meaning))
+            #if ("#LanguageName=" in fline):
+            #    lname = fline.split("=")[1].strip()
+        return llist
+
+    def readBackupFile(self, langcode):
+        record = self.getRecord()
+        fname = "%s/%s" %(record.LanguagePath,self.getBackupFile(langcode))
+        if (os.path.exists(fname)):
+            llist = []
+            llist = self.loadLangFile(fname)
+            
+            for fline in llist:
+                term = fline[0]
+                meaning = fline[1]
+
+                if (langcode == "es"):
+                    TranslationWizardWindow.glang[term] = {}
+                    TranslationWizardWindow.glang[term][langcode] = meaning
+                else:
+                    if (TranslationWizardWindow.glang.has_key(term)):
+                        TranslationWizardWindow.glang[term][langcode] = meaning
+        return
+
+    def getLanguageFile(self, fcode):
+        record = self.getRecord()
+        for lline in record.Languages:
+            if (lline.Code == fcode):
+                return lline.FileName
+        return ""
+
+    def getBackupFile(self, fcode):
+        record = self.getRecord()
+        for lline in record.Languages:
+            if (lline.Code == fcode):
+                fname = lline.FileName
+                fname = fname.replace('.py','.bak')
+                return fname
+        return ""
+
+    def checkIfEnabled(self, fcode):
+        record = self.getRecord()
+        for lline in record.Languages:
+            if (lline.Code == fcode):
+                return lline.Enabled
+        return False
+
+    def beforeInsertRow(self, detailname, rownr):
+        res = ParentTranslationWizardWindow.beforeInsertRow(self, detailname, rownr)
+        if (not res): return res
+        if (detailname == "Edits"):
+            res = False
+        return res
+
+    def beforeDeleteRow(self, detailname, rownr):
+        res = ParentTranslationWizardWindow.beforeDeleteRow(self, detailname, rownr)
+        if (not res): return res
+        if (detailname == "Edits"):
+            res = False
+        return res
+
+    def editKey(self, keystring, action="modify"):
+        record = self.getRecord()
+        record.Edits.clear()
+        for lang in record.Languages:
+            if (lang.Enabled):
+                editrow = TranslationWizardEditRow()
+                editrow.Code = lang.Code
+                editrow.Name = lang.Name
+                if (not lang.Name):
+                    editrow.Name = lang.Code
+                if (keystring in TranslationWizardWindow.glang.keys()):
+                    editrow.Text = utf8(TranslationWizardWindow.glang[keystring].get(lang.Code,""))
+                record.Edits.append(editrow)
+        record.Editing = keystring
+        record.action = action
+
+    def fillPasteWindow(self, pastewindowname, fieldname):
+        if (pastewindowname == "LanguagePathPasteWindow"):
+            vlist = []
+            for root, dirs, files in os.walk("./"):
+                for fline in files:
+                    if (fline[:5] == "lang_" and fline[-3:]==".py"):
+                        vlist.append(root)
+            lquery = Query()
+            counter = 0
+            for rline in sorted(vlist):
+                if (counter > 0):
+                    lquery.sql += "UNION "
+                lquery.sql += "SELECT REPEAT(s|%s|,1) as Code " %rline
+                counter += 1
+            if (lquery.open()):
+                return lquery
+
+    def fillTranslationStatus(self):
+        import os
+        path_list = []
+        path_list.append("./base/interface/")
+        path_list.append("./standard/interface/")
+
+        for path in path_list:
+            for file_name in sorted(os.listdir(path)):
+                if (not self.isValidFile(file_name)):
+                    continue
+                file_obj = codecs.open(path+file_name,"r","utf-8")
+                if (file_obj):
+                    self.addFileStatus(file_obj, path, file_name)
+
+    def addFileStatus(self, file_obj, path, file_name):
+        from TranslationWizard import TranslationWizardFileStatusRow
+        record = self.getRecord()
+        import re
+        from languages.lang_es import *
+        lang_dict_lower = {}
+        for ld in lang_dict:
+            lang_dict_lower[ld.lower()] = ld
+        re_list = []
+        re_list.append("\<.*label=[\'|\"]([a-zA-Z0-9%]+)[\'|\"].*\/\>")
+        header_printed = False
+        self.edit_data = {}
+        
+        file_line_nr = 0
+        import cPickle
+        for file_line in file_obj:
+            for re_exp in re_list:
+                re_obj = re.search(re_exp,file_line)
+                if (re_obj):
+                    label_found = re_obj.groups()[0]
+                    if (label_found not in lang_dict.keys()):
+                        fsrow = TranslationWizardFileStatusRow()
+                        fsrow.FileName = file_name
+                        fsrow.Word = label_found
+                        fsrow.LineNr = file_line_nr
+                        fsrow.FullPath = "%s%s" %(path,file_name)
+                        record.FileStatus.append(fsrow)
+                file_line_nr += 1
+        
+    def isValidFile(self, file_name):
+        if (file_name.endswith(".py")):
+            return True
+        if (file_name.endswith(".xml")):
+            return True
+        return False
+
+from Report import Report
+
+class DictionaryListReport(Report):
+
+    def run(self):
+        import os
+
+        self.startTable()
+        dlist = {}
+        for path,dirs,files in os.walk(".",followlinks=True):
+            for fname in files:
+                if (fname.startswith("lang_") and fname.endswith(".py")):
+                    if (not path in dlist.keys()):
+                        dlist[path] = []
+                    dlist[path].append(fname)
+        for dic in sorted(dlist.keys()):
+            self.startRow()
+            self.addValue(dic,Underline=True,CallMethod="selectPath", Parameter="%s" %(dic))
+            self.addValue(",".join(dlist[dic]))
+            self.endRow()
+        self.endTable()
+
+    def selectPath(self, param, value):
+        window = self.ParentWindow
+        record = window.getRecord()
+        record.LanguagePath = param
+        window.afterEdit("LanguagePath")
+        record.setFocusOnField("LanguagePath")

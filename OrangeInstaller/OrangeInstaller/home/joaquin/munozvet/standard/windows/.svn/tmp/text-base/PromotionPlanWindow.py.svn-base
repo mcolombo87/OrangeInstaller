@@ -1,0 +1,15 @@
+#encoding: utf-8
+from OpenOrange import *
+
+ParentWindow = SuperClass("PromotionPlanWindow","Window",__file__)
+class PromotionPlanWindow(ParentWindow):
+
+    def getPasteWindowNameRow(self,fieldname,rowfieldname,rownr):
+        record = self.getRecord()
+        itemrow = record.details(fieldname)[rownr]
+        if fieldname == "PlanRows":
+            if itemrow.Type == 1: # COMBO
+                return "PromotionPlanComboPasteWindow"
+            else:
+                return "PromotionPlanCombinationPasteWindow"
+        return ParentWindow.getPasteWindowNameRow(self,fieldname,rowfieldname,rownr)

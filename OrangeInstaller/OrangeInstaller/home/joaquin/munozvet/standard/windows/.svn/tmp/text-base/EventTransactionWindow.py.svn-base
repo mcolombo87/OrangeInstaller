@@ -1,0 +1,80 @@
+#encoding: utf-8
+from OpenOrange import *
+
+ParentEventTransactionWindow = SuperClass("EventTransactionWindow","SalesTransactionWindow",__file__)
+class EventTransactionWindow(ParentEventTransactionWindow):
+
+    def afterEdit(self,fieldname):
+        ParentEventTransactionWindow.afterEdit(self,fieldname)
+        if (fieldname == "PersonCode"):
+            self.getRecord().pastePersonCode()
+
+    def afterEditRow(self, fieldname, rowfieldname, rownr):
+        record = self.getRecord()
+        if (fieldname == "Events"):
+            if (rowfieldname == "NextContactDate"):
+                record.DateSet = True
+                record.NextContactDate = record.Events[rownr].NextContactDate
+            if rowfieldname == "State":
+                if rownr == record.Events.count()-1:
+                    if record.Events[rownr].State:
+                        record.State = record.Events[rownr].State
+
+    def beforeEdit(self,fieldname):
+        res = ParentEventTransactionWindow.beforeEdit(self,fieldname)
+        if not res: return res  
+        record = self.getRecord()
+        if not hasattr(self,"AmountType"): return True
+        if (fieldname == "Amount"):
+            if (record.AmountType == 0):
+                return True
+            else:
+                return False
+        elif (fieldname == "MinAmount" or fieldname == "MaxAmount"):
+            if (record.AmountType == 1):
+                return True
+            else:
+                return False
+        return True
+
+    def beforeEditRow(self, fieldname, rowfieldname, rownr):
+        result = ParentEventTransactionWindow.beforeEditRow(self, fieldname, rowfieldname, rownr)
+        if not result: return result
+        if fieldname == "Events":
+            self.getRecord().fillRowDefaults(rownr)
+        return result
+
+    def beforeDeleteRow(self, detailName, rownr):
+        result = ParentEventTransactionWindow.beforeDeleteRow(self, detailName, rownr)
+        if not result: return result
+        record = self.getRecord()
+        if (detailName == "Events"):
+            row = record.details(detailName)[rownr]
+            if (rownr+1 <> record.details(detailName).count() or row.Comment):
+                result = False
+        return result
+
+    def filterPasteWindowRow(self, fieldname, rowfieldname, rownr):
+        op = self.getRecord()
+        if (fieldname == "Events" and rowfieldname == "State"):
+            if (op.Circuit):
+                from Circuit import Circuit
+                cir = Circuit.bring(op.Circuit)
+                if not cir: return
+                if (rownr > 0):
+                    nextstates = cir.getNextStates(op.Events[rownr-1].State)
+                else:
+                    nextstates = [cir.getFirstStatus(op.Circuit)]
+                if nextstates:
+                    filterspec = "{Code} IN ('%s') " % ("','".join( nextstates ))
+                else:
+                    filterspec = "{Circuit} = s|%s|" % cir.Code
+                return filterspec
+        return None
+
+
+    def newEvent(self):
+        act = ParentEventTransactionWindow.newEvent(self)
+        act.CustCode = self.getRecord().CustCode
+        act.CustName = self.getRecord().CustName
+        act.Users = self.getRecord().User

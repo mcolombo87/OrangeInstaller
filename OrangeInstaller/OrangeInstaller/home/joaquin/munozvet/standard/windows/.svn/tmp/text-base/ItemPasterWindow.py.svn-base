@@ -1,0 +1,73 @@
+#encoding: utf-8
+from OpenOrange import *
+from Report import Report
+from Classification import Classification
+import ListViewItem
+
+
+ParentItemPasterWindow = SuperClass("ItemPasterWindow","SettingWindow",__file__)
+class ItemPasterWindow(ParentItemPasterWindow):
+
+
+    def showItemSelectReport(self):
+        rec = self.getRecord()
+        rec.TransDate = today()
+        from Report import Report
+        from ItemSelectReport import ItemSelectReport
+        report = ItemSelectReport()
+        fields = ["UseType","ItemGroup","Brand","Manufacturer","Name","Classification","ItemType"]
+        for fieldname in fields:
+          setattr(report,fieldname,getattr(rec,fieldname) )
+         
+        report.setView(self.getReportView("ItemSelectView"))
+        report.record = self.getRecord()
+        report.window = self
+        from SalesOrder import SalesOrderItemRow 
+        report.itemclass = SalesOrderItemRow
+        report.open(False)
+
+    def afterEdit(self, fieldname):
+        ParentItemPasterWindow.afterEdit(self, fieldname)
+        if fieldname in ("Name","ItemGroup","Brand"):
+            self.showItemSelectReport()
+
+    def buttonClicked(self, buttonname):
+        ParentItemPasterWindow.buttonClicked(self, buttonname)
+        record = self.getRecord()
+        if buttonname == "ShowItemSelectReport":
+            from SalesOrder import SalesOrderItemRow 
+            self.showItemSelectReport()
+
+    def appendChildNodes(self, node, parent, tree):
+        if tree.has_key(node):
+            for child in tree[node]:
+                item = ItemPasterViewNode(parent)
+                item.setText(map(lambda x: utf8(x), child))
+                item.window = self
+                self.appendChildNodes(child[0], item, tree)
+
+    def afterShowRecord(self):
+        listview = self.getListView("TreeView")
+        listview.setTreeMode()
+        listview.setColumns((tr("Code"), tr("Name") ))
+        from StockSettings import StockSettings
+        ss = StockSettings.bring()
+        tree = Classification.getTree(ss.ClassificationType)
+        rootnodes = [ x for x in tree.keys() if x=='' ]
+        self.accnames = Classification.getNames(False)
+        ip = self.getRecord()
+        ip.ItemType = 0
+        ip.UseType = 0  # checkout register and set acordingly
+        currentnode = listview
+        for rootnode in rootnodes:
+            self.appendChildNodes(rootnode, listview, tree)
+                    
+
+class ItemPasterViewNode(ListViewItem.ListViewItem):
+
+    def selected(self):
+        code = self.getText()[0]
+        itempaster = self.window.getRecord() 
+        itempaster.Classification = code
+        self.window.showItemSelectReport()
+

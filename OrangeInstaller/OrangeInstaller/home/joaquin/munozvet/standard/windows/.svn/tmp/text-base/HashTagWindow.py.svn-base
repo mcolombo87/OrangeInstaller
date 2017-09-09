@@ -1,0 +1,6 @@
+#encoding: utf-8
+from OpenOrange import *
+
+ParentHashTagWindow = SuperClass("HashTagWindow", "Window", __file__)
+class HashTagWindow(ParentHashTagWindow):
+    pass

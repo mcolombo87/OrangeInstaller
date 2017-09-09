@@ -1,0 +1,104 @@
+#encoding: utf-8
+from OpenOrange import *
+
+ParentPrintItemBarcodeWindow = SuperClass("PrintItemBarcodeWindow","Window",__file__)
+class PrintItemBarcodeWindow(ParentPrintItemBarcodeWindow):
+
+    MATRIX_COLOR = {True: "green", False: "white"}
+
+
+    def afterShowRecord(self):
+        ParentPrintItemBarcodeWindow.afterShowRecord(self)
+        record = self.getRecord()
+        record.defaults()
+        
+    def afterEdit(self, fieldname):
+        ParentPrintItemBarcodeWindow.afterEdit(self, fieldname)
+        #record = self.getRecord()
+        #if fieldname == "Page":
+        #    record.pastePage()
+        #else:
+        #    res = record.pasteFilter(fieldname)
+        #record.setModified(False)
+        
+    def searchItems(self):
+        record = self.getRecord()
+        record.searchItems(False)
+
+    def checkLeavePage(self):
+        res = True
+        if self.getRecord().changesLostIfLeavePage():
+            res = askYesNo(tr("Changes Are Not Saved. Leave Page Anyway?"))
+        return res
+
+    def afterEditRow(self, fieldname, rowfieldname, rownr):
+        ParentPrintItemBarcodeWindow.afterEditRow(self, fieldname, rowfieldname, rownr)
+        if fieldname == "Items":
+            record = self.getRecord()
+            row = record.Items[rownr]
+            if rowfieldname == "Qty":
+                row.pasteQty(record)
+        
+            
+    def buttonClicked(self, buttonname):
+        ParentPrintItemBarcodeWindow.buttonClicked(self, buttonname)
+        record = self.getRecord()
+        if buttonname == "printLabels":
+            self.printLabels()
+            #if not res:
+            #    message(res)
+        elif buttonname == "searchItems":
+            res = record.searchItems()
+            
+    def printLabels(self):
+        from DocumentSpec import DocumentSpec
+        from PriceDeal import PriceDeal
+        from ItemBarCodeDoc import ItemBarCodeDoc
+        from Item import Item
+        ds = DocumentSpec.bring("BarCode2Doc")
+        preview = False
+        dialog = False
+        if ds:
+            dialog = False if ds.DontShowPrinterDialog else True
+            preview = False if ds.DontShowPreview else True
+        record = self.getRecord()
+        nlabels = 2
+        n = 0
+        fila = []
+        if record and record.Items.count()>0:
+            gr = Item.bring(record.Items[0].ArtCode)
+            if gr:
+                gr.Flag = 1
+                for row in record.Items:
+                    for k in range(row.Qty):
+                        gr.Currency = 'USD'
+                        fila.append(row)
+                        n += 1;
+                        if n == nlabels:
+                            gr.Fila = fila
+                            #Previo, DialogoImpre
+                            res = printDocument("BarCode2Doc", "ItemBarCodeDoc", gr, preview, dialog, None)
+                            n = 0;
+                            fila = []
+                if len(fila)>0:
+                    gr.Fila = fila
+                    printDocument("BarCode2Doc", "ItemBarCodeDoc", gr, preview, dialog, None)
+
+    def beforeInsertRow(self, detailfieldname, rownr):
+        result = ParentPrintItemBarcodeWindow.beforeInsertRow(self, detailfieldname, rownr)
+        if detailfieldname == "Items":
+            result = False
+        return result
+        
+    def beforeDeleteRow(self, detailfieldname, rownr):
+        result = ParentPrintItemBarcodeWindow.beforeDeleteRow(self, detailfieldname, rownr)
+        #if detailfieldname == "Items":
+        #    result = False
+        return result   
+
+    def afterDeleteRow(self, detailfieldname, rownr):
+        result = ParentPrintItemBarcodeWindow.afterDeleteRow(self, detailfieldname, rownr)
+        if detailfieldname == "Items":
+            record = self.getRecord()
+            record.sumUp()
+        return result

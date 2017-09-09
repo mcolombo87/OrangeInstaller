@@ -1,0 +1,163 @@
+#encoding: utf-8
+from OpenOrange import *
+from GlobalTools import *
+from CashOut import CashOut, CashOutPayRow, CashOutCntRow
+
+ParentCashOutWindow = SuperClass("CashOutWindow","FinancialTransWindow",__file__)
+class CashOutWindow(ParentCashOutWindow):
+
+    def afterEdit(self, fieldname):
+        ParentCashOutWindow.afterEdit(self, fieldname)
+    
+    def genBankPaymentInstruction(self):
+        pass
+
+    def activateNextCell(self, matrixname, row, col):
+        columns = self.getMatrixColumns(matrixname)
+        if (matrixname=="CashOutCntRows"):
+          if columns[col] == "CounterConcept":
+              row,col = getNextCol(columns,row,col,"Amount")
+          elif columns[col] == "Amount": # To Next Row
+              col = 0
+              row += 1
+          else:
+              row,col = getNextCol(columns,row,col,"")
+        elif (matrixname=="CashOutPayRows"):
+          if columns[col] == "PayMode":
+              row,col = getNextCol(columns,row,col,"PayValue")
+          elif columns[col] == "PayValue": # To Next Row
+              col = 0
+              row += 1
+          else:
+              row,col = getNextCol(columns,row,col,"")
+        return (row,col)
+
+    def afterEditRow(self, fieldname, rowfieldname, rownr):
+        ParentCashOutWindow.afterEditRow(self, fieldname, rowfieldname, rownr)
+        co = self.getRecord()
+        if (fieldname == "CashOutPayRows"):
+            copr = co.CashOutPayRows[rownr]
+            if (rowfieldname == "PayMode"):
+                copr.pastePayMode()
+                co.sumUp()
+            elif (rowfieldname == "ChequeNr"):
+                copr.pasteChequeNr()
+                co.sumUp()
+            elif (rowfieldname == "PayValue"):
+                co.sumUp()
+        elif (fieldname == "CashOutCntRows"):
+            copr = co.CashOutCntRows[rownr]
+            if (rowfieldname == "CounterConcept"):
+                copr.pasteCounterConcept(co)
+                co.sumUp()
+            elif (rowfieldname == "Person"):
+                copr.pastePerson(co)
+            elif (rowfieldname == "EmpCode"):
+                copr.pasteEmpCode(co)
+            elif (rowfieldname == "ExpenseNr"):
+                copr.pasteExpenseNr(co)
+            elif (rowfieldname == "Amount"):
+                copr.pasteAmount(co)
+                co.sumUp()
+                co.payConcepts()
+                co.sumUp()
+            elif (rowfieldname == "PurchaseInvNr"):
+                copr.pastePurchaseInvNr(co)
+                co.payConcepts()
+                co.sumUp()
+
+    def getPasteWindowNameRow(self,fieldname,rowfieldname,rownr):
+        record = self.getRecord()
+        if (fieldname == "CashOutPayRows"):
+            row = record.CashOutPayRows[rownr]
+            if(rowfieldname == "ChequeNr"):
+                from PayMode import PayMode
+                pm = PayMode.bring(row.PayMode)
+                if pm:
+                    if (pm.PayType == 7):
+                        return "OwnChequePasteWindow"
+                    elif (pm.PayType == 2):
+                        return "ChequePasteWindow"
+                    elif (pm.PayType == 1):
+                        return "CouponPasteWindow"
+        return ParentCashOutWindow.getPasteWindowNameRow(self,fieldname,rowfieldname,rownr)
+
+    def filterPasteWindowRow(self,fieldname,rowfieldname,rownr):
+        casho = self.getRecord()
+        if (fieldname == "CashOutCntRows"):
+            if(rowfieldname == "CounterConcept"):
+                return "({CashOutf} OR (NOT {CashInf} AND NOT {CashOutf})) "
+        elif (fieldname == "CashOutPayRows"):
+          filters = []
+          res = self.filterPasteWindowPaymentRow(casho.CashOutPayRows[rownr], rowfieldname)
+          if res:
+              filters.append(res)
+          if (rowfieldname == "ChequeNr"):
+            row = casho.CashOutPayRows[rownr]
+            if(rowfieldname == "ChequeNr"):
+                from PayMode import PayMode
+                pm = PayMode.bring(row.PayMode)
+                if pm:
+                    if pm.PayType not in (PayMode.CHEQUE, PayMode.OWNCHEQUE):
+                        filters.append("False")
+                    if (pm.PayType == 7):
+                        filters.append("{Status}=0")     # new own cheque
+                    if (pm.PayType == 2):
+                        filters.append("{Status}=1")     # endorsing the cheque
+          elif (rowfieldname == "PayMode"):
+                res = "(({Closed} IS NULL OR {Closed} = i|0|))"
+                from SalesSettings import SalesSettings
+                ss = SalesSettings.bring()
+                if (ss.UsePayModeByOffice):
+                    res += "AND (Office LIKE s|%%,%s,%%| " %self.getRecord().Office
+                    res += "OR Office LIKE s|%s,%%| "  %self.getRecord().Office
+                    res += "OR Office LIKE s|%%,%s| "  %self.getRecord().Office
+                    res += "OR Office = s|%s| )"  %self.getRecord().Office
+                filters.append(res)
+          return " AND ".join(filters)
+        elif (fieldname == "CashOutCntRows"):
+            if(rowfieldname == "Person"):
+                return "ContactType = i|3|"
+                  
+    def afterDeleteRow(self, detailName, rownr):
+        ParentCashOutWindow.afterDeleteRow(self, detailName, rownr)
+        record = self.getRecord()
+        record.sumUp()
+
+
+    def balance(self):
+        record = self.getRecord()
+        fieldname = self.currentField()
+        if (fieldname == "CashOutCntRows"):
+            totalcnt = 0
+            for cntrow in record.CashOutCntRows:
+                totalcnt += cntrow.Amount
+            rest = record.TotalPaid - totalcnt
+            rownr = self.currentRow(fieldname)
+            if (0 < rownr < record.details(fieldname).count()):
+                row = record.details(fieldname)[rownr]
+                if (not row.Amount):
+                    row.Amount = rest
+                    return 
+            if (rest):
+                from CashOut import CashOutCntRow
+                nrow = CashOutCntRow()
+                nrow.Amount = rest
+                record.CashOutCntRows.append(nrow)
+        elif (fieldname == "CashOutPayRows"):
+            totalpay = 0
+            for payrow in record.CashOutPayRows:
+                totalpay += payrow.PayValue
+            rest = record.Total - totalpay
+            rownr = self.currentRow(fieldname)
+            if (0 < rownr < record.details(fieldname).count()):
+                row = record.details(fieldname)[rownr]
+                if (not row.PayValue):
+                    row.PayValue = rest
+                    return 
+            if (rest):
+                from CashOut import CashOutPayRow
+                nrow = CashOutPayRow()
+                nrow.PayValue = rest
+                record.CashOutPayRows.append(nrow)
+

@@ -1,0 +1,22 @@
+#encoding: utf-8
+from OpenOrange import *
+from GlobalTools import *
+
+ParentSalesmanCommissionWindow = SuperClass("SalesmanCommissionWindow","MasterWindow",__file__)
+class SalesmanCommissionWindow(ParentSalesmanCommissionWindow):
+    DefaultAfterEdit = True
+
+    #def afterEdit(self, fieldname):
+    #    ParentSalesmanCommissionWindow.afterEdit(self, fieldname)
+    #    afterEdit(self, fieldname)
+
+    def getPasteWindowNameRow(self,fname,rfname,rownr):
+        record = self.getRecord()
+        row = record.Items[rownr]
+        if (fname == "Items"):
+            if(rfname == "ItemGroup"):
+                if (row.Type == 0):
+                    return "ItemPasteWindow"
+                elif (row.Type == 1):
+                    return "ItemGroupPasteWindow"
+        return ParentSalesmanCommissionWindow.getPasteWindowNameRow(self,fname,rfname,rownr)

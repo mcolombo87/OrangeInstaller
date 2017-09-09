@@ -1,0 +1,47 @@
+#encoding: utf-8
+from OpenOrange import *
+
+
+ParentCredLimitWindow = SuperClass("CredLimitWindow","MasterWindow",__file__)
+class CredLimitWindow(ParentCredLimitWindow):
+
+    def afterEdit(self, fieldname):
+        ParentCredLimitWindow.afterEdit(self, fieldname)
+        record = self.getRecord()
+        if (fieldname == "Code"):
+            record.pasteCustCode()
+    
+
+    def credLimitStatus(self):
+        record = self.getRecord()
+        from CredLimitStatus import CredLimitStatus
+        report = CredLimitStatus()
+        report.CustCode = record.Code
+        report.Currency = record.Currency
+        report.ViewOption = 1
+        report.open(False)
+   
+    def afterShowRecord(self):
+        ParentCredLimitWindow.afterShowRecord(self)
+        self.listActualCredit()
+
+    def listActualCredit(self,detailList = False):
+        from CredLimitStatus import CredLimitStatus
+        record = self.getRecord()
+        if record.Code:
+            report = CredLimitStatus()
+            report.defaults()
+            report.setView(self.getReportView("ActualCredLimit"))
+            report.CustCode = record.Code
+            if not detailList:
+                report.ViewOption = 0
+            else:
+                report.ViewOption = 1
+            report.open(False)
+            #processEvents() #needed to avoid report tool bar to showup #hace colgar open
+            self.setFocus()
+
+    def buttonClicked(self, buttonname):
+        cust = self.getRecord()
+        if buttonname == "ShowDetail":
+            self.listActualCredit(True)

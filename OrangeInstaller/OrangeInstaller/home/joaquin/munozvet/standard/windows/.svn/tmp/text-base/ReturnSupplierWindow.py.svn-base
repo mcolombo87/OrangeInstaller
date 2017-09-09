@@ -1,0 +1,85 @@
+#encoding: utf-8
+from OpenOrange import *
+from Report import Report
+
+ParentReturnSupplierWindow = SuperClass("ReturnSupplierWindow","PurchaseTransactionWindow",__file__)
+class ReturnSupplierWindow(ParentReturnSupplierWindow):
+
+    def afterEdit(self, fieldname):
+        ParentReturnSupplierWindow.afterEdit(self, fieldname)
+        rsupplier = self.getRecord()
+        if (fieldname == "SupCode"):
+            rsupplier.pasteSupCode()
+
+    def afterEditRow(self, fieldname, rowfieldname, rownr):
+        ParentReturnSupplierWindow.afterEditRow(self, fieldname, rowfieldname, rownr)
+        rSupplier = self.getRecord()
+        if (fieldname == "Items"):
+            rSupplierItem = rSupplier.Items[rownr]
+            if (rowfieldname == "ArtCode"):
+                rSupplierItem.pasteArtCode(rSupplier)
+            elif (rowfieldname == "Qty"):
+                rSupplierItem.pasteQty(rSupplier)
+                rSupplierItem.sumUp()
+                rSupplier.sumUp()
+            elif (rowfieldname == "Unit"):
+                rSupplierItem.pasteUnit(rSupplier)
+                rSupplierItem.sumUp()
+                rSupplier.sumUp()
+            elif (rowfieldname in ("Cost","RowTotal")):
+                rSupplierItem.sumUp()
+                rSupplier.sumUp()
+            elif (rowfieldname == "SerialNr"):
+                rSupplierItem.pasteSerialNr(rSupplier)
+                rSupplier.sumUp()
+
+
+    def afterDeleteRow(self, detailfieldname, rownr):
+        self.getRecord().sumUp()
+
+    def filterPasteWindowRow(self, detailfieldname, rowfieldname, rownr):
+        filts = []
+        res = ParentReturnSupplierWindow.filterPasteWindowRow(self, detailfieldname, rowfieldname, rownr)
+        if res:
+            filts.append(res)
+        if detailfieldname == "Items":
+            if rowfieldname == "ArtCode":
+                filts.append("({Closed} IS NULL OR {Closed} = i|0|)")
+        if filts:
+            res = "(%s)" % " AND ".join(filts)
+        return res 
+
+    def fillPasteWindowRow(self, pastewindowname, fieldname, rowfieldname, rownr):
+        ParentReturnSupplierWindow.fillPasteWindowRow(self, pastewindowname, fieldname, rowfieldname, rownr)
+        if (pastewindowname == "SerialNrPasteWindow"):
+            record = self.getRecord()
+            items = record.details(fieldname)
+            serialNrInclude = []
+            for row in items:
+                serialNrInclude.append(row.SerialNr)
+            itemrow = items[rownr]
+            query = Query()
+            query.sql = "SELECT bt.{BestBefore} as DueDate, Stock.{SerialNr}, {StockDepo}, {StockPos}, SUM(Qty) as {Qty} FROM [Stock] "
+            query.sql += "LEFT JOIN BatchText bt ON bt.ArtCode = Stock.ArtCode and bt.SerialNr = Stock.SerialNr\n"
+            query.sql += "WHERE?AND Stock.{SerialNr} <> s|| "
+            #Esto se saca porque cuando se usa el mismo numero de serie de otro codigo no lo trae.
+            #query.sql += "WHERE?AND {SerialNr} NOT IN (%s) " % ("s|" + "|,s|".join (serialNrInclude) +"|")
+            query.sql += "WHERE?AND Stock.{ArtCode} = s|%s| " % itemrow.ArtCode
+            query.sql += "WHERE?AND {StockDepo} = s|%s| " % record.StockDepo
+            if itemrow.Pos: query.sql += "WHERE?AND {StockPos} = s|%s| " % itemrow.Pos
+            query.sql += "GROUP BY Stock.{SerialNr} "
+            if not itemrow.Pos: query.sql += ", {StockPos} "
+            query.sql += " HAVING {Qty} > 0 "
+            query.sql += " ORDER BY {DueDate} ASC "
+            if query.open():
+                return query
+
+    def genCreditNote(self):
+        retSup = self.getRecord()
+        cnote = retSup.genCreditNote()
+        if (cnote):
+            cnote.openInWindow()
+            self.closeAfterGen()
+        else:
+            message(cnote)
+        return None

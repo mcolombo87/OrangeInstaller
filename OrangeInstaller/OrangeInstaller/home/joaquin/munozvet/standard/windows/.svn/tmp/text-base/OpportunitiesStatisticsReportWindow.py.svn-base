@@ -1,0 +1,13 @@
+#encoding: utf-8
+from OpenOrange import *
+
+ParentOpportunitiesStatisticsReportWindow = SuperClass("OpportunitiesStatisticsReportWindow","ReportWindow",__file__)
+class OpportunitiesStatisticsReportWindow(ParentOpportunitiesStatisticsReportWindow):
+    
+    def filterPasteWindow(self, fieldname):
+        if fieldname == "State":
+            from CRMSettings import CRMSettings
+            settings = CRMSettings.bring()
+            return "{Circuit} = s|%s|" % settings.OppCircuit
+        return ParentOpportunitiesStatisticsReportWindow.filterPasteWindow(self, fieldname)
+    

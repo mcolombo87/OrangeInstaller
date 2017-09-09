@@ -1,0 +1,5 @@
+from OpenOrange import *
+
+ParentItemSearchSettingsWindow = SuperClass("ItemSearchSettingsWindow","SettingWindow",__file__)
+class ItemSearchSettingsWindow(ParentItemSearchSettingsWindow):
+    pass

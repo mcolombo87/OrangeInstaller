@@ -1,0 +1,30 @@
+#encoding: utf-8
+from OpenOrange import *
+
+ParentTransactionSettingsWindow = SuperClass("TransactionSettingsWindow","SettingWindow",__file__)
+class TransactionSettingsWindow(ParentTransactionSettingsWindow):
+    
+    def fillPasteWindowRow(self, pastewindowname, fieldname, rowfieldname,rownr):
+        if pastewindowname == "XPasteWindow":
+            if fieldname == "Mails":
+                if (rowfieldname == "RecordName"):
+                    query = []
+                    wininfo = getWindowsInfo()
+                    for wInfo in wininfo.values():
+                        z = NewRecord("X")
+                        z.Code = wInfo["RecordName"]
+                        z.Name = wInfo["Title"]
+                        query.append(z)
+                    query.sort(key = lambda x: x.Name)
+                    return query
+
+    def getPasteWindowNameRow(self, fieldname, rowfieldname, rownr):
+        record = self.getRecord()
+        if (fieldname == "Mails"):
+            row = record.Mails[rownr]
+            if (rowfieldname == "Receiver"):
+                if (row.ReceiverType == row.DEPARTMENT):
+                    return "DepartmentPasteWindow"
+                elif (row.ReceiverType == row.USER):
+                    return "UserPasteWindow"
+        return ParentTransactionSettingsWindow.getPasteWindowNameRow(self, fieldname, rowfieldname, rownr)

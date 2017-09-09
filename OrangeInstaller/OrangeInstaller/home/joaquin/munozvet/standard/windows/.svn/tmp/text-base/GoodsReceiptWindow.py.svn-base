@@ -1,0 +1,233 @@
+#encoding: utf-8
+from OpenOrange import *
+
+
+ParentGoodsReceiptWindow = SuperClass("GoodsReceiptWindow","PurchaseTransactionWindow",__file__)
+class GoodsReceiptWindow(ParentGoodsReceiptWindow):
+
+    def activateNextCell(self, matrixname, row, col):
+        columns = self.getMatrixColumns(matrixname)
+        if columns[col] == "ArtCode": # To Qty
+            row,col = getNextCol(columns,row,col,"Qty")
+        elif columns[col] == "Qty": # To Next Row
+            col = 0
+            row += 1
+        else:
+            row,col = getNextCol(columns,row,col,"")
+        return (row,col)
+
+    def afterEdit(self, fieldname):
+        ParentGoodsReceiptWindow.afterEdit(self, fieldname)
+        gr = self.getRecord()
+        if (fieldname == "StockDepo"):
+            gr.pasteStockDepo()
+        elif (fieldname == "BarCode"):
+            from Item import Item
+            it = Item.bring(gr.BarCode)
+            if (it):
+              i = 0
+              for irow in gr.Items:
+                if (it.Code == irow.ArtCode):
+                   irow.ScanQty += 1
+                   gr.setFocusOnField("Items","ScanQty",i)
+                   gr.BarCode = ""
+                   break
+                i += 1
+
+    def afterEditRow(self, fieldname, rowfieldname, rownr):
+        ParentGoodsReceiptWindow.afterEditRow(self, fieldname, rowfieldname, rownr)
+        from StockSettings import StockSettings
+        sset = StockSettings.bring()
+        gr = self.getRecord()
+        if (fieldname == "Items"):
+            grrow = gr.Items[rownr]
+            if (rowfieldname == "ArtCode"):
+                artbefore = grrow.ArtCode
+                grrow.pasteArtCode(gr)
+                if (artbefore <> grrow.ArtCode):    # fue codigo de barra o codigo alternativo
+                    grrow.Qty = 1
+                    grrow.pasteQty(gr)
+                    if sset.EnableGoodsReceiptFastItemPaste:
+                        gr.setFocusOnField("Items","Qty",rownr) # salta una fila
+                grrow.sumUp(gr)
+                gr.sumUp()
+            elif (rowfieldname=="Qty"):
+                grrow.pasteQty(gr)
+                grrow.sumUp(gr)
+                gr.sumUp()
+            elif (rowfieldname in ["Price","ItemCost","VATCode"] ):
+                grrow.sumUp(gr)
+                gr.sumUp()
+            elif (rowfieldname == "RowTotal"):
+                grrow.pasteRowTotal(gr)
+                gr.sumUp()
+            elif (rowfieldname == "Unit"):
+                grrow.pasteUnit(gr)
+                grrow.sumUp(gr)
+                gr.sumUp()
+            elif (rowfieldname == "SerialNr"):
+                grrow.pasteSerialNr(gr)
+                grrow.sumUp(gr)
+                gr.sumUp()
+        elif (fieldname == "Costs"):
+            grrow = gr.Costs[rownr]
+            if (rowfieldname == "CostType"):
+                grrow.pasteCostType()
+            elif (rowfieldname == "Amount"):
+                gr.sumUp()
+            elif (rowfieldname == "DivFactor"):
+                gr.sumUp()                
+            elif (rowfieldname == "VATCode"):
+                gr.sumUp()
+        elif (fieldname == "CostInvoices"):
+            grrow = gr.CostInvoices[rownr]
+            if (rowfieldname == "InvoiceNr"):
+                grrow.pasteInvoiceNr(gr)
+
+    def afterDeleteRow(self, fieldname, rownr):
+        goodsreceipt = self.getRecord()
+        goodsreceipt.sumUp()
+          
+    def filterPasteWindowRow(self, detailfieldname, rowfieldname, rownr):
+        filters = []
+        res = ParentGoodsReceiptWindow.filterPasteWindowRow(self, detailfieldname, rowfieldname, rownr)
+        if res:
+            filters.append(res)
+        if detailfieldname == "Items":
+            record = self.getRecord()
+            rowdata = record.Items[rownr]
+            if (rowfieldname == "ArtCode"):
+                filters.append("({ExcludeFromStockDepos} IS NULL OR FIND_IN_SET(s|%s|,{ExcludeFromStockDepos}) = 0)" % record.StockDepo) 
+            if (rowfieldname == "SerialNr"):
+                filters.append("({ArtCode} = s|%s|) " % rowdata.ArtCode)
+        return " AND ".join(filters)
+
+    def genPurchaseInvoice(self):
+        pinv = self.getRecord().genPurchaseInvoice()
+        if pinv:
+            pinv.openInWindow()
+            self.closeAfterGen()
+        else:
+            message(pinv)
+        return pinv
+
+    def showItemsList(self):
+        from GoodsReceiptItemList import GoodsReceiptItemList
+        report = GoodsReceiptItemList()
+        report.goodsReceipt = self.getRecord()
+        report.open()
+
+    def showOrderedItems(self):
+        '''from PurchaseOrderedItems import PurchaseOrderedItems
+        report = PurchaseOrderedItems()
+        report.goodsReceipt = self.getRecord()
+        report.open()'''
+        from ReceptionPendingReport import ReceptionPendingReport
+        report = ReceptionPendingReport()
+        report.defaults()
+        report.getRecord().SupCode = self.getRecord().SupCode
+        report.gr = self.getRecord()
+        if report.gr.confirmed():
+            message(tr("REGISTERAPPROVED"))
+            return
+        report.getRecord().FromDate = date(2000,1,1)
+        report.getRecord().ToDate = today()
+        report.open(False)
+
+    def openBatchSpec(self):
+        sm = self.getRecord()
+        fieldname = self.currentField()
+        if (fieldname == "Items"):
+            rownr = self.currentRow(self.currentMatrixName())
+            smrow = sm.Items[rownr]
+            from BatchTextWindow import BatchTextWindow
+            from BatchText import BatchText
+            bt = BatchText()
+            bt.SerialNr = smrow.SerialNr
+            bt.ArtCode  = smrow.ArtCode
+            bt.load()
+            rsupw = BatchTextWindow()
+            rsupw.setRecord(bt)
+            rsupw.open()
+
+    def splitItemRow(self):
+        gr = self.getRecord()
+        if (self.currentField() == "Items") and gr.canSplitItemRow():
+            gr.splitItemRow(self.currentRow(self.currentMatrixName()), int(getValue("Cantidad:",1)))
+ 
+    def clearNonScanned(self):
+        self.getRecord().clearNonScanned()
+
+    def buttonClicked(self, bname):
+        ParentGoodsReceiptWindow.buttonClicked(self, bname)
+        gr = self.getRecord()
+        if (bname == "PasteInvoices"):
+            gr.pasteInvoices()
+        if (gr.Status): return
+        if (bname == "PasteSerNrRange"):
+            from BasicFunctions import codeAdd
+            LastNr,LastItem,start = 0,None,False
+            for grrow in gr.Items:
+               if not grrow.SerialNr: start = True
+               if (start and LastItem and LastItem<>grrow.ArtCode): return
+               if start: grrow.SerialNr = codeAdd(LastNr)
+               LastNr = grrow.SerialNr
+               LastItem = grrow.ArtCode
+        elif (bname == "sort"):
+            rowlist = []
+            for irow in gr.Items:
+                rowlist.append(irow)
+            gr.Items.clear()
+            rowlist.sort(key=lambda x: x.ArtName)
+            for irow in rowlist:
+                gr.Items.append(irow)
+        elif (bname == "pasteCost"):
+          if not gr.Status:
+            gr.pasteExtraCost()
+            gr.sumUp()
+    @checkIfNewOrModified
+    def showItemCostHistory(self):
+        record = self.getRecord()
+        record.showItemCostHistory()
+                
+    @checkTransactionForAction
+    def genStockMovement(self):
+        record = self.getRecord()
+        sm = record.genStockMovement()
+        if (sm):
+            sm.openInWindow()
+            self.closeAfterGen()
+        else:
+            message(sm)
+            
+    def loadFromFile(self):
+        message("%s: TSV<br>%s: %s, %s, %s, %s, %s" % (tr("File Format"), tr("Columns"), tr("Code"), tr("Quantity"), tr("Serial Number"), tr("Position"), tr("Price")))
+        record = self.getRecord()
+        fileDic = {}
+        fname = getOpenFileName()
+        if fname:
+            file = open(fname, 'r')
+            lineNr = 1
+            for line in file.readlines():
+                fields = line.replace("\n","").split("\t")
+                if len(fields) != 5:
+                    message("Format Error line: %i \n%s" %(lineNr,line))
+                    return
+                code = fields[0]
+                qty = float(fields[1])
+                serialnr = fields[2]
+                pos = fields[3]
+                price = fields[4]
+                key = '%s|%s|%s' % (code, serialnr, pos)
+                itemdata = fileDic.get(key, {})
+                if itemdata:
+                    itemdata["Qty"] += qty
+                else:
+                    itemdata["ArtCode"] = code
+                    itemdata["Qty"] = qty
+                    itemdata["SerialNr"] = serialnr
+                    itemdata["Pos"] = pos
+                    itemdata["Price"] = price
+                fileDic[key] = itemdata
+                lineNr += 1
+            record.uploadItemsfromFile(fileDic)

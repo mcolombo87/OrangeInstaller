@@ -1,0 +1,129 @@
+from OpenOrange import *
+from GlobalTools import *
+
+ParentVisitRouteSheetWindow = SuperClass("VisitRouteSheetWindow","TransactionWindow",__file__)
+class VisitRouteSheetWindow(ParentVisitRouteSheetWindow):
+    DefaultAfterEditRow = True
+    DefaultAfterEdit = True
+
+    #def afterEdit(self, fname):
+    #    afterEdit(self, fname)
+
+    #def afterEditRow(self, fieldname, rowfieldname, rownr):
+    #    afterEditRow(self, fieldname, rowfieldname, rownr)
+
+    def filterPasteWindow(self, fieldname):
+        res = ParentVisitRouteSheetWindow.filterPasteWindow(self, fieldname)
+        record = self.getRecord()
+        if (not res):
+            res = ""
+        else:
+            res += " AND "
+        #Este registro posiblemente pase a ser un Addresable. 
+        if (fieldname == "LocalityCode"):
+            if (record.ProvinceCode):
+                res += " {ProvinceCode} = s|%s| " %(record.ProvinceCode)
+        elif (fieldname == "City"):
+            if (record.ProvinceCode):
+                res += " {Province} = s|%s| " %(record.ProvinceCode)
+        elif (fieldname == "CustCode"):
+            if (not record.ProspectFlag):
+                res += " IFNULL({ProspectFlag},0) = i|1| "
+        elif (fieldname == "SalesMan"):
+            res += "IFNULL({SalesGroup},'') <> '' "
+        return res
+
+    def filterPasteWindowRow(self, fieldname, rowfieldname, rownr):
+        res = ParentVisitRouteSheetWindow.filterPasteWindowRow(self, fieldname, rowfieldname, rownr)
+        if (not res):
+            res = ""
+        else:
+            res += " AND "
+        if (fieldname == "Customers"):
+            record = self.getRecord()
+            row = record.Customers[rownr]
+            if (rowfieldname == "ContactCode"):
+                from Person import Person
+                res = " {ContactType} = i|%s| AND {CustCode} = s|%s| " %(Person.CUSTOMER,row.CustCode)
+            elif (rowfieldname == "CustCode"):
+                filters = []
+                if (record.City):
+                    filters.append("{City} = s|%s|" %(record.City))
+                if (record.ProvinceCode):
+                    filters.append("{ProvinceCode} = s|%s|" %(record.ProvinceCode))
+                if (record.LocalityCode):
+                    filters.append("{LocalityCode} = s|%s|" %(record.LocalityCode))
+                if (not record.ProspectFlag):
+                    filters.append("IFNULL({ProspectFlag},0) = 0 ")
+                if (filters):
+                    res += "%s" %(" AND ".join(filters))
+        return res
+
+    def showTasks(self):
+        from Activity import Activity
+        from Numerable import Numerable
+        from RecordActivitiesReport import RecordActivitiesReport
+        act = Activity()
+        act.OriginRecordName = self.getRecord().name()
+        act.OriginId = self.getRecord().getPortableId()
+        report = RecordActivitiesReport()
+        report.window = self
+        report.OriginRecordName = self.getRecord().name()
+        report.OriginId = self.getRecord().getPortableId()
+        matrixname = self.currentMatrixName()
+        if (act.load() and not matrixname):
+            report.open(False)
+        else:
+            self.newTask()
+
+    def newTask(self):
+        record = self.getRecord()
+        from Activity import Activity
+        from ActivityWindow import ActivityWindow
+        act = Activity()
+        act.defaults()
+        act.OriginRecordName = record.name()
+        act.OriginId = record.getPortableId()
+        act.Type = act.ACTIVITY
+        act.Users = record.SalesMan
+        matrixname = self.currentMatrixName()
+        if matrixname:
+            rownr = self.currentRow(matrixname)
+            if (rownr < 0):
+                message(tr("Please Select A Row"))
+                return
+            if (matrixname == "CustomerMatrix"):
+                row = record.Customers[rownr]
+                act.CustCode = row.CustCode
+                act.pasteCustCode()
+                act.ContactCode = row.ContactCode
+                act.ContactName = row.ContactName
+        else:
+            message(tr("Please Select A Row"))
+            return
+        actwnd = ActivityWindow()
+        actwnd.setRecord(act)
+        actwnd.open()
+        return act
+
+    def buttonClicked(self, buttonname):
+        ParentVisitRouteSheetWindow.buttonClicked(self, buttonname)
+        if (buttonname == "searchCustomer"):
+            record = self.getRecord()
+            record.Customers.clear()
+            record.searchCustomer()
+
+    def printVisitRouteSheet(self):
+        from VisitRouteSheetReport import VisitRouteSheetReport
+        record = self.getRecord()
+        vrs = VisitRouteSheetReport()
+        vrs.defaults()
+        vrs.SerNr = record.SerNr
+        vrs.open(False)
+
+    @checkIfNewOrModified
+    def genExpenses(self):
+        record = self.getRecord()
+        exp = record.genExpenses()
+        if (exp):
+            exp.openInWindow()

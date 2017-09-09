@@ -1,0 +1,290 @@
+#encoding: utf-8
+# -*- coding: iso-8859-1 -*-
+from OpenOrange import *
+from PurchaseInvoice import PurchaseInvoice
+from GlobalTools import *
+
+ParentPurchaseInvoiceWindow = SuperClass("PurchaseInvoiceWindow","PurchaseTransactionWindow",__file__)
+class PurchaseInvoiceWindow(ParentPurchaseInvoiceWindow):
+
+    def getTitle(self):
+        origtitle = ["Purchase Invoice", "Purchase Credit Note", "Purchase Debit Note","Unknown Type"]
+        rec = self.getRecord()
+        if not rec: return self.getOriginalTitle()
+        t = tr(origtitle[rec.InvoiceType]) + " " + str(rec.SerNr)
+        if rec.ToSerNr and rec.SerNr != rec.ToSerNr: t += " / " + str(rec.ToSerNr)
+        if not rec.internalId:
+             t += ": " + tr("New")
+        elif rec.isModified():
+             t += ": " + tr("Modified")
+        if rec.isInvalid():
+            t += " " + tr("Invalidated")
+        return t
+
+    def afterShowRecord(self):
+        ParentPurchaseInvoiceWindow.afterShowRecord(self)
+        from PurchaseSettings import PurchaseSettings
+        pset = PurchaseSettings.bring()
+        if (pset.UsePurInvConcepts):
+            self.setTabPageVisibility("Tabs", "ConceptsPage", True)
+            self.setTabPageVisibility("Tabs", "AccountsPage", True)   # it seems we need to be able to use both
+        else:
+            self.setTabPageVisibility("Tabs", "ConceptsPage", False)
+            self.setTabPageVisibility("Tabs", "AccountsPage", True)
+            
+
+    def afterDeleteRow(self, fieldname, rownr):
+        self.getRecord().sumUp()
+
+    def afterEdit(self, fieldname):
+        ParentPurchaseInvoiceWindow.afterEdit(self, fieldname)
+        purchaseInv = self.getRecord()
+        if (fieldname == "InvoiceDate"):
+            purchaseInv.pasteInvoiceDate()
+        if (fieldname == "InvoiceNr"):
+            res = purchaseInv.pasteInvoiceNr()
+            if not res: message(res)
+        elif (fieldname == "PayTerm"):
+            purchaseInv.pastePayTerm()
+        elif (fieldname == "BankCode"):
+            purchaseInv.pasteBankName()
+        elif (fieldname == "InvoiceType"):
+            purchaseInv.pasteInvoiceType()
+        elif (fieldname == "Total"):
+            purchaseInv.pasteTotal()
+            purchaseInv.sumUp()
+        elif (fieldname == "VatTotal"):  # only if enabled
+            purchaseInv.pasteVatTotal()
+        elif (fieldname == "BarCode"):
+            purchaseInv.pasteBarCode()
+        elif (fieldname == "Person"):
+            purchaseInv.pastePerson()
+        elif (fieldname == "VATIncluded"):
+            purchaseInv.pasteVATIncluded()
+        elif (fieldname == "OnAccNr"):
+            purchaseInv.pasteOnAccNr()
+            purchaseInv.sumUp()
+        elif (fieldname == "OnAccValue"):
+            purchaseInv.pasteOnAccValue()
+            purchaseInv.sumUp()
+        elif (fieldname == "SupCode"):
+            from Supplier import Supplier
+            sup = Supplier.bring(purchaseInv.SupCode)
+            if sup:
+                print sup.Closed
+                if sup.Closed:
+                    message(tr("The supplier is Closed"))
+        elif (fieldname == "TaxRegNr"):
+            from Validator import VATRegNrOK
+            if (not VATRegNrOK(purchaseInv.TaxRegNr,purchaseInv.Country) and purchaseInv.TaxRegNr != ""):
+                #Si el campo esta vacio, no tiro el mensaje de error, aunque la funcion devuelva false
+                message(tr("WRONGTAXREGNR"))
+                self.getRecord().TaxRegNr = ""
+        purchaseInv.showMessages()
+
+    def afterEditRow(self, fieldname, rowfieldname, rownr):
+        ParentPurchaseInvoiceWindow.afterEditRow(self, fieldname, rowfieldname, rownr)
+        pinv = self.getRecord()
+        if (fieldname == "PurchaseInvoiceRows"):
+            pinvrows = pinv.PurchaseInvoiceRows
+            prow = pinvrows[rownr]
+            if (rowfieldname == "Account"):
+                prow.pasteAccount(pinv)
+                #prow.sumUp(pinv)
+                pinv.sumUp()
+            elif (rowfieldname == "ExpenseConcept"):
+                prow.pasteExpenseConcept(pinv)
+                pinv.sumUp()
+            elif (rowfieldname == "RowNet"):
+                #prow.sumUp(pinv)
+                prow.pasteRowNet(pinv)
+                pinv.sumUp()
+            elif (rowfieldname == "RowTotal"):
+                #prow.sumUp(pinv)
+                prow.pasteRowTotal(pinv)
+                pinv.sumUp()
+            elif (rowfieldname == "VATCode"):
+                prow.pasteVATCode(pinv)
+                #prow.sumUp(pinv)
+                pinv.sumUp()
+            elif (rowfieldname == "Price"):
+                prow.sumUp(pinv)
+                pinv.sumUp()
+            elif (rowfieldname == "Discount"):
+                prow.sumUp(pinv)
+                pinv.sumUp()
+            elif (rowfieldname == "Qty"):
+                prow.sumUp(pinv)
+                pinv.sumUp()
+            elif (rowfieldname == "ArtCode"):
+                prow.pasteArtCode(pinv)
+        elif (fieldname == "Payments"):
+            paymentsrow = self.getRecord().Payments[rownr]
+            if (rowfieldname == "PayMode"):
+                paymentsrow.pastePayMode()
+                from PayMode import PayMode
+                pmode = PayMode()
+                pmode = PayMode.bring(paymentsrow.PayMode)
+                if (pmode):
+                    if (pmode.PayType != 2 and pmode.PayType !=7):
+                        paymentsrow.ChequeNr = 0
+                else:
+                    paymentsrow.ChequeNr = 0
+                pinv.sumUp()
+            elif (rowfieldname == "Paid"):
+                paymentsrow.pastePaid(pinv)
+                pinv.sumUp()
+            elif (rowfieldname == "ChequeNr"):
+                paymentsrow.pasteChequeNr(pinv)
+                pinv.sumUp()
+        pinv.showMessages()
+
+    def genCreditNote(self):
+        inv = self.getRecord()
+        if (inv.InvoiceType == 0):
+            if (inv.Status == 1):
+                creditnote = inv.genCreditNote()
+                if creditnote:
+                    creditnote.openInWindow()
+                    self.closeAfterGen()
+                else:
+                    message(creditnote)
+            else:
+                message(tr("REGISTERNOTAPPROVED"))
+        else:
+            message(tr("Needs to be an Invoice"))
+
+    def setTotal(self):
+        record = self.getRecord()
+        record.setTotal()
+
+    def getPurchaseInvoiceStatus(self):
+        record = self.getRecord()
+        from PurchaseInvoiceStatus import PurchaseInvoiceStatus
+        report = PurchaseInvoiceStatus()
+        report.InvoiceNr = record.SerNr
+        report.open(False)
+
+    def getPasteWindowNameRow(self,fieldname,rowfieldname,rownr):
+        record = self.getRecord()
+        if (fieldname == "Payments"):
+            row = record.Payments[rownr]
+            if(rowfieldname == "ChequeNr"):
+                from PayMode import PayMode
+                pmode = PayMode.bring(row.PayMode)
+                if pmode:
+                    if pmode.PayType == 2:
+                        return "ChequePasteWindow"
+                    elif pmode.PayType == 7:
+                        return "OwnChequePasteWindow"
+        return ParentPurchaseInvoiceWindow.getPasteWindowNameRow(self,fieldname,rowfieldname,rownr)
+
+    def showPurchaseInvoiceItemSearch(self):
+        from PurchaseInvoiceItemSearch import PurchaseInvoiceItemSearch
+        report = PurchaseInvoiceItemSearch()
+        report.pinvoice = self.getRecord()
+        report.open()
+
+    def buttonClicked(self, buttonname):
+        ParentPurchaseInvoiceWindow.buttonClicked(self, buttonname)
+        if buttonname == "doDivision":
+            pi = self.getRecord()
+            rownr = pi.PurchaseInvoiceRows.count()
+            if rownr:
+                prow = pi.PurchaseInvoiceRows[rownr-1]
+                pi.doDivision(prow)
+
+    def filterPasteWindowRow(self, fieldname, rowfieldname,rownr):
+        res = ParentPurchaseInvoiceWindow.filterPasteWindowRow(self, fieldname, rowfieldname,rownr)
+        filters = []
+        if res:
+            filters.append(res)
+        record = self.getRecord()
+        if fieldname == "PurchaseInvoiceRows":
+            if rowfieldname == "Labels":
+                from LabelControl import LabelControl
+                lc = LabelControl.trybring(record.tableName())
+                if lc:
+                   mask = "','".join(lc.DetailTypes.split(","))
+                   filters.append("{Type} IN ('%s')" % mask)
+            elif rowfieldname == "ArtCode":
+                filters.append(self.getItemPasteWindowFilters())
+        elif fieldname == "Payments":
+            if (rowfieldname == "PayMode"):
+                res = "(({Closed} IS NULL OR {Closed} = i|0|) AND (UseType = i|0| OR UseType = i|2| OR UseType IS NULL ))"
+                from SalesSettings import SalesSettings
+                ss = SalesSettings.bring()
+                if (ss.UsePayModeByOffice):
+                    res += "AND (Office LIKE s|%%,%s,%%| " %self.getRecord().Office
+                    res += "OR Office LIKE s|%s,%%| "  %self.getRecord().Office
+                    res += "OR Office LIKE s|%%,%s| "  %self.getRecord().Office
+                    res += "OR Office = s|%s| )"  %self.getRecord().Office
+                filters.append(res)
+            elif rowfieldname == "ChequeNr":
+                recordrow = record.Payments[rownr]
+                if recordrow.PayMode:
+                    from PayMode import PayMode
+                    if (recordrow.PayMode):
+                        pm = PayMode.bring(recordrow.PayMode)
+                        if (pm.PayType == 7):
+                          filters.append("{Status}=0")     # new own cheque
+                        if (pm.PayType == 2):
+                          filters.append("{Status}=1")     # endorsing the cheque
+        return " AND ".join(filters)
+
+    def filterPasteWindow(self, fieldname):
+        inv = self.getRecord()
+        if fieldname == "Labels":
+            from LabelControl import LabelControl
+            lc = LabelControl.trybring(inv.tableName())
+            if lc:
+               mask = "','".join(lc.LabelTypes.split(","))
+               return "{Type} IN ('%s')" % mask
+        elif (fieldname == "OnAccNr"):
+            return "(({OpenFlag} = i|1|) AND ({Entity} = s|%s|) AND ({Type} = i|1|))" % inv.SupCode
+        elif (fieldname == "InvCat"):
+            return "({Type} = i|1|)"
+        elif fieldname == "PayTerm":
+            from PayTerm import PayTerm
+            return "({OperationType} IS NULL OR {OperationType} IN (i|%i|, i|%i|))" % (PayTerm.ALL_OPERATIONS,PayTerm.PURCHASE)
+        return ParentPurchaseInvoiceWindow.filterPasteWindow(self, fieldname) 
+
+    def balance(self):
+        pinv = self.getRecord()
+        pinv.balance()
+
+    def createCAIControl(self):
+        record= self.getRecord()
+        from SupplierCAIControl import SupplierCAIControl
+        scc = SupplierCAIControl()
+        scc.defaults()
+        scc.CAIFiscalType= 0
+        scc.SupCode = record.SupCode
+        scc.pasteSupCode()
+        scc.FrNumber= record.InvoiceNr
+        scc.ToNumber = record.InvoiceNr
+        scc.DueCAI = record.InvoiceDate
+        scc.openInWindow()
+
+    def makePaymentReceipt(self):
+        record = self.getRecord()
+        pay = record.makePayment()
+        if (pay):
+            from PaymentWindow import PaymentWindow
+            rw = PaymentWindow()
+            rw.setRecord(pay)
+            rw.open()
+
+    def genFixedAsset(self):
+        modulesInfo = getModulesInfo()
+        if ("FixedAssets" in modulesInfo.keys()):
+            from FixedAsset import FixedAsset
+            pi = self.getRecord()
+            for prow in pi.PurchaseInvoiceRows:
+                fa = FixedAsset.genFixedAssetFromPurInv(pi,prow.Account,prow.Comment,prow.Labels)
+                if (fa):
+                    from FixedAssetWindow import FixedAssetWindow
+                    rw = FixedAssetWindow()
+                    rw.setRecord(fa)
+                    rw.open()
+

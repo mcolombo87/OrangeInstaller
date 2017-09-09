@@ -1,0 +1,207 @@
+#encoding: utf-8
+# Junio 2007 - Martin Salcedo
+from OpenOrange import *
+from GlobalTools import *
+
+ParentCashierBalanceWindow = SuperClass("CashierBalanceWindow","FinancialTransWindow",__file__)
+class CashierBalanceWindow(ParentCashierBalanceWindow):
+    DefaultAfterEditRow = True
+    
+    def afterEditRow(self, fieldname, rowfieldname, rownr):
+        ParentCashierBalanceWindow.afterEditRow(self, fieldname, rowfieldname, rownr)
+        #afterEditRow(self, fieldname, rowfieldname, rownr)
+        record = self.getRecord()
+        if (fieldname in ("PayModes","Movements","PMBalances")):
+            record.sumUp()
+
+    def filterPasteWindowRow(self, fieldname, rowfieldname,rownr):
+        record = self.getRecord()
+        if fieldname == "PayModes":
+            if (rowfieldname == "ChequeNr"):
+                return "{Office} = s|%s|" % record.Office
+            elif (rowfieldname == "PayMode"):
+                res = "(({Closed} = 0 OR Closed IS NULL) AND (UseType = i|0| OR UseType = i|1| OR UseType IS NULL )) "
+                from SalesSettings import SalesSettings
+                ss = SalesSettings.bring()
+                if (ss.UsePayModeByOffice):
+                    res += "AND (Office LIKE s|%%,%s,%%| " %self.getRecord().Office
+                    res += "OR Office LIKE s|%s,%%| "  %self.getRecord().Office
+                    res += "OR Office LIKE s|%%,%s| "  %self.getRecord().Office
+                    res += "OR Office = s|%s| )"  %self.getRecord().Office
+                return res
+
+    def filterPasteWindow(self, fname):
+        record = self.getRecord()
+        if fname == "CashRegisterEvent":
+            if (record.CashRegister):
+                return "{Code} = s|%s| AND ({Closed} = 0 OR {Closed} IS NULL)" %(record.CashRegister)
+
+    def afterEdit(self, fieldname):
+        record = self.getRecord()
+        if (fieldname == "Cashier"):
+            record.pasteCashier()
+        elif (fieldname == "Currency"):
+            record.pasteCashValues()
+
+    def buttonClicked(self, buttonname):
+        record = self.getRecord()
+        if (buttonname == "getChecks"):
+            record.getChecks()
+        elif (buttonname == "getCoupons"):
+            record.getCoupons()
+
+    def receiveCheques(self):
+        record = self.getRecord()
+        if (record.Status == 0):
+            return ErrorResponse("REGISTERNOTAPPROVED")
+        if (record.isNew() or record.isModified()):
+            return ErrorResponse("REGISTERNOTSAVED")
+        counter = 0
+        from Cheque import Cheque
+        for rline in record.Checks:
+            chq = Cheque.bring(rline.CheckSerNr)
+            if (chq):
+                if (chq.Retained == True):
+                    chq.Retained = False
+                    res = chq.save()
+                    if (not res):
+                        return res
+                    else:
+                        counter += 1
+                        commit()
+            else:
+                return rline.FieldErrorResponse("Record not found!","CheckSerNr")
+        message("%s cheques received at Central Office" %counter)
+
+    def receiveCoupons(self):
+        record = self.getRecord()
+        if (record.Status == 0):
+            return ErrorResponse("REGISTERNOTAPPROVED")
+        if (record.isNew() or record.isModified()):
+            return ErrorResponse("REGISTERNOTSAVED")
+        counter = 0
+        from Coupon import Coupon
+        for rline in record.Coupons:
+            coup = Coupon.bring(rline.CouponSerNr)
+            if (coup):
+                if (coup.Retained == True):
+                    coup.Retained = False
+                    res = coup.save()
+                    if (not res):
+                        return res
+                    else:
+                        counter += 1
+            else:
+                return rline.FieldErrorResponse("Record not found!","CouponSerNr")
+        message("%s coupons received at Central Office" %counter)
+
+    def afterInsertRow(self, fieldname, rownr):
+        ParentCashierBalanceWindow.afterInsertRow(self, fieldname, rownr)
+        record = self.getRecord()
+        if (fieldname == "Movements"):
+            nrow = record.Movements[rownr]
+            nrow.User = currentUser()
+            nrow.TransDate = today()
+            nrow.TransTime = now()
+        if (fieldname == "PayModes"):
+            from ExchangeRate import ExchangeRate
+            nrow = record.PayModes[rownr]
+            nrow.Currency = record.Currency
+            nrow.CurrencyRate = ExchangeRate.getRate(nrow.Currency,record.TransDate,record.TransTime).Value
+        return
+
+    def afterDeleteRow(self, fieldname, rownr):
+        ParentCashierBalanceWindow.afterDeleteRow(self, fieldname, rownr)
+        record = self.getRecord()
+        record.sumUp()
+
+    def beforeDeleteRow(self, dname, rownr):
+        res = ParentCashierBalanceWindow.beforeDeleteRow(self, dname, rownr)
+        if (not res): return res
+        #if (dname in ("Checks","Coupons","CashCount")):#,"PMBalances")):
+        #    res = False
+        if (dname in ("PMBalances") and not currentUserCanDo("CanModifyCashierBalanceInitial",False)):
+            res = False
+        return res
+
+    def beforeInsertRow(self, dname, rownr):
+        res = ParentCashierBalanceWindow.beforeInsertRow(self, dname, rownr)
+        if (not res): return res
+        #if (dname in ("Checks","Coupons","CashCount")):#,"PMBalances")):
+        #    res = False
+        if (dname in ("PMBalances") and not currentUserCanDo("CanModifyCashierBalanceInitial",False)):
+            res = False
+        return res
+
+    def fieldIsEditable(self, fname, rfname=None, rownr=None):
+        res = ParentCashierBalanceWindow.fieldIsEditable(self, fname, rfname, rownr)
+        if (res and fname in ("EndDate","EndTime") and not currentUserCanDo("CanModifyCashierBalanceInitial",False)):
+            res = False
+        return res
+        
+
+    def beforeEditRow(self, fieldname, rowfieldname, rownr):
+        res = ParentCashierBalanceWindow.beforeEditRow(self, fieldname, rowfieldname, rownr)
+        if (not res): return res
+        record = self.getRecord()
+        return record.fieldIsEditable(fieldname, rowfieldname, rownr)
+
+    def genCashIn(self):
+        record = self.getRecord()
+        cashin = record.genCashIn()
+        if (cashin):
+            from CashInWindow import CashInWindow
+            ciw = CashInWindow()
+            ciw.setRecord(cashin)
+            ciw.open()
+        else:
+            message(cashin)
+            return ErrorResponse("No se pudo generar Entrada de Caja")
+        return True
+
+    def genCashOut(self):
+        record = self.getRecord()
+        cashout = record.genCashOut()
+        if (cashout):
+            cashout.openInWindow()
+        else:
+            message(cashout)
+
+    def showCashInList(self):
+        record = self.getRecord()
+        from CashInList import CashInList
+        cil = CashInList()
+        cil.defaults()
+        cil.getRecord().OriginNr = record.SerNr
+        cil.getRecord().OriginType = record.Origin[record.name()]
+        cil.open(False)
+
+    def genTreasurerTransference(self):
+        record = self.getRecord()
+        cout = record.genTreasurerTransference()
+        if (cout):
+            cout.openInWindow()
+        
+    #@checkCurrentUserCanDoAction
+    def resetCashierBalance(self):
+        record = self.getRecord()
+        record.PMBalances.clear()
+        record.EndDate = None
+        record.EndTime = None 
+        record.Status = 0
+        
+    def getPasteWindowNameRow(self,fieldname,rowfieldname,rownr):
+        record = self.getRecord()
+        if (fieldname == "PayModes"):
+            if (rowfieldname == "ChequeNr"):
+                pmrow = record.PayModes[rownr]
+                ptype = getMasterRecordField("PayMode","PayType",pmrow.PayMode)
+                if (ptype == 7):
+                    #Cheque propio
+                    return "OwnChequePasteWindow"
+                elif (ptype == 2):
+                    # Cheque
+                    return "ChequePasteWindow"
+                else:
+                    return ""
+        return ParentCashierBalanceWindow.getPasteWindowNameRow(self,fieldname,rowfieldname,rownr)        

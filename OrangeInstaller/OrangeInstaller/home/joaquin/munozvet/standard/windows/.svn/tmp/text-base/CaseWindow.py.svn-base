@@ -1,0 +1,209 @@
+#encoding: utf-8
+# -*- coding: utf-8 -*-
+from OpenOrange import *
+
+ParentCaseWindow = SuperClass("CaseWindow","TransactionWindow",__file__)
+class CaseWindow(ParentCaseWindow):
+
+    def beforeEdit(self, fieldname):
+        result = ParentCaseWindow.beforeEdit(self, fieldname)
+        if not result: return result
+        from CRMSettings import CRMSettings
+        cs = CRMSettings.bring()
+        if (fieldname == "PersonCode"):
+            self.getRecord().pasteJobPosition()
+        elif (cs.BlockCaseSerNr and fieldname == "SerNr"):
+            result = False
+        elif (cs.BlockCaseDate and fieldname == "TransDate"):
+            result = False
+        elif fieldname == "Events" and rowfieldname == "IsPublic":
+            result = True
+        return result
+        
+    def afterShowRecord(self): 
+        from User import User
+        user=User.bring(currentUser())
+        res =user.getCurrentRecordVisibility("Case")
+        record = self.getRecord()
+        assignee=False
+        #for r in record.Events:
+        if not record.isNew() and len(record.Events):
+            r = record.Events[-1]
+            for a in r.Asignee.split(","):
+                if user.Code==a:
+                    assignee=True
+            if res==4 and not assignee:
+                #record.clear()
+                self.close()      
+    
+    def beforeEditRow(self, fieldname, rowfieldname, rownr):
+        result = ParentCaseWindow.beforeEditRow(self, fieldname, rowfieldname, rownr)
+        if not result: return result
+        if fieldname == "Events":
+            self.getRecord().fillRowDefaults(rownr)
+        return result
+
+    def beforeInsertRow(self, detailName, rownr):
+        result = ParentCaseWindow.beforeInsertRow(self, detailName, rownr)
+        if not result: return result
+        if (detailName == "Events"):
+            if rownr:
+                from Priority import Priority
+                from User import User
+                from Department import Department
+                from Status import Status
+                prevrow = self.getRecord().Events[rownr-1]
+                if not prevrow.Comment: return False
+                if not Priority.exists(prevrow.Priority): return False
+                if not User.exists(prevrow.User): return False
+                if not Status.exists(prevrow.State): return False
+        return True
+
+    def beforeDeleteRow(self, detailName, rownr):
+        result = ParentCaseWindow.beforeDeleteRow(self, detailName, rownr)
+        if not result: return result
+        record = self.getRecord()
+        if (detailName == "Events"):
+            erow = record.Events[rownr]
+            if (not erow.Comment):
+                return True
+            result = False
+        return result
+
+    def afterEdit(self, fieldname):
+        ParentCaseWindow.afterEdit(self,fieldname)
+        record = self.getRecord()
+        if (fieldname == "CustCode"):
+            record.pasteCustCode()
+        elif (fieldname == "CustName"):
+            if (not record.CustCode):
+                from NameSearchResult import NameSearchResult
+                NameSearchResult.search("Customer",self.getRecord().CustName,self)
+        elif (fieldname == "Item"):
+            record.pasteArtCode()
+        elif (fieldname == "Problem"):
+            record.pasteProblem()
+        elif (fieldname == "PersonCode"):
+            record.pastePersonCode()
+        elif (fieldname == "ComercialProblem"):
+            record.pasteComercialProblem()
+        elif fieldname == "InvoiceNr":
+            record.pasteInvoiceNr()
+        elif fieldname == "Subject":        
+            record.pasteSubject()
+        return True
+
+    def afterEditRow(self, fieldname, rowfieldname, rownr):
+        ParentCaseWindow.afterEditRow(self,fieldname,rowfieldname,rownr)
+        record = self.getRecord()
+        if fieldname == "Events":
+            row = record.Events[rownr]
+            if rowfieldname == "State":
+                row.pasteState(record)
+            elif rowfieldname == "Asignee":
+                row.pasteAsignee(record)
+            elif rowfieldname == "Priority":
+                row.pastePriority(record)
+            elif rowfieldname == "Department":
+                row.pasteDepartment(record)
+        if fieldname == "Items":
+            row = record.Items[rownr]
+            if rowfieldname == "ArtCode":
+                row.pasteArtCode()
+
+    def contactList(self):
+        record = self.getRecord()
+        from ContactList import ContactList
+        report = ContactList()
+        report.getRecord().CustCode = record.CustCode
+        report.getRecord().ContactType = 0
+        report.getRecord().Sorting = "Code"
+        report.open(False)
+
+    def showOverview(self):
+        record = self.getRecord()
+        from CaseOverview import CaseOverview
+        report = CaseOverview()
+        report.defaults()
+        report.getRecord().SerNr = record.SerNr
+        report.open(False)
+
+    def getPasteWindowName(self, fieldname):
+        if fieldname == "CustCode":
+            if self.getRecord().EntityType == 0: return "CustomerPasteWindow"
+            elif self.getRecord().EntityType == 1: return "SupplierPasteWindow"
+        return ParentCaseWindow.getPasteWindowName(self, fieldname)
+
+    def filterPasteWindow(self, fieldname):
+        if fieldname == "PersonCode":
+            if self.getRecord().CustCode:
+                return "{CustCode} = s|%s|" % self.getRecord().CustCode
+        elif fieldname == "Subject":
+            if self.getRecord().Type:
+                query  = "( {RelatedType} = s|%s| OR " % self.getRecord().Type
+                query += "{RelatedType} LIKE s|%%,%s| OR" % self.getRecord().Type
+                query += "{RelatedType} LIKE s|%s,%%| OR" % self.getRecord().Type
+                query += "{RelatedType} LIKE s|%%,%s,%%| ) " % self.getRecord().Type
+                return query
+        elif (fieldname == "Circuit"):
+            return "{Type} = i|1|"
+
+    def filterPasteWindowRow(self,fieldname,rowfieldname,rownr):
+        record = self.getRecord()
+        if (fieldname == "Events"):
+            if (rowfieldname == "State"):
+                filter=""
+                from Circuit import Circuit
+                circuit = Circuit.bring(record.Circuit)
+                if circuit:
+                    state_dic = {}
+                    for s in circuit.Sequence:
+                        if s.NextStatus: 
+                            state_dic[s.Status] = s.NextStatus
+                    
+                    if state_dic.has_key(record.State):
+                        slist = state_dic[record.State].split(",")
+                        slist.append(record.State)
+                        filter = " (s|%s| <> s|| AND {Code} IN ('%s')) " % (state_dic[record.State],"','".join(slist))
+                return filter
+
+    def newTask(self):
+        act = ParentCaseWindow.newTask(self)
+        if act:
+            act.CustCode = self.getRecord().CustCode
+            act.pasteCustCode()
+        return act
+
+    def openWebReport(self):
+        record = self.getRecord()
+        from CaseWebReport import CaseWebReport
+        report = CaseWebReport()
+        report.CaseNr = record.SerNr
+        report.open(False)
+
+    def createActivity(self):
+        case = self.getRecord()
+        from Activity import Activity
+        from ActivityWindow import ActivityWindow
+        if case.SerNr: 
+            act = Activity()
+            act.defaults()
+            act.OriginRecordName = "Case"
+            act.OriginId = str(case.SerNr)
+            act.StartDate = today()
+            act.pasteStartDate()
+            act.EndDate = today()
+            act.pasteEndDate()
+            #act.ActivityType = vouch.Type
+            #act.ActivitySubType = self.ActivitySubType
+            act.Users = currentUser()
+            act.CustCode = case.CustCode
+            act.pasteCustCode()
+            act.CustName = case.CustName
+            act.ContactCode = case.PersonCode
+            act.pasteContactName()
+            act.Comment = case.Comment
+            actwindow = ActivityWindow()
+            actwindow.setRecord(act)
+            actwindow.open()
+        return

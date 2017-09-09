@@ -1,0 +1,111 @@
+#encoding: utf-8
+from OpenOrange import *
+
+ParentBankReceiptWindow = SuperClass("BankReceiptWindow","FinancialTransWindow",__file__)
+class BankReceiptWindow(ParentBankReceiptWindow):
+
+
+    def afterEdit(self, fieldname):
+        ParentBankReceiptWindow.afterEdit(self, fieldname)
+        receipt = self.getRecord()
+        if (fieldname == "PayMode"):
+            receipt.pastePayMode()
+
+    def pasteOpen(self):
+        receipt = self.getRecord()
+        if not receipt.Status:
+          receipt.Invoices.clear()
+          receipt.pasteInvoices(1)
+          receipt.sumUp()
+          receipt.payInvoices()
+          receipt.sumUp()
+
+    def pasteNext(self):
+        receipt = self.getRecord()
+        if not receipt.Status:
+          receipt.Invoices.clear()
+          receipt.pasteInvoices(2)
+          receipt.sumUp()
+          receipt.payInvoices()
+          receipt.sumUp()
+
+    def afterEditRow(self, fieldname, rowfieldname, rownr):
+        ParentBankReceiptWindow.afterEditRow(self, fieldname, rowfieldname,rownr)
+        receipt = self.getRecord()
+        if (fieldname == "Invoices"):
+            row = receipt.Invoices[rownr]
+            if (rowfieldname == "InvoiceNr"):
+                row.pasteInvoiceNr(receipt)
+                row.sumUp(receipt)
+                receipt.sumUp()
+            elif (rowfieldname == "Amount"):
+                row.pasteAmount(receipt)
+                row.sumUp(receipt)
+                receipt.sumUp()
+            elif (rowfieldname == "InvoiceAmount"):
+                row.pasteInvoiceAmount(receipt)
+                row.sumUp(receipt)
+                receipt.sumUp()
+            elif (rowfieldname == "OnAccNr"):
+                row.pasteOnAccNr(receipt)
+                row.sumUp(receipt)
+                receipt.sumUp()
+            elif (rowfieldname == "CustCode"):
+                row.pasteCustCode(receipt)
+
+
+
+    def afterDeleteRow(self, fieldname, rownr):
+        receipt = self.getRecord()
+        if (fieldname == "Invoices"):
+            receipt.sumUp()
+
+
+    def filterPasteWindowRow(self,fieldname,rowfieldname,rownr):
+        receipt = self.getRecord()
+        if (fieldname == "Invoices"):
+            row = receipt.Invoices[rownr]
+            if (rowfieldname == "InvoiceNr"):
+                invList= []
+                for invrow in receipt.Invoices:
+                    if invrow.InvoiceNr: invList.append(str(invrow.InvoiceNr))
+                row = receipt.Invoices[rownr]
+                filt = "{OpenFlag} = i|1| "
+                if (row.CustCode):
+                    filt += "AND {CustCode} = s|%s| " %(row.CustCode)
+                filt += "AND {Status} = i|1| "
+                filt += "AND ({Invalid}=i|0| OR {Invalid} IS NULL)"
+                if len(invList) > 0:
+                    filt += "AND {SerNr} NOT IN (%s)" % ",".join(invList)
+                filt += " AND ({AppliesToInvoiceNr} IS NULL OR {AppliesToInvoiceNr} = i|0|) " #que no est�n aplicadas a facturas
+                filt += " AND ({Saldo} <> 0.0) " #que no tengan saldo las facturas
+                return filt
+            elif rowfieldname == "OnAccNr":
+                return "(({OpenFlag} = i|1|) AND ({Entity} = s|%s|) AND ({Type} = i|0|))" % row.CustCode
+            elif (rowfieldname == "BankAccount"):
+                if (row.CustCode):
+                    return "({Entity} = s|%s| AND {EntityType} = i|1|) " %(row.CustCode)
+
+
+    def showDownPayHist(self):
+        crow = self.currentRow("Invoices")
+        record = self.getRecord()
+        if (crow>-1) and record.Invoices[crow].OnAccNr:
+          from CustomerDownpaymentsHistory import CustomerDownpaymentsHistory
+          report = CustomerDownpaymentsHistory()
+          specs = report.getRecord()
+          specs.OnAccNr = record.Invoices[crow].OnAccNr
+          specs.FromDate = date(1900,1,1)
+          specs.ToDate = today()
+          specs.ToDate
+          report.open(False)
+
+    def genBankInstruction(self):
+        pay = self.getRecord()
+        if (pay.isNew() or pay.isModified()):
+            message (tr("REGISTERNOTSAVED"))
+        #elif pay.ExportFlag == 1:
+        #    message (tr("REGISTEREXPORTED"))
+        else:
+            message (pay.generateBankFile())
+

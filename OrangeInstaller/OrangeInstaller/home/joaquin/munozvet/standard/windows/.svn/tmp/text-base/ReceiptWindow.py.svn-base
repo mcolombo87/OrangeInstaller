@@ -1,0 +1,353 @@
+#encoding: utf-8
+from OpenOrange import *
+from GlobalTools import *
+
+ParentReceiptWindow = SuperClass("ReceiptWindow","SalesTransactionWindow",__file__)
+class ReceiptWindow(ParentReceiptWindow):
+
+    def afterEdit(self, fieldname):
+        ParentReceiptWindow.afterEdit(self, fieldname)
+        from SalesSettings import SalesSettings
+        receipt = self.getRecord()
+        ss = SalesSettings.bring()
+        if fieldname == "Currency":
+            receipt.pasteCurrency()
+        elif (fieldname == "CustCode"):
+            receipt.makeReceipt()
+            from Customer import Customer
+            customer = Customer.bring(receipt.CustCode)
+            if customer:
+                accounts = customer.hasOnAccounts()
+                if accounts:
+                    message(tr("This Company has pending downpayments"))
+                    if ss.ShowDownpayments:
+                        for acc in accounts:
+                            message("%s : %s "%(acc.Currency,acc.Saldo))
+        elif fieldname == "Office":
+            if ss.ReceiptInvoicesMethod <> 0:
+                receipt.pasteInvoices(ss.ReceiptInvoicesMethod)
+                receipt.sumUp()
+        receipt.showMessages()
+
+    def reverseReceipt(self):
+        rec = self.getRecord()
+        rev = rec.reverse()
+        window = ReceiptWindow()
+        window.setRecord(rev)
+        window.open()
+        if rev.SerNr:
+            message("%s, Recibo %s" %(tr("Already been reversed, you can not reverse it again"),rev.SerNr))
+
+    def openDebitNote(self):
+        rec = self.getRecord()
+        from Invoice import Invoice
+        inv = Invoice()
+        inv.OriginNr = rec.SerNr
+        inv.OriginType = inv.Origin["Receipt"] #Receipt
+        if inv.load():
+          from InvoiceWindow import InvoiceWindow
+          window = InvoiceWindow()
+          window.setRecord(inv)
+          window.open()
+
+    def pasteOpen(self):
+        receipt = self.getRecord()
+        if not receipt.Status:
+          receipt.pasteInvoices(1)
+          receipt.sumUp()
+          receipt.payInvoiceAmounts()
+          receipt.sumUp()
+
+    def pasteNext(self):
+        receipt = self.getRecord()
+        if not receipt.Status:
+          receipt.pasteInvoices(3)
+          receipt.sumUp()
+          receipt.payInvoiceAmounts()
+          receipt.sumUp()
+
+    def beforeEditRow(self, fname, rfname, rownr):
+        res = ParentReceiptWindow.beforeEditRow(self, fname, rfname, rownr)
+        if (not res ):
+            return res
+        receipt = self.getRecord()
+        if (fname == "PayModes" ):
+            if (rfname == "CreditCard"):
+                row = self.getRecord().PayModes[rownr]
+                pmode = row.getPayModeRecord()
+                if (pmode and pmode.PayType == 1):
+                    cctype = pmode.CredCardType
+                    from CreditCard import CreditCard
+                    from CreditCardWindow import CreditCardWindow
+                    from CreditCardWindow import CreditCardWindow
+                    if (not row.CreditCard):
+                        from FinSettings import FinSettings
+                        fs = FinSettings.bring()
+                        if (fs and fs.UseMagneticReader):
+                            ccdata = CreditCardWindow.getMagneticRead(CredCardType=cctype, \
+                            CustCode=receipt.CustCode, CustName=receipt.CustName)
+                            if (ccdata):
+                                row.CreditCard = ccdata["Code"]
+        return True
+
+
+    def afterEditRow(self, fieldname, rowfieldname, rownr):
+        ParentReceiptWindow.afterEditRow(self, fieldname, rowfieldname, rownr)
+        receipt = self.getRecord()
+        if (fieldname == "Invoices"):
+            row = receipt.Invoices[rownr]
+            if (rowfieldname == "InvoiceNr"):
+                row.pasteInvoiceNr(receipt)
+                row.sumUp(receipt)
+                receipt.sumUp()
+            elif (rowfieldname == "Amount"):
+                row.pasteAmount(receipt)
+                row.sumUp(receipt)
+                receipt.sumUp()
+            elif (rowfieldname == "InvoiceAmount"):
+                row.pasteInvoiceAmount(receipt)
+                row.sumUp(receipt)
+                receipt.sumUp()
+            elif (rowfieldname == "OnAccNr"):
+                row.pasteOnAccNr(receipt)
+                row.sumUp(receipt)
+                receipt.sumUp()
+        if (fieldname == "PayModes"):
+            if (rowfieldname == "Amount"):
+                receipt.sumUp()
+            elif (rowfieldname == "PayMode"):
+                row = receipt.PayModes[rownr]
+                row.pastePayMode()
+            elif (rowfieldname == "ChequeNr"):
+                receipt.PayModes[rownr].pasteChequeNr()
+                receipt.sumUp()
+            elif (rowfieldname == "CreditCard"):
+                row = receipt.PayModes[rownr]
+                pmode = row.getPayModeRecord()
+                if (pmode and pmode.PayType == 1):
+                    cctype = pmode.CredCardType
+                    from CreditCard import CreditCard
+                    if (row.CreditCard and not CreditCard.exists(row.CreditCard)):
+                        from CreditCardWindow import CreditCardWindow
+                        #Llama al asistente de creación de tarjetas de Crédito.
+                        ccdata = CreditCardWindow.assistedCreditCardCreator(CredCardType=cctype, \
+                            Number=row.CreditCard,CustCode=receipt.CustCode, CustName=receipt.CustName)
+            elif (rowfieldname == "Plan"):
+                row = receipt.PayModes[rownr]
+                row.pastePlan()
+                #Very important begins
+                row.Amount = 0.0
+                row.pasteAmount(receipt)
+                receipt.sumUp()
+                #Very important ends
+                row.Amount = row.getLeftToPay(receipt)
+                row.pasteAmount(receipt)
+        if (fieldname == "ChequeBounce"):
+            row = receipt.ChequeBounce[rownr]
+            if (rowfieldname == "ChqBounceNr"):
+                row.pasteChqBounceNr(receipt)
+                row.sumUp(receipt)
+                receipt.sumUp()
+            elif (rowfieldname == "Amount"):
+                row.pasteAmount(receipt)
+                row.sumUp(receipt)
+                receipt.sumUp()
+            elif (rowfieldname == "ChequeAmount"):
+                row.pasteChequeAmount(receipt)
+                row.sumUp(receipt)
+                receipt.sumUp()
+        receipt.showMessages()
+
+    def afterDeleteRow(self, fieldname, rownr):
+        ParentReceiptWindow.afterDeleteRow(self, fieldname, rownr)
+        receipt = self.getRecord()
+        if (fieldname == "Invoices"):
+            receipt.sumUp()
+        elif (fieldname == "PayModes"):
+            receipt.sumUp()
+        elif (fieldname == "ChequeBounce"):
+            receipt.sumUp()
+
+    def fillPasteWindowRow(self, pastewindowname, fieldname, rowfieldname, rownr):
+        ParentReceiptWindow.fillPasteWindowRow(self, pastewindowname, fieldname, rowfieldname, rownr)
+        receipt = self.getRecord()
+        if receipt.confirmed():
+            return False
+        elif pastewindowname == "XPasteWindow":
+            record = self.getRecord()
+            prow = record.details(fieldname)[rownr]
+            from PayMode import PayMode
+            from CredCardType import CredCardType
+            pm = PayMode.bring(prow.PayMode)
+            query = []
+            if pm:
+                ct = CredCardType.bring(pm.CredCardType)
+                if ct:
+                    for srow in ct.SurChargeRows:
+                        z = NewRecord("X")
+                        z.Code = srow.Plan
+                        from CredCardPlan import CredCardPlan
+                        ccp = CredCardPlan.bring(srow.Plan)
+                        if (ccp):
+                            z.Name = ccp.Name
+                        else:
+                            z.Name = srow.Plan
+                        query.append(z)
+                return query
+        return None
+        
+    def filterPasteWindowRow(self,fieldname,rowfieldname,rownr):
+        receipt = self.getRecord()
+        if (fieldname == "Invoices"):
+            if (rowfieldname == "InvoiceNr"):
+              row = receipt.Invoices[rownr]
+              if (row.DebtType==2):
+                mlist= [ str(row.InvoiceNr) for row in receipt.Invoices if row.InvoiceNr and row.DebtType==2 ]
+                filt = "({CustCode}=s|%s|  AND {Status} = i|7|) " % (receipt.CustCode)   #  SHOULD BE THERE
+                if mlist:
+                    filt += "AND {SerNr} NOT IN (%s) " % ",".join(mlist)
+                return filt
+              elif (row.DebtType==3):
+                from LetterSettings import LetterSettings
+                lset = LetterSettings.bring()
+                mlist= [ str(row.InvoiceNr) for row in receipt.Invoices if row.InvoiceNr and row.DebtType==3 ]
+                filt = "({CustCode}=s|%s|  AND {OpenFlag} = i|1| AND {Status} = i|1|) " % (receipt.CustCode)   #  SHOULD BE THERE
+                if mlist:
+                    filt += "AND {SerNr} NOT IN (%s) " % ",".join(mlist)
+                filt += "AND {LetterState} NOT IN ('%s') " % "','".join(lset.endStates())
+                return filt
+              elif (row.DebtType==4):
+                mlist= [ str(row.InvoiceNr) for row in receipt.Invoices if row.InvoiceNr and row.DebtType==4 ]
+                filt = "({CustCode}=s|%s|  AND {Status} = i|1| AND ({Invalid}<>i|1| OR {Invalid} IS NULL)) " % (receipt.CustCode)
+                if mlist:
+                    filt += "AND {SerNr} NOT IN (%s) " % ",".join(mlist)
+                filt += "AND {Saldo} > 0 "
+                return filt
+              else:
+                mlist= [ str(row.InvoiceNr) for row in receipt.Invoices if row.InvoiceNr and row.DebtType==0 ]
+                filt = "{CustCode}=s|%s| AND {OpenFlag} = i|1| AND {Status} = i|1| AND ({Invalid}=i|0| OR {Invalid} IS NULL)" % (receipt.CustCode)
+                if mlist:
+                    filt += "AND {SerNr} NOT IN (%s)" % ",".join(mlist)
+                filt += " AND ({AppliesToInvoiceNr} IS NULL OR {AppliesToInvoiceNr} = i|0|) " #que no estén aplicadas a facturas
+                return filt
+            elif rowfieldname == "OnAccNr":
+                row = receipt.Invoices[rownr]
+                if row.InvoiceNr: return "False"
+                return "(({OpenFlag} = i|1|) AND ({Entity} = s|%s|) AND ({Type} = i|0|))" % receipt.CustCode
+        elif (fieldname == "PayModes"):
+            if (rowfieldname == "ChequeNr"):
+                row = receipt.PayModes[rownr]
+                from PayMode import PayMode
+                pm = PayMode.bring(row.PayMode)
+                mlist= [ str(row.ChequeNr) for row in receipt.PayModes if row.ChequeNr ]
+                filt = "((({Type} = 0 OR {Type} = 2) AND {CustCode}=s|%s|) OR ({Type} = 1 OR {Type} = 3)) "  % (receipt.CustCode)
+                #En el caso de letras el Status debe ser 1
+                if pm:
+                    if pm.PayType == PayMode.LETTER:
+                        filt += "AND {Status}=i|1| "
+                    else:
+                        filt += "AND {Status}= i|0| "
+                if mlist:
+                    filt += "AND {SerNr} NOT IN (%s)" % ",".join(mlist)
+                return filt
+            elif (rowfieldname == "PayMode"):
+                res = "(({Closed} IS NULL OR {Closed} = i|0|) AND (UseType = i|0| OR UseType = i|1| OR UseType IS NULL ))"
+                from SalesSettings import SalesSettings
+                ss = SalesSettings.bring()
+                if (ss.UsePayModeByOffice):
+                    res += "AND (Office LIKE s|%%,%s,%%| " %self.getRecord().Office
+                    res += "OR Office LIKE s|%s,%%| "  %self.getRecord().Office
+                    res += "OR Office LIKE s|%%,%s| "  %self.getRecord().Office
+                    res += "OR Office LIKE s|%s| )"  %self.getRecord().Office
+                return res
+            elif (rowfieldname == "CreditCard"):
+                return "{CustCode} = s|%s| " % receipt.CustCode
+        elif (fieldname == "ChequeBounce"):
+            if (rowfieldname == "ChqBounceNr"):
+                chqList= []
+                for chqrow in receipt.ChequeBounce:
+                    if chqrow.ChqBounceNr: chqList.append(str(chqrow.ChqBounceNr))
+                filt = "{CustCode}=s|%s| AND {Saldo} > i|0| AND {Status} = i|1| AND ({Invalid}=i|0| OR {Invalid} IS NULL)" % (receipt.CustCode)
+                if len(chqList) > 0:
+                    filt += "AND {SerNr} NOT IN (%s)" % ",".join(chqList)
+                return filt
+
+    def getPasteWindowNameRow(self,fieldname,rowfieldname,rownr):
+        record = self.getRecord()
+        if (fieldname == "PayModes"):
+            row = record.PayModes[rownr]
+            if(rowfieldname == "ChequeNr"):
+                if (row.PayMode):
+                    ptype = getMasterRecordField("PayMode","PayType",row.PayMode)
+                    if (ptype == 1):
+                        return "CouponPasteWindow"
+                    elif (ptype == 2):
+                        return "ChequePasteWindow"
+                    elif (ptype == 13):
+                        return "LetterPasteWindow"
+        elif (fieldname == "Invoices"):
+            row = record.Invoices[rownr]
+            if(rowfieldname == "InvoiceNr"):
+              if (row.DebtType == 2):
+                  return "ChequePasteWindow"
+              elif (row.DebtType == 3):
+                  return "LetterPasteWindow"
+              elif (row.DebtType == 4):
+                  return "SalesPerceptionPasteWindow"
+              else:
+                  return "InvoicePasteWindow"
+        return ParentReceiptWindow.getPasteWindowNameRow(self,fieldname,rowfieldname,rownr)
+    
+
+    def buttonClicked(self, buttonname):
+        ParentReceiptWindow.buttonClicked(self, buttonname)
+        receipt = self.getRecord()
+        if buttonname == "applyPayments":
+            receipt.applyPayments()
+        elif buttonname == "payInvoiceAmounts":
+            receipt.payInvoiceAmounts()
+        elif buttonname == "selectInvoiceList":
+            if not receipt.confirmed():
+                from Report import Report
+                from InvoiceListSelect import InvoiceListSelect
+                receipt = self.getRecord()
+                if (receipt.CustCode):
+                    report = InvoiceListSelect()
+                    report.receipt = receipt
+                    report.getView().resize(800,600)
+                    report.open(False)
+                else:
+                    message(tr("Require filling Customer"))
+            else:
+                message(tr("Approved"))
+        receipt.sumUp()
+
+    def balance(self):
+        receipt = self.getRecord()
+        if (not receipt.PayTotal):
+           receipt.payInvoiceAmounts()
+        elif (receipt.InvTotal > receipt.PayTotal):
+           receipt.applyPayments()
+        elif (receipt.InvTotal < receipt.PayTotal):
+           receipt.addDownpayment() 
+        else:
+           return 
+        receipt.sumUp()
+
+    def showDownPayHist(self):
+        crow = self.currentRow("Invoices")
+        record = self.getRecord()
+        if (crow>-1) and record.Invoices[crow].OnAccNr:
+          from CustomerDownpaymentsHistory import CustomerDownpaymentsHistory
+          report = CustomerDownpaymentsHistory()
+          specs = report.getRecord()
+          specs.OnAccNr = record.Invoices[crow].OnAccNr
+          specs.FromDate = date(1900,1,1)
+          specs.ToDate = today()
+          report.open(False)
+
+    def afterInsertRow(self, detailfieldname, rownr):
+        ParentReceiptWindow.afterInsertRow(self, detailfieldname, rownr)
+        if detailfieldname == "Invoices":
+            self.getRecord().Invoices[rownr].Currency = self.getRecord().Currency #es importante xq sino se pueden crear anticipos sin moneda
+        

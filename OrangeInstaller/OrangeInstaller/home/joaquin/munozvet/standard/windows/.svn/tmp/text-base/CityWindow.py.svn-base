@@ -1,0 +1,10 @@
+#encoding: utf-8
+from OpenOrange import *
+from GlobalTools import *
+
+ParentCityWindow = SuperClass("CityWindow", "SimpleMasterWindow", __file__)
+class CityWindow(ParentCityWindow):
+    DefaultAfterEdit = True
+
+    #def afterEdit(self, fname):
+    #    afterEdit(self, fname)

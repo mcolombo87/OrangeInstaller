@@ -1,0 +1,427 @@
+#encoding: utf-8
+from OpenOrange import *
+
+ParentCustomerWindow = SuperClass("CustomerWindow", "AddressableWindow", __file__)
+class CustomerWindow(ParentCustomerWindow):
+
+    def afterShowRecord(self):
+        ParentCustomerWindow.afterShowRecord(self)
+        self.refreshPhoto()
+        self.listContacts()
+        from SalesSettings import SalesSettings
+        ss = SalesSettings.bring()
+        if ss.EnableBankAccountTab:
+            self.setTabPageVisibility("Tabs", "BankAccountsPage", True)
+            self.listbankaccounts()
+        else:
+            self.setTabPageVisibility("Tabs", "BankAccountsPage", False)
+
+    def afterEdit(self, fieldname):
+        ParentCustomerWindow.afterEdit(self, fieldname)
+        customer = self.getRecord()
+        if (fieldname == "TaxRegNr"):
+            if (not customer.TaxRegNr):
+                return
+            res = customer.pasteTaxRegNr()
+            if not res: 
+               message(tr("WRONGTAXREGNR"))
+        elif (fieldname == "Phone"):
+            res = customer.pastePhone()
+            if not res: message(res)
+        elif (fieldname == "Fax"):
+            pass
+            #from CRMSettings import CRMSettings
+            #crm = CRMSettings.bring()
+            #customer.Fax = crm.formatPhoneNumber(customer.Fax,customer.Country)
+        elif (fieldname == "Mobile"):
+            res = customer.pasteMobile()
+            if not res: message(res)
+        elif (fieldname == "MainContact"):
+            res = customer.pasteMainContact()
+        elif (fieldname == "MemberOf"):
+            customer.pasteMemberOf()
+        elif (fieldname == "TaxRegType"):
+            customer.pasteTaxRegType()
+        elif (fieldname == "PayTerm"):
+            customer.pastePayTerm()
+        elif (fieldname == "DelProvinceCode"):
+            customer.pasteDelProvinceCode()
+        elif (fieldname == "DelAddressCode"):
+            customer.pasteDelAddress()
+        elif (fieldname == "DelCity"):
+            customer.pasteDelCity()
+        elif (fieldname == "DelZipCode"):
+            customer.pasteDelZipCode()
+        elif (fieldname == "DelLocalityCode"):
+            customer.pasteDelLocalityCode()
+
+    def filterPasteWindow(self, fieldname):
+        cust = self.getRecord()
+        if fieldname in ("MainContact","PaymentManager"):
+            if self.getRecord().Code:
+                return "{CustCode} = s|%s| AND {ContactType}= i|0|" % cust.Code
+        elif fieldname == "DelLocalityCode":
+            if cust.DelZipCode:
+                oldarzc = filter(lambda x : x.isdigit(),cust.DelZipCode)
+                return "{ZipCode} = s|%s|" % oldarzc
+        elif fieldname == "DelAddressCode":
+            if self.getRecord().Code:
+                return "{Entity} = s|%s| and {EntityType}=i|0| " % cust.Code
+        elif fieldname == "PayTerm":
+            from PayTerm import PayTerm
+            return "({OperationType} IS NULL OR {OperationType} IN (i|%i|, i|%i|))" % (PayTerm.ALL_OPERATIONS,PayTerm.SALES)
+        else:
+            return ParentCustomerWindow.filterPasteWindow(self, fieldname)
+
+    def showCustomerStatus(self):
+        record = self.getRecord()
+        from CustomerStatusDate import CustomerStatusDate
+        report = CustomerStatusDate()
+        report.defaults()
+        report.getRecord().CustCode = record.Code
+        report.open(False)
+
+    def showCustomerAccountsReceivable(self):
+        record = self.getRecord()
+        from AccReceivable import AccReceivable
+        report = AccReceivable()
+        report.defaults()
+        report.getRecord().ToDate = today()
+        report.getRecord().CustCode = record.Code
+        report.open(False)
+
+    def showMyPrices(self):
+        record = self.getRecord()
+        from PricesReport import PricesReport
+        report = PricesReport()
+        report.defaults()
+        report.getRecord().ToDate = today()
+        report.getRecord().CustCode = record.Code
+        report.open(False)
+
+    def genReceipt(self):
+        cust = self.getRecord()
+        if (cust.isNew() or cust.isModified()):
+            message("REGISTERNOTSAVED")
+            return
+        rec = cust.genReceipt()
+        if (rec):
+            from ReceiptWindow import ReceiptWindow
+            rwin = ReceiptWindow()
+            rwin.setRecord(rec)
+            rwin.open()
+
+    def openCredLimitWindow(self):
+        from CredLimitWindow import CredLimitWindow
+        from CredLimit import CredLimit
+        from FinSettings import FinSettings
+        from OurSettings import OurSettings
+        oset = OurSettings.bring()
+        cur = ""
+        rec = self.getRecord()
+        if rec.Currency:
+            cur = rec.Currency
+            climit = CredLimit()
+            climit.Code = rec.Code
+            if not climit.load():
+                climit.defaults()
+                climit.Name = rec.Name
+                climit.Currency = cur
+                from CredLimitType import CredLimitType
+                cctype = CredLimitType.bring(rec.CredLimitType)
+                if cctype:
+                    climit.CredLimit = cctype.DefaultCreditLimit
+            clw = CredLimitWindow()
+            clw.setRecord(climit)
+            clw.open()
+        else:
+            message("No existe campo Moneda en el Cliente")
+
+    def default(self):
+        self.getRecord().TaxRegType = 1
+
+    def listContacts(self,openList = False):
+        from ContactList import ContactList
+        record = self.getRecord()
+        if record.Code:
+            report = ContactList()
+            report.defaults()
+            report.ShowReportTitle = False
+            if not openList:
+                report.setView(self.getReportView("Contacts"))
+            report.getRecord().CustCode = record.Code
+            report.getRecord().ContactType = 0
+            report.getRecord().HideCode = True
+            report.getRecord().JoinNames = True
+            report.open(False)
+            if not openList:
+                #processEvents() #needed to avoid report tool bar to showup #pero hace que se cuelgue open
+                self.setFocus()
+
+    def listbankaccounts(self,openList = False):
+        from ContactList import ContactList
+        record = self.getRecord()
+        if record.Code:
+            from BankAccountList import BankAccountList
+            record = self.getRecord()
+            rep = BankAccountList()
+            rep.defaults()
+            rep.ShowReportTitle = False
+            specs = rep.getRecord()
+            if not openList:
+                rep.setView(self.getReportView("BankAccounts"))
+            specs.Entity = record.Code
+            specs.EntityType = 1 #Customer
+            rep.open(False)
+            if not openList:
+                #processEvents() #needed to avoid report tool bar to showup #pero hace que se cuelgue open
+                self.setFocus()
+
+
+    def contactList(self):
+        openList = True
+        self.listContacts(openList)
+
+    def buttonClicked(self, buttonname):
+        ParentCustomerWindow.buttonClicked(self, buttonname)
+        cust = self.getRecord()
+        if buttonname == "ContactList":
+            self.listContacts()
+        elif buttonname == "showBankAccounts":
+            self.listbankaccounts()
+        elif buttonname == "showMyPrices":
+            self.showMyPrices()
+        elif buttonname == "NewContact":
+            from Person import Person
+            from PersonWindow import PersonWindow
+            if cust.Code:       # only add if customer is saved !
+                p = Person()
+                p.defaults()
+                p.CustCode = cust.Code
+                p.pasteCustCode()
+                p.ContactType = 0
+                wnd = PersonWindow()
+                wnd.setRecord(p)
+                wnd.open()
+        elif buttonname == "getPercepGroup":
+            from Retencion import Retencion
+            from TaxSettings import TaxSettings
+            myRec = self.getRecord ()
+            percent = myRec.updatePercepGroup ()
+            if percent is not None:
+                ts = TaxSettings.bring()
+                r = Retencion.bring (ts.IIBBTaxPerTable)
+                if not r: return False
+                r.updatePercepGroup (myRec.TaxCat1,percent)
+                res = r.store ()
+                if not res:
+                    message(res)
+                else:
+                    commit()
+        elif buttonname == "openCustomerGroupsReport":
+            if self.getRecord().isNew():
+                message(tr("REGISTERNOTSAVED"))
+            else:
+                from CustomerGroupsReport import CustomerGroupsReport
+                report = CustomerGroupsReport()
+                report.customer = self.getRecord()
+                report.open(False)
+        elif (buttonname == "getTaxRegnr"):      # change name because same funcion was called after saving !
+            res = cust.getTaxRegNr()
+            if (not res):
+                message(res)
+        elif buttonname == "changePhoto":
+            fn = getOpenFileName("Select File")
+            if fn:
+                f = open(fn, "rb")
+                oldatt = self.getRecord().getPhoto()
+                if oldatt:
+                    res = oldatt.delete()
+                    if not res:
+                        message(res)
+                        return                
+                att = self.getRecord().attachFile(fn, self.getRecord().ATTACH_PHOTO)
+                if att:
+                    commit()
+                    self.refreshPhoto()
+                else:
+                    message(att)
+
+    def showZipCodeSelectionDialog(self, provinceCode, city, addr):
+        import socket, re
+        from WSClientCorreoArg import  \
+            SearchCPAList, \
+            InvalidProvCodeError, \
+            InvalidCityCodeError
+        if not addr or not provinceCode or not city:
+            return None
+        # formato de campo "Santiago del Estero 609 3A"
+        expr = "(?P<street>.+)[ ](?P<addnr>[0-9]+)(([ ](?P<departament>.*))|[ ]*\Z)"
+        match = re.search (expr, addr)
+        if not match:
+            message ("La direccion no tiene un formato valido")
+            alert ("Patron de direccion incorrecto")
+            return None
+        street = match.group ("street")
+        addnr = match.group ("addnr")
+        try:
+            cpa_dicc = SearchCPAList (provinceCode, city, street, addnr)
+            if not cpa_dicc:
+                message ("No se puede encontrar el CPA para la calle:",
+                            " %s, altura:%s, cuidad: %s, provincia: %s" \
+                            %(street,addnr,city,provinceCode))
+                return None
+            l = []
+            for k in cpa_dicc.keys ():
+                st_cpa = cpa_dicc[k]
+                st = st_cpa[0]
+                cpa = st_cpa[1]
+                if not st: st = "(Localidad)"
+                l.append("%s, %s - %s" % (k,st,cpa))
+            selection = getSelection ("Seleccione el CPA mas adecuado", tuple (l))
+            if selection:
+                cpa = selection.split (" - ")[1]
+                return cpa
+        except InvalidProvCodeError:
+            message ("No se pudo encontrar el CPA, verifique el codigo de provincia")
+            return None
+        except InvalidCityCodeError:
+            message ("No se pudo encontrar el CPA, verique que la ciudad sea valida para esta provincia")
+            return None
+        except IOError,msg:
+            message ("Ocurrio un error de conectividad de red")
+            return None
+        except socket.error:
+            message ("Ocurrio un error de conectividad de red")
+            return None
+        except:
+            return None
+
+    def saveAsSupplier(self):
+        cust = self.getRecord()
+        fields = ('Code','ProvinceCode','Province','Country','LocalityCode','Locality','ZipCode','Phone','Address','Email','WebSite','City','Name','FantasyName')
+        from Supplier import Supplier
+        from SupplierWindow import SupplierWindow
+        sup = Supplier()
+        for fieldname in fields:
+           value = cust.fields(fieldname).getValue()
+           sup.fields(fieldname).setValue(value)
+        wnd = SupplierWindow()
+        wnd.setRecord(sup)
+        wnd.open()
+
+    def genPerson(self):
+        cust = self.getRecord()
+        if (cust.isNew() or cust.isModified()):
+            message("REGISTERNOTSAVED")
+            return
+        person = cust.genPerson()
+        if (person):
+            from PersonWindow import PersonWindow
+            pwin = PersonWindow()
+            pwin.setRecord(person)
+            pwin.open()
+
+    def viewInvoiceAddressOnMap(self):
+        cust = self.getRecord()
+        url = "http://www.livemaps.com.ar/default.aspx?where1=%s" %  cust.getProperAddress()
+        webbrowser.open(url)
+
+    def showDownpayments(self):
+        from CustomerDownpaymentsHistory import CustomerDownpaymentsHistory
+        cdh = CustomerDownpaymentsHistory()
+        specs = cdh.getRecord()
+        specs.CustCode = self.getRecord().Code
+        specs.FromDate = date(1900,1,1)
+        specs.ToDate = today()
+        specs.OpenFlag = True
+        cdh.open(False)
+
+
+    def getPasteWindowName(self,fieldname):
+        record = self.getRecord()
+        if fieldname in ("PaymentDay","PaymentConsultDay"):
+          from DayPaste import DayPaste
+          report = DayPaste()
+          report.record = record
+          report.field = fieldname
+          specs = report.getRecord()
+          report.open(False)
+          return ""
+        return ParentCustomerWindow.getPasteWindowName(self, fieldname)
+
+          
+    def newTask(self):
+        act = ParentCustomerWindow.newTask(self)
+        if act:
+            act.CustCode = self.getRecord().Code
+            act.pasteCustCode()
+        return act
+    
+    def sendAccReceivable(self):
+        from CRMSettings import CRMSettings
+        cs = CRMSettings.bring()
+        record = self.getRecord()
+        from HTMLRecordView import HTMLRecordView
+        template = HTMLRecordView.bring(cs.AccReceivableTemplate)
+        if not template:
+            alert(tr("Account Receivable template setting missing in CRM Settings"))
+            return
+        msg = template.applyToRecord(record)
+        from AccReceivableWeb import AccReceivableWeb
+        report = AccReceivableWeb(False,False)
+        report.beforeStartRun()
+        import StringIO
+        from Report import Report
+        report.report_outputfile = StringIO.StringIO()
+        report.reportmode = Report.FILEMODE
+        report.defaults()
+        report.doPrintReportTitle = False
+        reprec = report.getRecord()
+        reprec.defaults()
+        reprec.CustCode = record.Code
+        
+        report.run()
+        messagebody = utf8(report.report_outputfile.getvalue())
+        report.report_outputfile = None #very important... dont now why.
+        report.reportmode = Report.SCREENMODE # ver si esto funciona... sino hacer un close del report.
+        report.afterFinishRun()
+        messagebody = messagebody.decode('utf8')
+        msg = msg.replace('__AccReceivableWeb__',messagebody)
+        
+        from Mail import Mail
+        mail = Mail()
+        mail.defaults()
+        import re
+        mail.MessageBody = msg
+        from OurSettings import OurSettings
+        os = OurSettings.bring()
+        mail.Subject = cs.AccReceivableSubject
+        mail.MailTo = record.Email
+        from MailWindow import MailWindow
+        mailwindow = MailWindow()
+        mailwindow.setRecord(mail)
+        mailwindow.open()
+
+    def genDownPayment(self):
+        cust = self.getRecord()
+        if (cust.isNew() or cust.isModified()):
+            message("REGISTERNOTSAVED")
+            return
+        inv = cust.genDownPayment()
+        if inv:
+            from InvoiceWindow import InvoiceWindow
+            inw = InvoiceWindow()
+            inw.setRecord(inv)
+            inw.open()
+        else:
+            return inv
+
+    def refreshPhoto(self):
+        iv = self.getImageView("photo")
+        if iv:
+            att = self.getRecord().getPhoto()
+            if att:
+                iv.setImage(att.Value)
+            else:
+                iv.clearImage()

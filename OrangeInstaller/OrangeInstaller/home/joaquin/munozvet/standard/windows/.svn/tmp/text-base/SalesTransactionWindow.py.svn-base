@@ -1,0 +1,67 @@
+#encoding: utf-8
+from OpenOrange import *
+
+ParentSalesTransactionWindow = SuperClass("SalesTransactionWindow","FinancialTransWindow",__file__)
+class SalesTransactionWindow(ParentSalesTransactionWindow):
+    
+    def afterEdit(self, fieldname):
+        ParentSalesTransactionWindow.afterEdit(self, fieldname)
+        record = self.getRecord()
+        if (fieldname == "CustCode"):
+            customer = record.pasteCustCode()
+            self.updateViewDecimals() # porque a veces se pega la moneda y pueden cambiar los decimales en la vista
+        elif (fieldname == "CustName"):
+            if not record.CustCode:
+                from NameSearchResult import NameSearchResult
+                NameSearchResult.search("Customer",record.CustName,self)
+        elif (fieldname == "DelProvinceCode"):
+            record.pasteDelProvinceCode()
+            record.sumUp() # Necessary to recalculate Taxes.
+
+    def newTask(self):
+        st = self.getRecord()
+        act = ParentSalesTransactionWindow.newTask(self)
+        if act:
+            act.CustCode = st.CustCode
+            act.pasteCustCode()
+            if hasattr(st, "Contact"):
+                act.ContactCode = st.Contact
+                act.pasteContactName()
+            if hasattr(st, "PersonCode"):
+                act.ContactCode = st.PersonCode
+                act.pasteContactName()
+        return act
+
+    def filterPasteWindow(self, fieldname):
+        record = self.getRecord()
+        res = ParentSalesTransactionWindow.filterPasteWindow(self, fieldname)
+        if (fieldname == "Contact"):
+            if (res):
+                res += " AND "
+            else:
+                res = ""
+            res = " {ContactType} = i|0| AND {CustCode} = s|%s| " %(record.CustCode)
+        elif (fieldname == "SalesMan"):
+            if (record.SalesGroup):
+                res = " {SalesGroup} = s|%s| " %(record.SalesGroup)
+        return res
+
+    def showItemSearchReport(self, rowclass, aclist=[], rowNr=-1, text="", detailname="Items"):
+        from Report import Report
+        from ItemSearchReport import ItemSearchReport
+        report = ItemSearchReport()
+        if text:
+            report.getRecord().Name = text
+        else:
+            if hasattr(self.getRecord(),'ArtCodeName'):
+                report.getRecord().Name = self.getRecord().ArtCodeName
+        report.getRecord().StockDepo = self.getRecord().StockDepo
+        report.getRecord().UseType = 0
+        report.setView(self.getReportView("ItemSearchView"))
+        report.record = self.getRecord()
+        report.window = self
+        report.itemclass = rowclass
+        report.ArtCodeList = aclist
+        report.DetailName = detailname
+        report.rowNr = rowNr
+        report.open(False)

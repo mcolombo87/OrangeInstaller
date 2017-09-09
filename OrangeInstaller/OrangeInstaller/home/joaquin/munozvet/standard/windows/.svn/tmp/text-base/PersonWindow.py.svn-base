@@ -1,0 +1,476 @@
+#encoding: utf-8
+from OpenOrange import *
+from MasterWindow import MasterWindow
+from Mail import Mail
+from MailWindow import MailWindow
+from Customer import Customer
+from Supplier import Supplier
+from Person import Person
+
+ParentPersonWindow = SuperClass("PersonWindow","AddressableWindow",__file__)
+class PersonWindow(ParentPersonWindow):
+
+    def afterShowRecord(self):
+        ParentPersonWindow.afterShowRecord(self)
+        self.refreshPhoto()
+        record = self.getRecord()
+        report = ContactWaysList()
+        report.defaults()
+        report.editmode = False
+        report.setView(self.getReportView("ContactInfoView"))
+        report.ParentWindow = self
+        report.pers = record
+        report.Code = record.Code
+        report.classMode = False
+        report.open(False)
+        #processEvents() #needed to avoid report tool bar to showup #hace colgar open
+        #self.setFocus()
+
+    def afterEdit(self, fieldname):
+        ParentPersonWindow.afterEdit(self, fieldname)
+        p = self.getRecord()
+        if (fieldname == "CustCode"):
+            p.pasteCustCode()
+        elif (fieldname == "BarCode"):
+            record.pasteBarCode()
+        elif (fieldname == "Department"):
+            p.pasteDepartment()
+        elif (fieldname == "Age"):
+            curBDate = date(today().year,p.BirthDate.month,p.BirthDate.day)
+            ndate = addYears(curBDate,-p.Age-1)
+            if (today() >= curBDate):
+                ndate = addYears(ndate,1)
+            p.BirthDate = ndate
+        elif (fieldname=="BirthDate"):
+            curBDate = date(today().year,p.BirthDate.month,p.BirthDate.day)
+            p.Age = curBDate.year - p.BirthDate.year
+            if (curBDate > today()):
+                p.Age -= 1
+        elif fieldname == "Nationality":
+            p.pasteNationality()
+        elif (fieldname == "Partner"):
+            p.pastePartner()
+
+    def refreshPhoto(self):
+        iv = self.getImageView("photo")
+        if iv:
+            att = self.getRecord().getPhoto()
+            if att:
+                iv.setImage(att.Value)
+            else:
+                iv.clearImage()
+        
+        
+    def afterEditRow(self, fieldname, rowfieldname, rownr):
+        ParentPersonWindow.afterEditRow(self, fieldname, rowfieldname, rownr)
+        pers = self.getRecord()
+        if (fieldname == "ContactWays"):
+            cway = pers.ContactWays[rownr]
+            if (rowfieldname == "Detail"):
+                cway.pasteDetail()
+
+    def personObservationList(self):
+        record = self.getRecord()
+        from ObservationList import ObservationList
+        report = ObservationList()
+        report.getRecord().Pax = record.Code
+        report.open(False)
+
+    def personGuestHistory(self):
+        record = self.getRecord()
+        from PaxHistory import PaxHistory
+        report = PaxHistory()
+        report.getRecord().Pax = record.Code
+        report.open(False)
+
+    def addObservation(self):
+        self.getRecord().addObservation()
+
+    def sendMail(self):
+        m = Mail()
+        mw = MailWindow()
+        m.MailTo = self.getRecord().Email
+        mw.setRecord(m)
+        mw.open()
+
+    def getPasteWindowName(self,fieldName):
+        spec = self.getRecord()
+        if fieldName == "CustCode":
+            # customer
+            if (not spec.ContactType) or ( spec.ContactType in (0,3)):
+                return "CustomerPasteWindow"
+            elif spec.ContactType== 1:
+                return "SupplierPasteWindow"    
+        return ParentPersonWindow.getPasteWindowName(self,fieldName)
+
+    def buttonClicked(self, buttonname):
+        ParentPersonWindow.buttonClicked(self, buttonname)
+        record = self.getRecord()
+        if buttonname == "sendSMS":
+            record.sendSMS("OpenOrange SMS", record.MessageText)
+        elif buttonname == "genCall":
+            fn = self.currentField()
+            if fn == "ContactWays":
+                rowNr = self.currentRow(self.currentMatrixName())
+                if (rowNr > -1):
+                    row = record.ContactWays[rowNr]
+                    record.genCall(row.ContactType,row.Detail)
+        elif buttonname == "changePhoto":
+            fn = getOpenFileName("Select File")
+            if fn:
+                f = open(fn, "rb")
+                oldatt = self.getRecord().getPhoto()
+                if oldatt:
+                    res = oldatt.delete()
+                    if not res:
+                        message(res)
+                        return                
+                att = self.getRecord().attachFile(fn, self.getRecord().ATTACH_PHOTO)
+                if att:
+                    commit()
+                    self.refreshPhoto()
+                else:
+                    message(att)
+                    
+
+    def generateCustomer(self):
+        person = self.getRecord()
+        from Customer import Customer
+        rec = Customer()
+        rec.Code = person.CustCode
+        fields = ["Address", "City", "Province", "Country", "ZipCode", "Email", "Phone"]
+        for field in fields:
+            rec.fields(field).setValue(person.fields(field).getValue())
+        rec.Name = person.LastName + ", " + person.Name
+        rec.Address = person.Address
+        rec.City = person.City
+        rec.Country = person.Country
+        rec.ProvinceCode= person.ProvinceCode
+        rec.Province= person.Province
+        rec.Locality= person.Locality
+        rec.LocalityCode= person.LocalityCode
+        rec.ZipCode = person.ZipCode
+        if not person.CustCode: rec._OriginPerson_ = person #esto se usa para que cuando se graba el cliente, se linkee a esta persona
+        from CustomerWindow import CustomerWindow
+        custwin = CustomerWindow()
+        custwin.setRecord(rec)
+        custwin.open()
+
+    def showBankAccounts(self):
+        from BankAccountList import BankAccountList
+        record = self.getRecord()
+        rep = BankAccountList()
+        rec = rep.getRecord()
+        rec.defaults()
+        rec.Entity = record.Code
+        rec.EntityType = 2 #Person
+        rep.open(False)
+
+    def filterPasteWindow(self,fieldname):
+        res = ParentPersonWindow.filterPasteWindow(self, fieldname)
+        record = self.getRecord()
+        if (not res):
+            if fieldname=="CustomerDepartment":
+                res = " ({CustCode} = s|%s|) OR ({CustCode} IS NULL) "% record.CustCode  # Hay departamentos que son genericos y no depende del cliente !
+        return res
+
+
+from Report import Report
+
+class ContactWaysList(Report):
+    ADDINGWAY = False
+    CLASSIFYCONTACT = False
+
+    def run(self):
+        #if not hasattr(self, "pers"):
+        #    self.pers = Person.bring(self.Code)
+        if (self.ADDINGWAY):
+            self.printContactWayTypes()
+            self.printContactWayRows()
+        elif (self.CLASSIFYCONTACT):
+            self.printContactClassifications()
+            self.printClassification()
+        else:
+            self.printToolBar()
+            self.printContactWayRows()
+            self.printClassification()
+            self.showAttachments()
+            
+        #self.fixedFields()
+        #if (self.pers):
+        #    self.showAttachments()
+        #self.startTable(Border="1",CellPadding="0",CellSpacing="0",Color="Grey")
+        #self.startRow()
+        #c = False
+        #self.endRow()
+        #self.endTable()
+
+    def printToolBar(self):
+        self.startTable()
+        self.startRow()
+        self.addValue(tr("Add Contact Way"),Style="B",CallMethod="addContactWay", Parameter="0")
+        self.addValue(tr("Classify"),Style="B",CallMethod="classifyContact", Parameter="0")
+        self.addValue(tr("Attach Note"),Style="B",CallMethod="attachNote", Parameter="0")
+        text = "Done" if self.editmode else "Edit"
+        self.addValue(tr(text),Style="B",CallMethod="toggleEditMode", Parameter="0")
+        self.endRow()
+        self.endTable()
+        self.addHTML("<HR>")
+
+    def classifyContact(self, param, value):
+        self.CLASSIFYCONTACT = True
+        self.refresh()
+        
+    def addContactWay(self, param, value):
+        self.ADDINGWAY = True
+        self.refresh()
+
+    def cancelAddContactWay(self, param, value):
+        self.ADDINGWAY = False
+        self.refresh()
+
+    def selectContactWayType(self, param, value):
+        precord = self.ParentWindow.getRecord()
+        from Person import ContactWay
+        cwrow = ContactWay()
+        cwrow.ContactType = int(param)
+        res = getString(ContactWay.ContactTypeList[cwrow.ContactType])
+        if (res):
+            cwrow.Detail = res
+            cwrow.pasteDetail()
+            precord.ContactWays.append(cwrow)
+        self.ADDINGWAY = False
+        self.refresh()
+
+    def printContactWayTypes(self):
+        self.startTable()
+        self.startRow()
+        self.addValue(tr("Select Contact Way"),Style="B")
+        self.addValue(tr("Cancel"),Style="H",CallMethod="cancelAddContactWay", Parameter="0")
+        self.endRow()
+        self.endTable()
+        self.addHTML("<hr>")
+        self.startTable()
+        precord = self.ParentWindow.getRecord()
+        from Person import ContactWay
+        a = 0
+        self.startRow()
+        for (i,cway) in enumerate(ContactWay.ContactTypeList[:16]):
+            self.addImage(ContactWay.ContactTypeIcons[i],CallMethod="selectContactWayType", Parameter="%s" % i )
+            self.addValue(cway,Underline=True,Size="2",CallMethod="selectContactWayType", Parameter="%s" % i )
+            self.endRow()
+            a += 1
+            if (a == 3):
+                self.endRow()
+                self.startRow()
+                a = 0
+        self.endRow()
+        self.endTable()
+        self.addHTML("<HR>")
+        self.ADDINGWAY = False
+
+    def printClassification(self):
+        precord = self.ParentWindow.getRecord()
+        self.startTable()
+        self.startRow()
+        self.addValue(tr("Classification"),Style="A")
+        self.addValue(precord.Classification)
+        self.endRow()
+        self.endTable()
+        self.addHTML("<hr>")
+
+    def printContactClassifications(self):
+        precord = self.ParentWindow.getRecord()
+        cquery = Query()
+        cquery.sql  = "SELECT C.Code, C.Name "
+        cquery.sql += "FROM Classification C "
+        cquery.sql += "WHERE IFNULL(C.Closed,0) = i|0| "
+        cquery.sql += "ORDER BY C.Name "
+        if (cquery.open()):
+            cd = {}
+            clist = []
+            for cl in cquery:
+                clist.append((cl.Code,cl.Name))
+                cd[cl.Code] = cl.Code in precord.Classification.split(",")
+            self.startTable()
+            self.startRow()
+            self.addValue(tr("Select Classification"),Style="B")
+            self.addValue(tr("Done"),Style="H",CallMethod="endClassification", Parameter="0")
+            self.endRow()
+            self.endTable()
+            self.addHTML("<hr>")
+            self.startTable()
+            a = 0
+            self.startRow()
+            sizes = [2,3]
+            bolds = [False,True]
+            for cl in clist:
+                bflag = bolds[cd[cl[0]]]
+                sflag = sizes[cd[cl[0]]]
+                self.addValue(cl[1],Bold=bflag,Size=sflag,Align="center",Underline=True,CallMethod="selectClassification", Parameter="%s" %(cl[0]),)
+                a += 1
+                if (a == 3):
+                    self.endRow()
+                    self.startRow()
+                    a = 0
+            self.endRow()
+            self.endTable()
+            self.addHTML("<hr>")
+        #self.CLASSIFYCONTACT = False
+        
+    def selectClassification(self, param, value):
+        precord = self.ParentWindow.getRecord()
+        clist = filter(lambda x:x != '', precord.Classification.split(","))
+        if (not param in clist):
+            clist.append(param)
+        else:
+            clist.remove(param)
+        clist.sort()
+        precord.Classification = ",".join(clist)
+        if (len(clist) == 0):
+            precord.Classification = None
+        self.refresh()
+
+    def endClassification(self, param, value):
+        self.CLASSIFYCONTACT = False
+        self.refresh()
+    
+    def printContactWayRows(self):
+        from Person import ContactWay
+        record = self.getRecord()
+        person = self.ParentWindow.getRecord()
+        self.startTable(CellSpacing="0",CellPadding="0")
+        a = 0
+        self.startRow()
+        for cw in person.ContactWays:
+            self.addImage(ContactWay.ContactTypeIcons[cw.ContactType],CallMethod="editContactWay", Parameter="%s" %(cw.rowNr))
+            if self.editmode:
+              self.addValue(cw.Detail,CallMethod="editContactWay", Parameter="%s" %(cw.rowNr))
+            else:
+              self.addValue(cw.Detail,CallMethod="execContactWay", Parameter=cw.ContactType)
+            a += 1
+            if (a == 2):
+                self.endRow()
+                self.startRow()
+                a = 0
+        self.endRow()
+        self.endTable()
+        self.addHTML("<hr>")
+        
+    def editContactWay(self, param, value):
+        from Person import ContactWay
+        precord = self.ParentWindow.getRecord()
+        row = precord.ContactWays[int(param)]
+        res = getString(ContactWay.ContactTypeList[row.ContactType],row.Detail)
+        if (res):
+            row.Detail = res
+            row.pasteDetail()
+        else:
+            res = askYesNo(tr("Delete This Contact Way?"))
+            if (res):
+                precord.ContactWays.remove(row.rowNr)
+        self.refresh()
+
+    def toggleEditMode(self, param, value):
+        self.editmode = not self.editmode
+        self.refresh()
+
+    def attachNote(self, param, value):        #OK
+        precord = self.ParentWindow.getRecord()
+        from AttachNoteWindow import AttachNoteWindow
+        from Attach import Attach
+        atch = Attach()
+        atch.defaults()
+        atch.OriginRecordName = precord.name()
+        atch.OriginId = precord.getPortableId()
+        anw = AttachNoteWindow()
+        anw.setRecord(atch)
+        anw.ParentViewAttachReport = self
+        self.source_record = precord
+        anw.open()
+
+    def editNote(self, param, value):   #OK
+        precord = self.ParentWindow.getRecord()
+        from Attach import Attach
+        atch = Attach()
+        atch.internalId = param
+        if (atch.load()):
+            from AttachNoteWindow import AttachNoteWindow
+            awin = AttachNoteWindow()
+            awin.ParentViewAttachReport = self
+            awin.ParentViewAttachReport.source_record = precord
+            awin.setRecord(atch)
+            awin.open()
+
+    def showAttachments(self):
+        precord = self.ParentWindow.getRecord()
+        #self.startTable()
+        #self.startHeaderRow()
+        #self.addImage("xnote.png", CallMethod="attachNote")
+        #self.endHeaderRow()
+        #self.endTable()
+
+        from Attach import Attach
+        query = Query()
+        query.sql  = "SELECT {Comment}, {internalId} "
+        query.sql += "FROM [Attach]  "
+        query.sql += "WHERE {OriginRecordName} = s|%s| AND {OriginId} = s|%s| " % (precord.name(), precord.getPortableId())
+        query.sql += "AND {Type} = i|%s| " % (Record.ATTACH_NOTE)
+        if (query.open()):
+            if (query.count()):
+                self.startTable()
+                self.startRow()
+                self.addValue(tr("Attachments"),Style="A",ColSpan="2")
+                self.endRow()
+                for rline in query:
+                    self.startTable()
+                    self.startRow()
+                    self.addValue(rline.Comment,CallMethod="editNote", Parameter=rline.internalId,Bold=True,Underline=True)
+                    self.addValue(self.getAttachNote(rline.internalId))
+                    self.endRow()
+                self.endTable()
+
+    def getAttachNote(self, internalid):
+        query = Query()
+        query.sql  = "SELECT Value FROM [Attach] "
+        query.sql += "WHERE internalId = i|%i|" % internalid
+        if query.open() and query.count():
+            return query[0].Value
+
+    def editMemo(self,value):
+        from TextEditor import TextEditor
+        from TextEditorWindow import TextEditorWindow
+        w = TextEditorWindow.createEditor()
+        w.onOk = self.saveMemo
+        w.onCancel = None
+        w.open()
+
+    def openfieldSelector(self,field):
+        self.openColumnsSpec()
+
+    def execContactWay(self, param, value):
+        ctype = int(param)
+        if ctype in (0,1,2,4):
+            self.pers.genCall(0,value)
+        elif ctype in (3,10):
+            from Mail import Mail
+            from MailWindow import MailWindow
+            mail = Mail()
+            mail.EntityType = 2
+            mail.CustCode = self.pers.Code
+            mail.pasteCustCode()
+            mail.MailTo = value
+            mail.defaults()
+            mail.openInWindow()
+        elif ctype == 5:
+            self.pers.genCall(5,value)
+        elif ctype == 12:
+            import webbrowser
+            webbrowser.open(value)
+        elif ctype == 8:
+            import webbrowser
+            webbrowser.open("http://www.facebook.com/profile.php?id=%s" %  value)
+        elif ctype == 9:
+            import webbrowser
+            webbrowser.open("http://www.twitter.com/%s" %  value)
+            

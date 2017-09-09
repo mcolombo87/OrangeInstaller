@@ -1,0 +1,114 @@
+#encoding: utf-8
+from OpenOrange import *
+from Numerable import Numerable
+from GlobalTools import *
+
+ParentSubscriptionWindow = SuperClass("SubscriptionWindow","SalesTransactionWindow",__file__)
+class SubscriptionWindow(ParentSubscriptionWindow):
+    DefaultAfterEdit = True
+
+    def afterEditRow(self, fieldname, rowfieldname, rownr):
+        ParentSubscriptionWindow.afterEditRow(self, fieldname ,rowfieldname, rownr)
+        record = self.getRecord()
+        if (fieldname == "SubscriptionRows"):
+            row = record.SubscriptionRows[rownr]
+            if rowfieldname == "ArtCode":
+                row.pasteArtCode(record)
+                row.sumUp(record)
+                record.sumUp()
+            elif rowfieldname == "Qty":
+                row.pasteQty(record)
+                row.sumUp(record)
+                record.sumUp()
+            elif rowfieldname == "Price":
+                row.pastePrice(record)
+                row.sumUp(record)
+                record.sumUp()
+            elif rowfieldname == "VATCode":
+                row.pasteVATCode(record)
+                row.sumUp(record)
+                record.sumUp()
+            elif rowfieldname == "VATPrice":
+                row.pasteVATPrice()
+                row.sumUp(record)
+                record.sumUp()
+            elif rowfieldname == "Discount":
+                row.sumUp(record)
+                record.sumUp()
+
+    def afterDeleteRow(self, fieldname, rownr):
+        subs = self.getRecord()
+        if (fieldname == "SubscriptionRows"):
+            subs.sumUp()
+
+    def showSubscriptionStatus(self):
+        record= self.getRecord()
+        from SubscriptionStatusReport import SubscriptionStatusReport
+        report = SubscriptionStatusReport()
+        report.serNr = record.SerNr
+        report.open(False)
+
+    def subInvoiceGenAct(self):
+        if not self.getRecord().Status:
+            message(tr("REGISTERNOTAPPROVED"))
+            return
+        from Subscription import Subscription
+        from InvoiceWindow import InvoiceWindow
+        from Invoice import Invoice
+        inv = Invoice()
+        subs = self.getRecord()
+        gdate = today()
+        inv = subs.genInvoice(gdate,StartOfMonth(gdate),EndOfMonth(gdate))
+        invw = InvoiceWindow()
+        invw.setRecord(inv)
+        invw.open()
+
+    def subPartialInvoice(self):
+        if not self.getRecord().Status:
+            message(tr("REGISTERNOTAPPROVED"))
+            return
+        from Subscription import Subscription
+        from InvoiceWindow import InvoiceWindow
+        from Invoice import Invoice
+        inv = Invoice()
+        subs = self.getRecord()
+        gdate = today()
+        rate = dateDiff(subs.TransDate, EndOfMonth(subs.TransDate))
+        rate = round(float(rate) / float(EndOfMonth(subs.TransDate).strftime("%d")),2)
+        inv = subs.genPartialInvoice(gdate,subs.TransDate,EndOfMonth(subs.TransDate), rate)
+        subs.LastInvDate = EndOfMonth(gdate)
+        res = subs.store()
+        if not res:
+            return res
+        commit()
+        invw = InvoiceWindow()
+        invw.setRecord(inv)
+        invw.open()
+
+    def genDistribution(self):
+        dist = self.getRecord().genDistribution()
+        if dist:
+            from DistributionWindow import DistributionWindow
+            distrw = DistributionWindow()
+            distrw.setRecord(dist)
+            distrw.open()
+        else:
+            message(dist)
+        return dist
+    
+    #def afterEdit(self, fname):
+    #    afterEdit(self, fname)
+
+    def beforeDeleteRow(self, detailname, rownr):
+        res = ParentSubscriptionWindow.beforeDeleteRow(self, detailname, rownr)
+        if (not res): return res
+        if (detailname == "Invoices"):
+            return False
+        return res
+
+    def beforeInsertRow(self, detailname, rownr):
+        res = ParentSubscriptionWindow.beforeInsertRow(self, detailname, rownr)
+        if (not res): return res
+        if (detailname == "Invoices"):
+            return False
+        return res

@@ -1,0 +1,21 @@
+#encoding: utf-8
+from OpenOrange import *
+
+ParentActivitiesDetailReportWindow = SuperClass("ActivitiesDetailReportWindow","ReportWindow",__file__)
+class ActivitiesDetailReportWindow(ParentActivitiesDetailReportWindow):
+
+    def afterEdit(self, fieldname):
+        ParentActivitiesDetailReportWindow.afterEdit(self, fieldname)
+        specs = self.getRecord()
+        field = specs.fields(fieldname)
+        if field and field.getValue():
+            detailField = specs.fields("Detail" + fieldname)
+            if detailField:
+                detailField.setValue(False)
+                
+    def beforeEdit(self, fieldname):
+        res = ParentActivitiesDetailReportWindow.beforeEdit(self, fieldname)
+        if res and fieldname.startswith("Detail") and self.getRecord().fields(fieldname[6:]).getValue():
+            res = False
+        return res
+            

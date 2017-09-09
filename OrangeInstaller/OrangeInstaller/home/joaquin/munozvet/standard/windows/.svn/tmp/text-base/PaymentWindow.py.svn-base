@@ -1,0 +1,254 @@
+#encoding: utf-8
+from OpenOrange import *
+
+ParentPaymentWindow = SuperClass("PaymentWindow","PurchaseTransactionWindow",__file__)
+class PaymentWindow(ParentPaymentWindow):
+
+    def afterEdit(self, fieldname):
+        ParentPaymentWindow.afterEdit(self, fieldname)
+        pay = self.getRecord()
+        if (fieldname == "SupCode"):
+            pay.makePayment()
+            from Supplier import Supplier
+            supplier = Supplier.bring(pay.SupCode)
+            if supplier and supplier.hasOnAccounts():
+                message(tr("This Company has pending downpayments"))
+        elif (fieldname == "Office"):
+            from PurchaseSettings import PurchaseSettings
+            pursett = PurchaseSettings.bring()
+            if pursett.PaymentInvoicesMethod == 2: # Solo Facturas Abiertas de la Sucursal.
+                pay.pasteInvoices(pursett.PaymentInvoicesMethod)
+                pay.sumUp()
+
+    def afterEditRow(self, fieldname, rowfieldname, rownr):
+        payment = self.getRecord()
+        if (fieldname == "Invoices"):
+            row = payment.Invoices[rownr]
+            if (rowfieldname == "InvoiceNr"):
+                row.pasteInvoiceNr(payment)
+                row.sumUp()
+                payment.sumUp()
+            elif (rowfieldname == "Amount"):
+                row.pasteAmount(payment)
+                row.sumUp()
+                payment.sumUp()
+            elif (rowfieldname == "InvoiceAmount"):
+                row.pasteInvoiceAmount(payment)
+                row.sumUp()
+                payment.sumUp()
+            elif (rowfieldname == "OnAccNr"):
+                row.pasteOnAccNr(payment)
+                row.sumUp()
+                payment.sumUp()
+        if (fieldname == "PayModes"):
+            row = payment.PayModes[rownr]
+            if (rowfieldname == "Amount"):
+                payment.sumUp()
+            elif (rowfieldname == "PayMode"):
+                row.pastePayMode()
+            elif (rowfieldname == "ChequeNr"):
+                row.pasteChequeNr()
+                payment.sumUp()
+        payment.showMessages()
+
+    def getPasteWindowNameRow(self,fieldname,rowfieldname,rownr):
+        record = self.getRecord()
+        if (fieldname == "PayModes"):
+            row = record.PayModes[rownr]
+            if(rowfieldname == "ChequeNr"):
+                if (row.PayMode):
+                    if (row.PayType == 7):
+                        return "OwnChequePasteWindow"
+                    elif (row.PayType == 2):
+                        return "ChequePasteWindow"
+                    elif (row.PayType == 14):
+                        return "OwnLetterPasteWindow"
+                return ""
+        elif (fieldname == "Invoices"):
+            row = record.Invoices[rownr]
+            if(rowfieldname == "InvoiceNr"):
+              if (row.DebtType == 2):
+                  return "OwnChequePasteWindow"
+              elif (row.DebtType == 3):
+                  return "OwnLetterPasteWindow"
+              elif (row.DebtType == 4):
+                  return "PurchasePerceptionPasteWindow"
+              else:
+                  return "PurchaseInvoicePasteWindow"
+        return ParentPaymentWindow.getPasteWindowNameRow(self,fieldname,rowfieldname,rownr)
+
+    def afterDeleteRow(self, fieldname, rownr):
+        payment = self.getRecord()
+        if (fieldname == "Invoices"):
+            payment.sumUp()
+        elif (fieldname == "PayModes"):
+            payment.sumUp()
+
+    def fillPasteWindowRow(self, pastewindowname, detailfieldname, fieldname, rownr):
+        payment = self.getRecord()
+        if detailfieldname == "Invoices":
+            pass
+            """  No lo usamos mas porque no se puede ordenar en este forma: molesto en caso de muchos anticipos
+            if fieldname == "OnAccNr":
+                from OnAccountReference import OnAccountReference
+                query = Query()
+                query.sql =  "SELECT [oa].{SerNr}, [p].{RefStr}, [oa].{Saldo}, [oa].{Currency},[oa].{Comment}, oa.TransDate FROM [OnAccount] [oa]"
+                query.sql += "INNER JOIN [PaymentInvoiceRow] [pir] ON [pir].{OnAccNr} = [oa].{SerNr} "
+                query.sql += "INNER JOIN [Payment] [p] ON [pir].{masterId} = [p].{internalId} "
+                query.sql += "WHERE?AND [oa].{OpenFlag} = i|1| "
+                query.sql += "WHERE?AND [oa].{Entity} = s|%s| " % payment.SupCode
+                query.sql += "WHERE?AND [oa].{Type} = i|1| "
+                query.sql += "WHERE?AND [pir].{Amount} > i|0| "
+                query.sql += "UNION "
+                query.sql +=  "SELECT [oa].{SerNr}, [p].{RefStr}, [oa].{Saldo}, [oa].{Currency},[oa].{Comment}, oa.TransDate FROM [OnAccount] [oa]"
+                query.sql += "INNER JOIN [BankPaymentRow] [pir] ON [pir].{OnAccNr} = [oa].{SerNr} "
+                query.sql += "INNER JOIN [BankPayment] [p] ON [pir].{masterId} = [p].{internalId} "
+                query.sql += "WHERE?AND [oa].{OpenFlag} = i|1| "
+                query.sql += "WHERE?AND [oa].{Entity} = s|%s| " % payment.SupCode
+                query.sql += "WHERE?AND [oa].{Type} = i|1| "
+                query.sql += "WHERE?AND [pir].{Amount} > i|0| "
+                onAccList = []
+                for invoice in payment.Invoices:
+                    if invoice.OnAccNr:
+                        onAccList.append(str(invoice.OnAccNr))
+                if len(onAccList) > 0:
+                    query.sql += "WHERE?AND [oa].{SerNr} NOT IN (s|%s|)" % "|,s|".join(onAccList)
+                if query.open():
+                    onAcc = {}
+                    for rec in query:
+                        onAccRef = OnAccountReference()        # why do we use this register ? Not necesary !
+                        onAccRef.SerNr = rec.SerNr
+                        onAccRef.RefStr = rec.Comment
+                        onAccRef.Saldo = rec.Saldo
+                        onAccRef.Currency = rec.Currency
+                        onAccRef.TransDate = rec.TransDate                        
+                        onAcc[rec.SerNr] = onAccRef
+                    recList = []
+                    for rec in onAcc:
+                        recList.append(onAcc[rec])
+                    return recList
+                return []
+            """
+
+    def filterPasteWindowRow(self,fieldname,rowfieldname,rownr):
+        payment = self.getRecord()
+        if (fieldname == "Invoices"):
+            if (rowfieldname == "InvoiceNr"):              
+              row = payment.Invoices[rownr]
+              if row.OnAccNr: return "False"
+              if (row.DebtType==2):
+                mlist= [ str(row.InvoiceNr) for row in payment.Invoices if row.InvoiceNr and row.DebtType==2 ]
+                filt = "({SupCode}=s|%s|  AND {Status} = i|7|) " % (payment.SupCode)   #  SHOULD BE THERE
+                if mlist:
+                    filt += "AND {SerNr} NOT IN (%s) " % ",".join(mlist)
+                return filt
+              elif (row.DebtType==3):
+                mlist= [ str(row.InvoiceNr) for row in payment.Invoices if row.InvoiceNr and row.DebtType==3 ]
+                filt = "({SupCode}=s|%s|) " % (payment.SupCode)   #  SHOULD BE THERE
+                if mlist:
+                    filt += "AND {SerNr} NOT IN (%s) " % ",".join(mlist)
+                filt += "AND ({Status} = i|1| OR {Status} = i|2| OR {Status} = i|4| OR {Status} = i|5|)" #% ("i|" + "|,i|".join (["1","6","7"]) +"|")
+                return filt
+              elif (row.DebtType==4):
+                mlist= [ str(row.InvoiceNr) for row in payment.Invoices if row.InvoiceNr and row.DebtType==4 ]
+                #filt = "({Entity}=s|%s|  AND {OpenFlag} = i|1| ) " % (payment.SupCode)
+                filt = "({SupCode}=s|%s|  AND {Status} = i|1| AND ({Invalid}<>i|1| OR {Invalid} IS NULL)) " % (payment.SupCode)
+                if mlist:
+                    filt += "AND {SerNr} NOT IN (%s) " % ",".join(mlist)
+                filt += "AND {Saldo} > 0 "
+                return filt
+              else:
+                mlist= [ str(row.InvoiceNr) for row in payment.Invoices if row.InvoiceNr and row.DebtType==0 ]
+                filt = "{SupCode}=s|%s| AND {OpenFlag} = i|1| AND {Status} = i|1| AND ({Invalid}=i|0| OR {Invalid} IS NULL)" % (payment.SupCode)
+                if mlist:
+                    filt += "AND {SerNr} NOT IN (%s)" % ",".join(mlist)
+                filt += " AND ({AppliesToInvoiceNr} IS NULL OR {AppliesToInvoiceNr} = i|0|) " #que no estén aplicadas a facturas
+                return filt
+            elif rowfieldname == "OnAccNr":
+                row = payment.Invoices[rownr]
+                if row.InvoiceNr: return "False"
+                return "(({OpenFlag} = i|1|) AND ({Entity} = s|%s|) AND ({Type} = i|1|))" % payment.SupCode
+        elif (fieldname == "PayModes"):
+            filters = []
+            res = self.filterPasteWindowPaymentRow(payment.PayModes[rownr], rowfieldname)
+            if res:
+                filters.append(res)
+            if (rowfieldname == "ChequeNr"):
+                row = payment.PayModes[rownr]
+                from PayMode import PayMode
+                from PurchaseSettings import PurchaseSettings
+                pursett = PurchaseSettings.bring()
+                if (row.PayMode):
+                    pm = PayMode.bring(row.PayMode)
+                    if (pm.PayType == pm.OWNLETTER):
+                        filters.append("{Status} = i|0| ")
+                    if (pm.PayType == pm.OWNCHEQUE):
+                        returnValue = "{Status} = i|0| "
+                        if (pursett and pursett.PaymentChequeMethod and payment.Office):
+                            returnValue += " AND Office = s|%s| " % payment.Office
+                        returnValue += " AND Currency = s|%s| " % payment.Currency
+                        filters.append(returnValue)
+                    if (pm.PayType == pm.CHEQUE):
+                        returnValue = "{Status}=1 AND ({NotEndorsable}=0 OR {NotEndorsable} IS NULL)"     # endorsing the cheque
+                        if (pursett and pursett.PaymentChequeMethod and payment.Office):
+                            returnValue += " AND Office = s|%s| " % payment.Office
+                        filters.append(returnValue)
+            elif (rowfieldname == "PayMode"):
+                res = "(({Closed} IS NULL OR {Closed} = i|0|) AND (UseType = i|0| OR UseType = i|2| OR UseType IS NULL ))"
+                from SalesSettings import SalesSettings
+                ss = SalesSettings.bring()
+                if (ss.UsePayModeByOffice):
+                    res += "AND (Office LIKE s|%%,%s,%%| " % payment.Office
+                    res += "OR Office LIKE s|%s,%%| "  % payment.Office
+                    res += "OR Office LIKE s|%%,%s| "  % payment.Office
+                    res += "OR Office = s|%s| )"  % payment.Office
+                filters.append(res)
+            return " AND ".join(filters)
+
+    def printRetDocs(self):
+        payment = self.getRecord()
+        from RetencionDoc import RetencionDoc
+        query = Query()
+        query.sql = "SELECT SerNr FROM RetencionDoc "
+        query.sql += "WHERE ({PaymentNr} = i|%s|) " % payment.SerNr
+        if query.open():
+           for rec in query:
+             rd = RetencionDoc.bring(rec.SerNr)
+             if rd:
+                docs = rd.getDocument()
+                docname, docclass = "", ""
+                if isinstance(docs, tuple):
+                    docname, docclass = docs
+                else:
+                    docname = docclass = docs
+                if not docclass: docclass = docname
+                printDocument(docname, docclass ,rd, True, True, None)
+
+    def balance(self):
+        paym = self.getRecord()
+        if (not paym.PayTotal):
+           paym.payInvoiceAmounts()
+        elif (paym.InvTotal > paym.PayTotal):
+           paym.applyPayments()
+        elif (paym.InvTotal < paym.PayTotal):
+           paym.addDownpayment()
+        else:
+           return
+        paym.sumUp()
+
+    def beforeDeleteRow(self, detailName, rownr):
+        result = ParentPaymentWindow.beforeDeleteRow(self, detailName, rownr)
+        if not result: return result
+        result = True
+        record = self.getRecord()
+        if (detailName == "PayModes"):
+            if record.Received:
+                prow = record.PayModes[rownr]
+                from PayMode import PayMode
+                pmode = PayMode.bring(prow.PayMode)
+                if pmode and pmode.PayType == 4:
+                    return False
+        return result
+
+        
+        

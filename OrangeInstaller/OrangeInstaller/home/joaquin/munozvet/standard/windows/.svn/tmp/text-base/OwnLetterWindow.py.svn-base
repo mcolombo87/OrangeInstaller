@@ -1,0 +1,132 @@
+#encoding: utf-8
+from OpenOrange import *
+from GlobalTools import *
+
+ParentOwnLetterWindow = SuperClass("OwnLetterWindow","NumerableWindow",__file__)
+class OwnLetterWindow(ParentOwnLetterWindow):
+
+    def afterEdit(self, fieldname):
+        ParentOwnLetterWindow.afterEdit(self, fieldname)
+        record = self.getRecord()
+        if (fieldname == "SupCode"):
+          record.pasteSupCode()
+        elif (fieldname == "Bank"):
+            record.pasteBank()
+        elif (fieldname == "BankNr"):
+            record.pasteBankNr()
+        elif (fieldname == "LetterNr"):
+            record.pasteLetterNr()
+        elif (fieldname == "ExpDate"):
+            record.pasteExpDate()
+        elif (fieldname == "Region"):
+            record.pasteClearing()
+        elif (fieldname == "Amount"):
+            record.Saldo = record.Amount
+        elif (fieldname == "Type"):
+            record.pasteType()
+        elif (fieldname == "Contact1"):
+            record.pasteContact(1)
+        elif (fieldname == "Contact2"):
+            record.pasteContact(2)
+        elif (fieldname == "ProvinceCode"):
+            record.pasteProvinceCode()
+
+    def openPayment(self):
+        chq = self.getRecord()
+        from Payment import Payment 
+        r = chq.getPayment()
+        if r:
+            r.openInWindow()
+        else:
+           message(tr("Record not found!"))
+
+
+    def openDeposit(self):
+        chq = self.getRecord()
+        from Deposit import Deposit
+        from DepositWindow import DepositWindow
+        r = chq.getDeposit()
+        if r:
+            wnd = DepositWindow()
+            wnd.setRecord(r)
+            wnd.open()
+        else:
+           message(tr("Record not found!"))
+           return
+
+
+    def cancelOwnLetter(self):
+        chq = self.getRecord()
+        if (chq.Status == 4):
+           message("El cheque nro %s ya se encuentra anulado" % (self.getRecord().SerNr))
+           return
+        chq.Status = 4
+        res = chq.store()
+        if not res:
+            message(res)
+        else:
+            commit()
+
+    def showOwnLetterTrace(self):
+        report = OwnLetterTraceReport ()
+        report.defaults()
+        report.getRecord().FromDate = date(1900,1,1)
+        report.getRecord().ToDate = today()
+        report.getRecord().LetterNr = self.getRecord().LetterNr
+        report.open(False)
+
+    def showOwnLetterHistory(self):
+        record = self.getRecord()
+        from OwnLetterHistory import OwnLetterHistory
+        report = OwnLetterHistory()
+        specs = report.getRecord()
+        report.defaults()
+        specs.OwnLetterNr = record.SerNr
+        report.open(False)
+
+    def fieldIsEditable(self, fname, rfname=None, rownr=None):
+        res = ParentOwnLetterWindow.fieldIsEditable(self, fname, rfname, rownr)
+        if (not res): return res
+        if (fname == "TransDate" and not currentUserCanDo("CanModifyOwnLetterTransDate")):
+            return False
+        return res
+
+    def filterPasteWindow(self, fieldname):
+        res = ParentOwnLetterWindow.filterPasteWindow(self, fieldname)
+        record = self.getRecord()
+        if fieldname in ("Contact1","Contact2"):
+            from Person import Person
+            return "{ContactType} = i|%s| AND {CustCode} = s|%s| " %(Person.CUSTOMER,record.CustCode)
+        return res
+
+    def genDebitNoteSupp(self):
+        record = self.getRecord()
+        if (record.isNew() or record.isModified()):
+            message(tr("REGISTERNOTSAVED"))
+            return
+        dnote = record.genDebitNoteSupp()
+        if (dnote):
+            dnote.openInWindow()
+
+    def genDebitNoteCust(self):
+        record = self.getRecord()
+        if (record.isNew() or record.isModified()):
+            message(tr("REGISTERNOTSAVED"))
+            return
+        dnote = record.genDebitNoteCust()
+        if (dnote):
+            dnote.openInWindow()
+
+    def showOwnLetterHistory(self):
+        record = self.getRecord()
+        from OwnLetterTransList import OwnLetterTransList
+        report = OwnLetterTransList()
+        specs = report.getRecord()
+        report.defaults()
+        specs.FromDate = date(1900,1,1)
+        specs.LetterNr = record.SerNr
+        specs.ViewOption = 0
+        specs.OrderBy = 3
+        report.open(False)
+
+        

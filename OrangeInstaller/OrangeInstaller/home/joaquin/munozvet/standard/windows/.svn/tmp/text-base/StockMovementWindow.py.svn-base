@@ -1,0 +1,105 @@
+#encoding: utf-8
+from OpenOrange import *
+
+
+ParentStockMovementWindow = SuperClass("StockMovementWindow","FinancialTransWindow",__file__)
+class StockMovementWindow(ParentStockMovementWindow):
+
+    def activateNextCell(self, matrixname, row, col):
+        columns = self.getMatrixColumns(matrixname)
+        if columns[col] == "ArtCode": # To Qty
+            row,col = getNextCol(columns,row,col,"Qty")
+        elif columns[col] == "Qty": # To Next Row
+            col = 0
+            row += 1
+        else:
+            row,col = getNextCol(columns,row,col,"")
+        return (row,col)
+
+    def afterEdit(self, fieldname):
+        ParentStockMovementWindow.afterEdit(self, fieldname)
+        gr = self.getRecord()
+        if (fieldname == "FrStockDepo"):
+            gr.pasteFrStockDepo()
+        if (fieldname == "ToStockDepo"):
+            gr.pasteToStockDepo()
+        elif (fieldname == "Driver"):
+            gr.pasteDriver()
+        elif (fieldname == "Vehicle"):
+            gr.pasteVehicle()
+        elif (fieldname == "SerNr"):
+            gr.cleanOfficialSerNr()
+
+    def afterEditRow(self, fieldname, rowfieldname, rownr):
+        ParentStockMovementWindow.afterEditRow(self, fieldname, rowfieldname, rownr)
+        from StockSettings import StockSettings
+        sset = StockSettings.bring()
+        sm = self.getRecord()
+        if (fieldname == "Items"):
+            grrow = sm.Items[rownr]
+            if (rowfieldname == "ArtCode"):
+                artbefore = grrow.ArtCode
+                grrow.pasteArtCode(sm)
+                grrow.pasteQty(sm)
+                if (artbefore<>grrow.ArtCode):    # fue codigo de barra o codigo alternativa
+                    grrow.Qty = 1
+                    if sset.EnableStockMovFastItemPaste:
+                        sm.setFocusOnField("Items","Qty",rownr) # salta una fila
+                sm.sumUp()
+            elif (rowfieldname == "Unit"):
+                grrow.pasteUnit(sm)
+            elif (rowfieldname == "Qty"):
+                grrow.pasteQty(sm)
+                grrow.sumUp(sm)
+                sm.sumUp()
+            elif (rowfieldname == "Cost"):
+                grrow.sumUp(sm)
+                sm.sumUp()
+            elif (rowfieldname in ("SerialNr")):
+                grrow.pasteSerialNr(sm)
+                sm.sumUp()
+
+    def filterPasteWindowRow(self, detailfieldname, rowfieldname, rownr):
+        if detailfieldname == "Items":
+            if rowfieldname == "ArtCode":
+                record = self.getRecord()
+                filters = "(({Closed} IS NULL OR {Closed} = i|0|) AND "
+                filters += "({ExcludeFromStockDepos} IS NULL OR " 
+                filters += "(FIND_IN_SET(s|%s|,{ExcludeFromStockDepos}) = 0 AND " % record.FrStockDepo
+                filters += "FIND_IN_SET(s|%s|,{ExcludeFromStockDepos}) = 0)))" % record.ToStockDepo
+                return filters
+        return ParentStockMovementWindow.filterPasteWindowRow(self,detailfieldname, rowfieldname, rownr)
+
+    def fillPasteWindowRow(self, pastewindowname, fieldname, rowfieldname, rownr):
+        if (pastewindowname == "PositionStockPasteWindow"):
+            record = self.getRecord()
+            itemrow = record.details(fieldname)[rownr]
+            from Position import Position
+            return Position.genPasteWindowData(itemrow.ArtCode, record.FrStockDepo, itemrow.SerialNr)
+        elif (pastewindowname == "SerialNrPasteWindow"):
+            record = self.getRecord()
+            itemrow = record.details(fieldname)[rownr]
+            query = Query()
+            query.sql = "SELECT bt.{BestBefore} as DueDate, Stock.{SerialNr}, {StockDepo}, {StockPos}, SUM(Qty) as {Qty} FROM [Stock] "
+            query.sql += "LEFT JOIN BatchText bt ON bt.ArtCode = Stock.ArtCode and bt.SerialNr = Stock.SerialNr\n"
+            query.sql += "WHERE?AND Stock.{SerialNr} <> s|| "
+            query.sql += "WHERE?AND {Qty} <> d|0| "
+            query.sql += "WHERE?AND Stock.{ArtCode} = s|%s| " % itemrow.ArtCode
+            query.sql += "WHERE?AND {StockDepo} = s|%s| " % record.FrStockDepo
+            if itemrow.FrPos: query.sql += "WHERE?AND {StockPos} = s|%s| " % itemrow.FrPos
+            query.sql += "GROUP BY {StockDepo}, {StockPos}, Stock.{SerialNr} "
+            query.sql += " ORDER BY {DueDate} ASC, Stock.{SerialNr} "
+            if query.open():
+                return query
+                
+    def genStockOutofVirtual(self):
+        smin = self.getRecord()
+        if (not smin.confirmed()):
+            message("ONLYALLOWED4APPROVEDTRANS")
+            return 
+        res = smin.genStockOutOfVirtual()
+        if not res: return message(res)
+        if res:
+            res.openInWindow()
+        return res
+

@@ -1,0 +1,15 @@
+from OpenOrange import *
+
+ParentServiceReceptionWindow = SuperClass('ServiceReceptionWindow', "PurchaseTransactionWindow", __file__)
+class ServiceReceptionWindow(ParentServiceReceptionWindow):
+
+    def afterEdit(self,fieldname):
+        ParentServiceReceptionWindow.afterEdit(self, fieldname)
+        record = self.getRecord()
+        if fieldname == "ArtCode":
+          record.pasteArtCode()
+        elif fieldname == "Qty":
+          record.pasteQty()
+        elif fieldname == "Progress":
+          record.pasteProgress()
+    

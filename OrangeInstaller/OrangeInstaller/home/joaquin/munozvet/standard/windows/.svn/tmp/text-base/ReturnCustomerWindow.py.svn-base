@@ -1,0 +1,110 @@
+#encoding: utf-8
+from OpenOrange import *
+
+ParentReturnCustomerWindow = SuperClass("ReturnCustomerWindow","SalesTransactionWindow",__file__)
+class ReturnCustomerWindow(ParentReturnCustomerWindow):
+
+    def afterEdit(self, fieldname):
+        ParentReturnCustomerWindow.afterEdit(self, fieldname)
+        rcustomer = self.getRecord()
+        if (fieldname == "CustCode"):
+            rcustomer.pasteCustCode()
+        elif (fieldname == "Contact"):
+            rcustomer.pasteContact()
+        elif (fieldname == "AddressCode"):
+            rcustomer.pasteAddressCode()
+        elif (fieldname == "ProvinceCode"):
+            rcustomer.pasteProvinceCode()
+        elif (fieldname == "ZipCode"):
+            rcustomer.pasteZipCode()
+        elif (fieldname == "LocalityCode"):
+            rcustomer.pasteLocalityCode()
+    
+    def afterEditRow(self, fieldname, rowfieldname, rownr):
+        ParentReturnCustomerWindow.afterEditRow(self, fieldname, rowfieldname, rownr)
+        rcustomer = self.getRecord()
+        if (fieldname == "Items"):
+            row = rcustomer.Items[rownr]
+            if (rowfieldname == "ArtCode"):
+                row.pasteArtCode(rcustomer)
+                row.sumUp(rcustomer)
+            elif (rowfieldname == "Qty"):
+                row.pasteQty(rcustomer)
+                row.sumUp(rcustomer)
+            elif (rowfieldname == "Price"):
+                row.sumUp(rcustomer)
+            elif (rowfieldname == "Unit"):
+                row.pasteUnit(rcustomer)                
+            elif (rowfieldname in ("Cost","RowTotal")):
+                row.sumUp(rcustomer)
+            elif (rowfieldname == "SerialNr"):
+                row.pasteSerialNr(rcustomer)
+            rcustomer.sumUp()
+
+    def afterDeleteRow(self, detailfieldname, rownr):
+        self.getRecord().sumUp()
+
+    def filterPasteWindow(self, fieldname):
+        if fieldname == "AddressCode":
+            if self.getRecord().CustCode:
+                return "{Entity} = s|%s| and {EntityType}=i|0| " % self.getRecord().CustCode
+        elif fieldname == "LocalityCode":
+            if self.getRecord().ZipCode:
+                return "{ZipCode} = s|%s|" % self.getRecord().ZipCode
+        elif fieldname == "Contact":
+            if self.getRecord().CustCode:
+                return "{CustCode} = s|%s|" % self.getRecord().CustCode
+        return ParentReturnCustomerWindow.filterPasteWindow(self,fieldname)
+
+    def filterPasteWindowRow(self, detailfieldname, rowfieldname, rownr):
+        filts = []
+        res = ParentReturnCustomerWindow.filterPasteWindowRow(self, detailfieldname, rowfieldname, rownr)
+        if res:
+            filts.append(res)
+        if detailfieldname == "Items":
+            if rowfieldname == "ArtCode":
+                filts.append("({Closed} IS NULL OR {Closed} = i|0|)")
+        if filts:
+            res = "(%s)" % " AND ".join(filts)
+        return res 
+
+    def genCreditNote(self):
+        record = self.getRecord()
+        if (record.isNew() or record.isModified()):
+            message("REGISTERNOTSAVED")
+            return None
+        elif not record.confirmed():
+            message(tr("ONLYALLOWED4APPROVEDTRANS"))
+            return None 
+        elif record.OriginType == record.Origin["SalesOrder"]:
+            return message(tr("Credit Note must be generated from related Sales Order"))
+        creditnote = record.genCreditNote()
+        if not creditnote:
+           message(creditnote)
+           return None
+        if not creditnote.Items.count():
+            message(tr("No items to invoice"))
+            return None
+        creditnote.openInWindow()
+        self.closeAfterGen()
+        
+    def fillPasteWindowRow(self, pastewindowname, fieldname, rowfieldname, rownr):
+        ParentReturnCustomerWindow.fillPasteWindowRow(self, pastewindowname, fieldname, rowfieldname, rownr)
+        if (pastewindowname == "SerialNrPasteWindow"):
+            record = self.getRecord()
+            itemrow = record.details(fieldname)[rownr]
+            query = Query()
+            query.sql = "SELECT {SerialNr}, {StockDepo}, {StockPos}, SUM(Qty) as {Qty} FROM [Stock]"
+            query.sql += "WHERE?AND {SerialNr} <> s|| "
+            query.sql += "WHERE?AND {ArtCode} = s|%s| " % itemrow.ArtCode
+            query.sql += "WHERE?AND {StockDepo} = s|%s| " % record.StockDepo
+            if itemrow.Pos: query.sql += "WHERE?AND {StockPos} = s|%s| " % itemrow.Pos
+            if record.SONr:
+                query.sql += "WHERE?AND {SerialNr} IN (SELECT DISTINCT(dr.SerialNr) FROM DeliveryRow dr INNER JOIN Delivery d ON d.internalId = dr.masterId WHERE d.SONr = s|%s| ) " % record.SONr
+            else:
+                query.sql += "WHERE?AND {SerialNr} IN (SELECT DISTINCT(dr.SerialNr) FROM DeliveryRow dr INNER JOIN Delivery d ON d.internalId = dr.masterId WHERE d.CustCode = s|%s| ) " % record.CustCode
+            query.sql += "GROUP BY {SerialNr} "
+            if not itemrow.Pos: query.sql += ", {StockPos} "
+            query.sql += " HAVING {Qty} > 0 "
+            if query.open():
+                return query        

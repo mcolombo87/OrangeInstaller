@@ -92,6 +92,7 @@ class userWindow(Gtk.Window):
         if (self.companyId == None and self.companyName == None):
             self.communicator(tr("First you must choose a Company"))
         else:
+            self.installation.setInstallPath(self.installation.getInstallPath(), self.companyName)
             nextWindowPos = self.actualWindowPos + 1
             if (self.actualWindowPos == 1):
                 self.win.hide()

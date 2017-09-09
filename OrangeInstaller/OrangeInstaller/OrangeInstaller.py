@@ -53,6 +53,8 @@ def consoleApplication():
             selection = resultOfSearch[0]
             break
     installation.initialization(selection[0]) #'selection[0]' is value companyId from table 'Company'\
+    if selection[1]:
+        installation.setInstallPath(installation.getInstallPath(), selection[1])
     print(tr("Default directory for installation: ") + "{}\t".format(installation.getInstallPath()) + tr("[If you wish write route of installation type: 0]"))
     print(tr("Ready to install OpenOrange for ") + "{}".format(selection[1]))
     rta = raw_input(tr("Are you sure? (Enter to continue, type 'exit' to cancel): "))

@@ -1,0 +1,11 @@
+#encoding: utf-8
+from OpenOrange import *
+import ListViewItem
+from GlobalTools import *
+
+__author__ = 'PDB'
+
+ParentItemDataSearchSettingsWindow = SuperClass("ItemDataSearchSettingsWindow","MasterWindow",__file__)
+class ItemDataSearchSettingsWindow(ParentItemDataSearchSettingsWindow):
+
+    pass

@@ -1,0 +1,172 @@
+#encoding: utf-8
+from OpenOrange import *
+
+ParentCreditCardWindow = SuperClass("CreditCardWindow","MasterWindow",__file__)
+class CreditCardWindow(ParentCreditCardWindow):
+
+    def afterEdit(self, fieldname):
+        cc = self.getRecord()
+        if (fieldname == "Code"):
+            res = cc.verifyCreditCardNumber()
+            if not res:
+                message(res)
+            cc.pasteCode()
+        elif (fieldname == "CredCardType"):
+            if not cc.CredCardNrLengthOk():
+                message(tr("The number is not correct!"))
+        elif (fieldname == "CustCode"):
+            cc.pasteCustCode()
+        elif (fieldname == "BankCode"):
+            cc.pasteBankCode()
+        elif (fieldname == "MagneticRead"):
+            cc.pasteMagneticRead()
+
+    def default(self):
+        self.getRecord().TaxRegType = 1
+
+    @classmethod
+    def getMagneticRead(objclass, **kwargs):
+        custcode = kwargs.get("CustCode","")
+        custname = kwargs.get("CustName","")
+        cctype = kwargs.get("CredCardType","")
+        from CreditCard import CreditCard
+        read1 = getString("Number")
+        if (read1):
+            read2 = getString("Number2")
+            res = CreditCard.getDataFromReader(read1)
+            if res:
+                number, owner, validThru = res
+                if not cctype:
+                    from CreditCard import CreditCard
+                    cc = CreditCard()
+                    cc.Code = number
+                    cc.pasteCode()
+                    cctype = cc.CredCardType
+                ccdata = {}
+                if (not CreditCard.exists(number)):
+                    ccdata = CreditCardWindow.assistedCreditCardCreator(CredCardType=cctype, \
+                    Number=number,CustCode=custcode, CustName=custname, Owner= owner,ValidThru= validThru )
+                else:
+                    ccdata["Code"] = number
+                return ccdata
+
+    @classmethod
+    def assistedCreditCardCreator(objclass, **kwargs):
+        from RecordCheckPolicy import RecordCheckPolicy
+        rcp = RecordCheckPolicy.bring("CreditCard")
+        if (rcp):
+            ofields = rcp.getNonBlankHeaderFields()
+        else:
+            ofields = []
+        
+        custcode = kwargs.get("CustCode","")
+        custname = kwargs.get("CustName","")
+        cctype = kwargs.get("CredCardType","")
+        number = kwargs.get("Number","")
+        owner = kwargs.get("Owner","")
+        bankcode = kwargs.get("BankCode",None)
+        validThru = kwargs.get("ValidThru","")
+        ccdata = {}
+
+        ccdata["Owner"] = owner
+        if (not owner and ("Owner" in ofields)):
+            mstring = "<b>%s. %s - %s</b><br>%s" %(tr("New Credit Card"),cctype, number, tr("Owner"))
+            res = getString(mstring)
+            if (res):
+                ccdata["Owner"] = res
+            else:
+                ccdata["Owner"] = custname
+            if (res is None):
+                return ccdata
+        else:
+            if (owner):
+                ccdata["Owner"] = owner
+            else:
+                ccdata["Owner"] = custname
+        from Bank import Bank
+        banknames = Bank.makeDictionary("Name")
+        blist = []
+        for bcode in banknames:
+            blist.append("%s::%s" %(banknames[bcode], bcode))
+        blist = tuple(blist)
+        if not bankcode:
+            bankcode = getSelection( tr("Select","Bank"), blist)
+        if (bankcode):
+            name, code = bankcode.split("::")
+            ccdata["BankCode"] = code
+            ccdata["BankName"] = name
+        
+        if ("PassPortNr" in ofields):
+            mstring = "%s" %(tr("Passport"))
+            res = getString(mstring)
+            if (res):
+                ccdata["PassPortNr"] = res
+        
+        if ("SecurityCode" in ofields):
+            mstring = "%s" %(tr("Security Code"))
+            res = getString(mstring)
+            if (res):
+                ccdata["SecurityCode"] = res
+
+        ccdata["ValidThru"] = validThru
+        if (not validThru and "ValidThru" in ofields):
+            mstring = "%s (%s <b>%s</b>)" %(tr("Expiration Date"),tr("Format"),"ddmmyyyy, dd/mm/yyyy")
+            res = getString(mstring)
+            if (res):
+                try:
+                    ccdata["ValidThru"] = stringToDate(res)
+                except Exception, err:
+                    message(tr("DATEERROR"))
+                    ccdata["ValidThru"] = None
+
+        ccdata["CustCode"] = custcode
+        ccdata["CustName"] = custname
+        ccdata["CredCardType"] = cctype
+        ccdata["Code"] = number
+
+        #mstring  = "<b>%s</b>"
+        #mstring += "<br>%s: %s" %(tr("Owner"),ccdata["Owner"])
+        #mstring += "<br>%s: %s" %(tr("Credit Card Type"),ccdata["CredCardType"])
+        #mstring += "<br>%s: %s" %(tr("Bank"),ccdata["BankName"])
+        #mstring += "<br>%s: %s" %(tr("Passport"),ccdata["PassPortNr"])
+        ##mstring += "
+
+        #res = getSelection("Esta seguro?", (tr("Yes"),tr("No")))
+        #if (res == tr("Yes")):
+        
+        from CreditCard import CreditCard
+        cc = CreditCard()
+        cc.defaults()
+        for fname in ccdata.keys():
+            cc.fields(fname).setValue(ccdata[fname])
+            
+        #Calculo el tipo automaticamente. Si no lo completa, le pregunto al usuario.
+        if cc.CredCardType=="":
+            cc.pasteCode()
+            if (cc.CredCardType==""):
+                
+                #Armo el combo con todos los tipos de tarjeta.
+                query=Query()
+                query.sql="SELECT {Code} FROM [CredCardType];"
+                
+                query.open()
+                
+                tuples=()
+                for row in query:
+                    tuples=tuples+(row.Code,)
+                
+                mstring = "%s" %(tr("Credit Card Type"))
+                
+                res = getSelection(mstring, tuples)
+                if (res):
+                    cc.CredCardType = res    
+            
+        res = cc.save()       # RDS. Cambio el store por un save.                          
+        if (not res): 
+            message(res)
+        else:
+            commit()
+            postMessage("%s %s %s" %(tr("Credit Card"),cc.Code,tr("Registered")))
+        return ccdata
+
+

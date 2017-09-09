@@ -1,0 +1,119 @@
+#encoding: utf-8
+from OpenOrange import *
+from StockTransformation import *
+
+ParentStockTransformationWindow = SuperClass("StockTransformationWindow","FinancialTransWindow",__file__)
+class StockTransformationWindow(ParentStockTransformationWindow):
+
+    def afterEditRow(self, fieldname, rowfieldname, rownr):
+        record = self.getRecord()
+        if (fieldname == "ItemsIn"):
+            row = record.ItemsIn[rownr]
+            if (rowfieldname == "ArtCode"):
+                row = record.ItemsIn[rownr]
+                row.pasteArtCode(record)
+            elif (rowfieldname == "Qty"):
+                row.pasteQty(record)
+            elif (rowfieldname in ("SerialNr")):
+                row.pasteSerialNr(record)
+            elif (rowfieldname == "Unit"):
+                row.pasteUnit(record)
+            if (rowfieldname in ("ArtCode","Qty","Cost","SerialNr","Unit")):
+                row.sumUp(record)
+                record.sumUp()
+        elif (fieldname == "ItemsOut"):
+            row = record.ItemsOut[rownr]
+            if (rowfieldname == "ArtCode"):
+                record.deleteRecipe(self.editingRow.ArtCode, self.editingRow.Qty)
+                row.pasteArtCode(record)
+                self.editingRow = None
+            elif (rowfieldname == "Unit"):
+                row.pasteUnit(record)
+            elif (rowfieldname in ("SerialNr")):
+                row.pasteSerialNr(record)
+            elif (rowfieldname in ("Qty")):
+                record.editRecipeQty(row.ArtCode, self.editingRow.Qty, row.Qty)
+                row.pasteQty(record)
+                self.editingRow = None
+            if (rowfieldname in ("ArtCode","Qty","SerialNr","Unit")):
+                row.sumUp()
+                record.sumUp()
+
+    def fillPasteWindowRow(self, pastewindowname, fieldname, rowfieldname, rownr):
+        record = self.getRecord()
+        itemrow = record.details(fieldname)[rownr]
+        if (pastewindowname == "PositionStockPasteWindow"):
+            from Position import Position
+            return Position.genPasteWindowData(itemrow.ArtCode, record.StockDepo, itemrow.SerialNr)
+        elif (pastewindowname == "SerialNrPasteWindow"):
+            query = Query()
+            query.sql = "SELECT Stock.ArtCode, {BestBefore} as DueDate, Stock.{SerialNr}, {StockDepo}, {StockPos}, SUM(Qty) as {Qty} FROM [Stock] "
+            query.sql += "LEFT JOIN BatchText bt ON bt.ArtCode = Stock.ArtCode and bt.SerialNr = Stock.SerialNr\n"
+            query.sql += "WHERE?AND Stock.{SerialNr} <> s|| "
+            query.sql += "WHERE?AND Stock.{ArtCode} = s|%s| " % itemrow.ArtCode
+            query.sql += "WHERE?AND {StockDepo} = s|%s| " % record.StockDepo
+            if itemrow.Pos: query.sql += "WHERE?AND {StockPos} = s|%s| " % itemrow.Pos
+            query.sql += "GROUP BY Stock.{SerialNr} "
+            if not itemrow.Pos: query.sql += ", {StockPos} "
+            query.sql += " HAVING {Qty} > 0 "
+            query.sql += " ORDER BY {DueDate} ASC, Stock.{SerialNr} "
+            if query.open():
+                return query
+        return ParentStockTransformationWindow.fillPasteWindowRow(self, pastewindowname, fieldname, rowfieldname, rownr)
+
+    def filterPasteWindowRow(self, detailfieldname, rowfieldname, rownr):
+        if rowfieldname == "SerialNr":
+            record = self.getRecord()
+            if detailfieldname == "ItemsIn":
+                return " ({ArtCode} = s|%s|) " % (record.ItemsIn[rownr].ArtCode)
+            elif detailfieldname == "ItemsOut":
+                row = record.ItemsOut[rownr]
+                return " ({ArtCode} = s|%s| AND {StockDepo} = s|%s| AND {StockPos} = s|%s|) " % (row.ArtCode, record.StockDepo, row.Pos)
+        return ParentStockTransformationWindow.filterPasteWindowRow(self, detailfieldname, rowfieldname, rownr)
+
+
+
+    def buttonClicked(self, buttonname):
+        ParentStockTransformationWindow.buttonClicked(self, buttonname)
+        record = self.getRecord()
+        if buttonname == "openStockRequest":
+            self.openStockRequest()
+
+    def openStockRequest(self):
+        record = self.getRecord()
+        from StockRequest import StockRequest
+        sr = StockRequest()
+        sr.OriginNr = record.SerNr
+        sr.OriginType = record.Origin[record.name()]
+        if sr.load():
+            from StockRequestWindow import StockRequestWindow
+            srw = StockRequestWindow()
+            srw.setRecord(sr)
+            srw.open()
+        else:
+            message("No se realizaron pedidos")
+            return
+
+    def genStockMovement(self):
+        stockMovement = self.getRecord().genStockMovement()
+        if stockMovement:
+            stockMovement.openInWindow()
+        else:
+            message(stockMovement)
+
+    def beforeDeleteRow(self, fieldname, rownr):
+        res = ParentStockTransformationWindow.beforeDeleteRow(self, fieldname, rownr)
+        if res and fieldname == "ItemsOut":
+            self.deletingRow = self.getRecord().ItemsOut[rownr].clone()
+        return res
+
+    def afterDeleteRow(self, fieldname, rownr):
+        ParentStockTransformationWindow.afterDeleteRow(self, fieldname, rownr)
+        if fieldname == "ItemsOut":
+            self.getRecord().deleteRecipe(self.deletingRow.ArtCode, self.deletingRow.Qty)
+
+    def beforeEditRow(self, fieldname, rowfieldname, rownr):
+        res = ParentStockTransformationWindow.beforeEditRow(self, fieldname, rowfieldname, rownr)
+        if res and fieldname == "ItemsOut" and rowfieldname in ("ArtCode", "Qty"):
+            self.editingRow = self.getRecord().ItemsOut[rownr].clone()
+        return res

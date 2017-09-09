@@ -1,0 +1,18 @@
+from OpenOrange import *
+
+ParentBankTransTypeWindow = SuperClass("BankTransTypeWindow","MasterWindow",__file__)
+class BankTransTypeWindow(ParentBankTransTypeWindow):
+
+
+    def getPasteWindowName(self,fieldname):
+        record = self.getRecord()
+        if(fieldname == "Entity"):
+          if record.DestinationType in (19,2): 
+              return "CustomerPasteWindow"
+          elif record.DestinationType in (20,6): 
+              return "SupplierPasteWindow"
+          else:
+              return "PersonPasteWindow"
+        return ParentBankTransTypeWindow.getPasteWindowName(self,fieldname)
+
+    

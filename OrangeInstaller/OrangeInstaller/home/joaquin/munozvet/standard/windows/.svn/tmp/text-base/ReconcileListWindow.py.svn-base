@@ -1,0 +1,12 @@
+#encoding: utf-8
+from OpenOrange import *
+
+ParentReconcileListWindow = SuperClass("ReconcileListWindow","Window",__file__)
+class ReconcileListWindow(ParentReconcileListWindow):
+
+    pass
+    #def afterEdit(self, fieldname):
+        #alert(9)
+        #specs = self.getRecord()
+        #if fieldname in ("StartDate","EndDate"):
+          #specs.Reconciliation = fa.StartDate.strftime("%m%y")

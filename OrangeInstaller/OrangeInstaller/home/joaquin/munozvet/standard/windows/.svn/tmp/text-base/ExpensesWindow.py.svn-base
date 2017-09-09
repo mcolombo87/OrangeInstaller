@@ -1,0 +1,109 @@
+#encoding: utf-8
+from OpenOrange import *
+from Report import Report
+
+ParentExpensesWindow = SuperClass("ExpensesWindow","FinancialTransWindow",__file__)
+class ExpensesWindow(ParentExpensesWindow):
+
+    def afterEdit(self, fieldname):
+        ParentExpensesWindow.afterEdit(self, fieldname)
+        expenses = self.getRecord()
+        if (fieldname == "Person"):
+            expenses.pastePerson()
+        elif (fieldname == "CustCode"):
+            expenses.pasteCustCode()
+    
+    def afterEditRow(self, fieldname, rowfieldname, rownr):
+        ParentExpensesWindow.afterEditRow(self, fieldname, rowfieldname, rownr)
+        expenses = self.getRecord()
+        if (fieldname == "ExpensesRows"):
+            expensesItem = expenses.ExpensesRows[rownr]
+            if (rowfieldname == "Account"):
+                expensesItem.pasteAccCode()
+            elif (rowfieldname == "Concept"):
+                expensesItem.pasteConcept(expenses)
+            elif (rowfieldname == "SupCode"):
+                expensesItem.pasteSupCode(expenses)
+            elif (rowfieldname == "VoucherNr"):
+                expensesItem.pasteVoucherNr(expenses)
+            elif (rowfieldname == "RowNet"):
+                expensesItem.pasteRowNet(expenses)
+            elif (rowfieldname == "RowTotal"):
+                expensesItem.pasteRowTotal(expenses)
+            elif (rowfieldname == "VATCode"):
+                expensesItem.pasteVATCode(expenses)
+            elif (rowfieldname in ("Price","Qty")):
+                expensesItem.sumUp()
+                expensesItem.pasteRowTotal(expenses)
+            if (rowfieldname in ("Price","RowTotal","Qty","VATCode")):
+                expenses.sumUp()
+        elif (fieldname == "ExpensesMileageRows"):
+            mrow = expenses.ExpensesMileageRows[rownr]
+            if (rowfieldname == "Route"):
+                mrow.pasteRoute()
+            if rowfieldname in ("Route","Qty"):
+                mrow.sumUp()
+                expenses.sumUp()
+        elif (fieldname == "Invoices"):
+            row = expenses.Invoices[rownr]
+            if (rowfieldname == "InvoiceNr"):
+                row.pasteInvoiceNr(expenses)
+                row.sumUp()
+                expenses.sumUp()
+            elif (rowfieldname == "Amount"):
+                row.pasteAmount(expenses)
+                row.sumUp()
+                expenses.sumUp()
+            elif (rowfieldname == "InvoiceAmount"):
+                row.pasteInvoiceAmount(expenses)
+                row.sumUp()
+                expenses.sumUp()
+
+
+    def filterPasteWindowRow(self, fieldname, rowfieldname,rownr):
+        record = self.getRecord()
+        if fieldname == "ExpensesRows":
+            if rowfieldname == "VoucherNr":
+                if record.Person:
+                    return "{Consultant} = s|%s|" % record.Person
+            elif rowfieldname == "Concept":
+                return "({Usage} IN (i|2|,i|0|) OR {Usage} IS NULL)"
+        elif fieldname == "Invoices":
+            if rowfieldname == "InvoiceNr":
+                invList= []
+                for invrow in record.Invoices:
+                    if invrow.InvoiceNr: 
+                        invList.append(str(invrow.InvoiceNr))
+                invrow = record.Invoices[rownr]
+                filt = "{OpenFlag} = i|1| "
+                if (invrow.SupCode):
+                    filt += "AND {SupCode} = s|%s| " %(invrow.SupCode)
+                filt += "AND {Status} = i|1| "
+                filt += "AND ({Invalid}=i|0| OR {Invalid} IS NULL)" 
+                if len(invList) > 0:
+                    filt += "AND {SerNr} NOT IN (%s)" % ",".join(invList)
+                filt += " AND ({AppliesToInvoiceNr} IS NULL OR {AppliesToInvoiceNr} = i|0|) " #que no est�n aplicadas a facturas
+                filt += " AND ({Saldo} <> 0.0) " #que no tengan saldo las facturas
+                return filt
+
+    def afterDeleteRow(self, detailfieldname, rownr):
+        self.getRecord().sumUp()
+        
+    def genCashOut(self):
+        exp = self.getRecord()
+        cashout = exp.genCashOut()
+        if not cashout: 
+           message(cashout)
+           return
+        cashout.openInWindow()
+        
+    def genExpensesForm(self):
+        record = self.getRecord()
+        from ExpensesForm import ExpensesForm
+        report = ExpensesForm()
+        report.ExpensesNr = record.SerNr
+        report.open(False)
+
+    def filterPasteWindow(self, fieldname):
+        if fieldname == "Person":
+            return "ContactType = i|3|"

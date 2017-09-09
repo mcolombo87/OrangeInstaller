@@ -1,0 +1,74 @@
+#encoding: utf-8
+from OpenOrange import *
+from calendar import monthrange
+
+ParentHCalendarControlsWindow = SuperClass("HCalendarControlsWindow","Window",__file__)
+class HCalendarControlsWindow(ParentHCalendarControlsWindow):
+
+        def afterShowRecord(self):
+            record = self.getRecord()
+            if record.fields("FromDate").isNone():
+              record.FromDate = today()
+              record.ToDate = addDays(today(), 5)
+            self.drawScrollView(record.FromDate,record.ToDate,record.Department)
+
+
+        def buttonClicked(self,buttonname):
+            record = self.getRecord()
+            if buttonname == "loadScroll":
+                record = self.getRecord()
+                self.drawScrollView(record.FromDate,record.ToDate,record.Department)
+            elif buttonname == "next":
+                dif = (record.ToDate - record.FromDate).days
+                fecha = addDays(record.ToDate,dif)
+                record.FromDate = record.ToDate
+                record.ToDate = fecha
+                self.drawScrollView(record.FromDate,record.ToDate,record.Department)
+            elif buttonname == "previus":
+                dif = (record.ToDate - record.FromDate).days
+                fecha = addDays(record.FromDate,-dif)
+                record.ToDate = record.FromDate
+                record.FromDate = fecha
+                self.drawScrollView(record.FromDate,record.ToDate,record.Department)
+            elif buttonname == "createActivity":
+                from Activity import Activity
+                from ActivityWindow import ActivityWindow
+                r=Activity()
+                r.defaults()
+                rwindow = ActivityWindow()
+                rwindow.setRecord(r)
+                rwindow.open()
+            elif buttonname == "showCapUtilization":
+                from PlanCalendar import PlanCalendar
+                report = PlanCalendar()
+                report.defaults()
+                specs = report.getRecord()
+                specs.Date = today()
+                report.open(False)
+
+        def afterEdit(self, fieldname):
+            if (fieldname in ("Department","FromDate","ToDate")):
+                record = self.getRecord()
+                self.drawScrollView(record.FromDate,record.ToDate,record.Department)
+
+
+        def drawScrollView(self,fromdate,todate,tipo):
+            from HCalendarVisual import HCalendarVisual, HCalendarVisualHeader
+            header = self.getScrollAreaView("ScrollActivityHeader")
+            saheader = HCalendarVisualHeader()
+            saheader.setDate(fromdate,todate)
+            saheader.setType(tipo)
+            saheader.load()
+            header.setScrollArea(saheader)
+            sav = self.getScrollAreaView("ScrollActivity")
+            sav.repaintArea()
+            sa = HCalendarVisual()
+            sa.setDate(fromdate,todate)
+            sa.setType(tipo)
+            sa.load()
+            sav.setScrollArea(sa)
+            header.clear()
+            sav.clear()
+            header.show()
+            sav.show()
+

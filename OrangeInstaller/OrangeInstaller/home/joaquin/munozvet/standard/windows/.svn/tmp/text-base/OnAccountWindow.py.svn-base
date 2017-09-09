@@ -1,0 +1,46 @@
+#encoding: utf-8
+from OpenOrange import *
+from datetime import *
+from GlobalTools import *
+
+ParentOnAccountWindow = SuperClass("OnAccountWindow","NumerableWindow",__file__)
+class OnAccountWindow(ParentOnAccountWindow):
+
+    def recalculateDownpayments(self):
+        from OnAccount import OnAccount
+        record = self.getRecord()
+        SerNr = record.SerNr
+        record.recalculateDownpayments()
+        self.close()
+        onacc = OnAccount.bring(SerNr)
+        if (onacc):
+            onacc.openInWindow()
+
+    def showDownpaymentHistory(self):
+        record = self.getRecord()
+        if (record.Type == 0):
+            from CustomerDownpaymentsHistory import CustomerDownpaymentsHistory
+            cust = CustomerDownpaymentsHistory()
+            cust.defaults()
+            cust.getRecord().FromDate = date(1900,1,1)#addMonths(cust.getRecord().FromDate,-64)
+            cust.getRecord().ToDate = today()
+            cust.getRecord().OnAccNr = record.SerNr
+            cust.open(False)
+        elif (record.Type == 1):
+            from SupplierDownpaymentsHistory import SupplierDownpaymentsHistory
+            supp = SupplierDownpaymentsHistory()
+            supp.defaults()
+            supp.getRecord().FromDate = date(1900,1,1)#addMonths(supp.getRecord().FromDate,-64)
+            supp.getRecord().ToDate = today()
+            supp.getRecord().OnAccNr = record.SerNr
+            supp.open(False)
+            
+            
+    def payInvoicesWithDownPayment(self):
+        rec = self.getRecord().payInvoices()
+        if rec:
+            rec.openInWindow()
+        
+        
+        
+        

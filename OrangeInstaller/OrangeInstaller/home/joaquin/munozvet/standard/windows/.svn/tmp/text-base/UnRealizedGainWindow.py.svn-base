@@ -1,0 +1,27 @@
+from OpenOrange import *
+
+ParentUnRealizedGainWindow = SuperClass('UnRealizedGainWindow', "FinancialTransWindow", __file__)
+class UnRealizedGainWindow(ParentUnRealizedGainWindow):
+
+    def afterEdit(self,fieldname):
+        record = self.getRecord()
+        if fieldname == "Account":
+          record.pasteAccount()
+    
+    def genReverse(self):
+        record = self.getRecord()
+    
+    def fillrows(self):
+        record = self.getRecord()
+        record.fillRows()
+    
+    def afterDeleteRow(self, fieldname, rownr):
+        record = self.getRecord()
+        record.sumUp()
+
+    def filterPasteWindow(self, fieldname):
+        record = self.getRecord()
+        if fieldname == "Account":
+                return "{AdjustRateDiff} = i|1|" 
+        
+    

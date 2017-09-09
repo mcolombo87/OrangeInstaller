@@ -1,0 +1,89 @@
+#encoding: utf-8
+from OpenOrange import *
+
+
+ParentStockDepreciationWindow = SuperClass("StockDepreciationWindow","FinancialTransWindow",__file__)
+class StockDepreciationWindow(ParentStockDepreciationWindow):
+
+    def activateNextCell(self, matrixname, row, col):
+        columns = self.getMatrixColumns(matrixname)
+        if columns[col] == "ArtCode": # To Qty
+            row, col = getNextCol(columns, row, col, "Qty")
+        elif columns[col] == "Qty": # To Next Row
+            col = 0
+            row += 1
+        else:
+            row, col = getNextCol(columns, row, col, "")
+        return (row, col)
+
+    def afterEdit(self, fieldname):
+        ParentStockDepreciationWindow.afterEdit(self, fieldname)
+        sd = self.getRecord()
+        if (fieldname == "StockDepo"):
+            #sd.pasteStockDepo()
+            pass
+
+    def afterEditRow(self, fieldname, rowfieldname, rownr):
+        ParentStockDepreciationWindow.afterEditRow(self, fieldname, rowfieldname, rownr)
+        sd = self.getRecord()
+        if (fieldname == "Items"):
+            sdrow = sd.Items[rownr]
+            if (rowfieldname == "ArtCode"):
+                artbefore = sdrow.ArtCode
+                sdrow.pasteArtCode(sd)
+                if (artbefore<>sdrow.ArtCode):    # fue codigo de barra o codigo alternativa
+                    sdrow.Qty = 1
+                    sd.setFocusOnField("Items","Unit",rownr) # salta una fila
+                sdrow.sumUp(sd)
+                sd.sumUp()
+            elif (rowfieldname in ("Qty")):
+                sdrow.pasteQty(sd)
+                sdrow.sumUp(sd)
+                sd.sumUp()
+            elif (rowfieldname in ("Unit")):
+                sdrow.pasteUnit(sd)
+                sdrow.sumUp(sd)
+                sd.sumUp()    
+            elif (rowfieldname in ("Cost")):
+                sdrow.sumUp(sd)
+                sd.sumUp()
+            elif (rowfieldname == "SerialNr"):
+                sdrow.pasteSerialNr(sd)
+                sdrow.sumUp(sd)
+                sd.sumUp()
+
+    def afterDeleteRow(self,fieldname,rownr):
+        ParentStockDepreciationWindow.afterDeleteRow(self, fieldname,rownr)
+        self.getRecord().sumUp()
+
+    def filterPasteWindowRow(self, detailfieldname, rowfieldname, rownr):
+        if detailfieldname == "Items":
+            if rowfieldname == "ArtCode":
+                filters = "(({Closed} IS NULL OR {Closed} = i|0|) AND "
+                filters += "({ExcludeFromStockDepos} IS NULL OR " 
+                filters += "FIND_IN_SET(s|%s|,{ExcludeFromStockDepos}) = 0))" % self.getRecord().StockDepo
+                return filters
+        return ParentStockDepreciationWindow.filterPasteWindowRow(self,detailfieldname, rowfieldname, rownr)
+
+    def fillPasteWindowRow(self, pastewindowname, fieldname, rowfieldname, rownr):
+        if (pastewindowname == "SerialNrPasteWindow"):
+            record = self.getRecord()
+            itemrow = record.details(fieldname)[rownr]
+            query = Query()
+            query.sql = "SELECT Stock.ArtCode, {BestBefore} as DueDate, Stock.{SerialNr}, {StockDepo}, {StockPos}, SUM(Qty) as {Qty} FROM [Stock] "
+            query.sql += "LEFT JOIN BatchText bt ON bt.ArtCode = Stock.ArtCode and bt.SerialNr = Stock.SerialNr\n"
+            query.sql += "WHERE?AND Stock.{SerialNr} <> s|| "
+            query.sql += "WHERE?AND Stock.{ArtCode} = s|%s| " % itemrow.ArtCode
+            query.sql += "WHERE?AND {StockDepo} = s|%s| " % record.StockDepo
+            if itemrow.Pos: query.sql += "WHERE?AND {StockPos} = s|%s| " % itemrow.Pos
+            query.sql += "GROUP BY Stock.{SerialNr} "
+            if not itemrow.Pos: query.sql += ", {StockPos} "
+            query.sql += " HAVING {Qty} > 0 "
+            query.sql += " ORDER BY {DueDate} ASC, Stock.{SerialNr} "
+            if query.open():
+                return query
+        elif (pastewindowname == "PositionStockPasteWindow"):
+            record = self.getRecord()
+            itemrow = record.details(fieldname)[rownr]
+            from Position import Position
+            return Position.genPasteWindowData(itemrow.ArtCode, record.StockDepo, itemrow.SerialNr)

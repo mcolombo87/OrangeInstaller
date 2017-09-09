@@ -1,0 +1,146 @@
+#encoding: utf-8
+from OpenOrange import *
+
+ParentNLTWindow = SuperClass("NLTWindow","TransactionWindow",__file__)
+class NLTWindow(ParentNLTWindow):
+
+    def afterEditRow(self, fieldname, rowfieldname, rownr):
+        nlt = self.getRecord()
+        if (fieldname == "NLTRows"):
+            nltrow = nlt.NLTRows[rownr]
+            if (rowfieldname == "Account"):
+                nltrow.pasteAccount(nlt)
+            elif rowfieldname =="ValueBase1d":
+                nltrow.pasteValueBase1d()
+                nltrow.sumUp()
+                nlt.sumUp()
+            elif rowfieldname =="ValueBase2d":
+                nltrow.pasteValueBase2d()
+                nltrow.sumUp()
+                nlt.sumUp()
+            elif rowfieldname =="ValueBase1h":
+                nltrow.pasteValueBase1h()
+                nltrow.sumUp()
+                nlt.sumUp()
+            elif rowfieldname =="ValueCur":
+                nltrow.pasteValueCur()
+                nltrow.sumUp()
+                nltrow.afterLoad()
+                nlt.sumUp()
+            elif rowfieldname in ("BaseRate","CurrencyRate"):
+                nltrow.pasteRate()
+                nltrow.sumUp()
+                nlt.sumUp()
+            elif rowfieldname =="ValueBase2h":
+                nltrow.pasteValueBase2h()
+                nltrow.sumUp()
+                nlt.sumUp()
+            elif rowfieldname == "Currency":
+                nltrow.pasteCurrency(nlt.TransDate, nlt.TransTime)
+                nltrow.sumUp()
+                nlt.sumUp()
+
+    @classmethod
+    def getOriginWindowAndRecord(ObjectClass, nlt):
+        wnd,rec = None,None
+        if nlt.OriginNr:
+            table = nlt.getOriginTable()
+            wind = nlt.getOriginWindow()
+            exec("from %s import %s" % (table,table))
+            exec("from %s import %s" % (wind,wind))
+            exec("rec = %s.bring(%s)" % (table,nlt.OriginNr))
+            exec("wnd = %s()" % wind)
+        if (not rec):
+            message(tr("REGISTERNOTEXIST"))
+            exec("rec = %s()" %(table))
+        return wnd, rec
+
+    def openOriginTransaction(self):
+        wnd, rec = self.getOriginWindowAndRecord(self.getRecord())
+        if wnd and rec:
+            wnd.setRecord(rec)
+            wnd.open()
+
+    def refertnlt(self,nlt):
+        if nlt.Status and nlt.ReversionType == 1:
+            res = - nlt
+            res.afterCopy()
+            res.ReversionType = 2
+            res.OriginNr = nlt.SerNr
+            from Numerable import Numerable
+            res.OriginType = Numerable.Origin["NLT"]
+            res.afterLoad()
+            return res
+            
+    def revertTransaction(self):
+        nlt = self.getRecord()
+        res = self.refertnlt(nlt)
+        if res:
+          nltwin = NLTWindow()
+          nltwin.setRecord(res)
+          nltwin.open()
+
+    def copyRecord(self):
+        nlt = self.getRecord()
+        if nlt.ReversionType==1:            
+            res = self.refertnlt(nlt)
+            if not res: return
+        else:
+            res = nlt.clone()
+            res.afterCopy()
+        self.setRecord(res)
+        res.afterLoad()
+            
+    def balance(self):
+        nlt = self.getRecord()
+        if (nlt.DiffBase1 or nlt.DiffBase2):
+           nlt.balance(RoundOff=True,DoAmarre=False)   # Imporant do not excecute Amarre en manual bookings because Amarre will be run already after approving
+           nlt.sumUp()
+           nlt.afterLoad()
+
+    def afterDeleteRow(self, fieldname, rownr):
+        nlt = self.getRecord()
+        nlt.sumUp()
+
+    def beforeDeleteRow(self, detailfieldname, rownr):
+        nlt = self.getRecord()
+        if currentUserCanDo("CanDeleteNLTRow",False) and not nlt.Status:
+            return True
+        if (nlt.OriginType not in nlt.EditableTypes):
+            if not nlt.Status:
+                return False
+            self.invalidateRow()
+        else:
+            if (not nlt.Status):
+                return True
+        return False
+
+    def invalidateRow(self):
+        nlt = self.getRecord()
+        ret = currentUserCanDo("CanInvalidateNLT",False)
+        if not ret:
+           message(ret)
+           return ret
+        crow = self.currentRow("NLTRows1")
+        if (crow>-1):
+          frow = nlt.NLTRows[crow]
+          if (not frow.InvalidRow):
+            res = getString("Add Reason of Invalidation")
+            if not res: return False
+            frow.InvalidRow = 1
+            frow.Comment = "%s(%s):%s; %s" % (currentUser(),today().strftime("%d/%m/%y"),res,frow.Comment)
+            self.setMatrixRowBGColor("NLTRows1",crow,"red")
+            self.repaint()
+            nlt.sumUp()
+
+    def afterShowRecord(self):
+        ParentNLTWindow.afterShowRecord(self)
+        nlt = self.getRecord()
+        i = 0
+        for frow in nlt.NLTRows:
+           if (frow.InvalidRow):
+               self.setMatrixRowBGColor("NLTRows1",i,"red")
+           i += 1
+
+
+

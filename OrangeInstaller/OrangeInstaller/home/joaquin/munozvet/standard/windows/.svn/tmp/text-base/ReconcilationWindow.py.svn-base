@@ -1,0 +1,437 @@
+#encoding: utf-8
+from OpenOrange import *
+from ListViewItem import *
+from BankExtractLines import *
+from FinAccount import FinAccount
+from Bank import Bank
+from PurchaseInvoiceWindow import PurchaseInvoiceWindow
+from FinAccount import FinAccount
+        
+ParentReconcilationWindow = SuperClass("ReconcilationWindow","Window",__file__)
+class ReconcilationWindow(ParentReconcilationWindow):
+    ListMode_Pending=0
+    ListMode_Boot=1
+    ListMode_Reconcilated=2
+    def getTitle(self):
+        t = self.getOriginalTitle()
+        return t
+    def afterShowRecord (self):
+        self.listMode = self.ListMode_Pending
+        self.listMode= self.ListMode_Pending
+        self.leftSelection=None
+        self.rightSelection=None
+        self.extractItems = []
+        self.reconItems = []
+    def buttonClicked (self, buttonname):
+        if buttonname == "ImportBankFile":
+            if self.importBankfile ():
+                self.loadExtractLines ()
+                self.loadReconList ()
+        elif buttonname == "ShowOnlyPending":
+            self.listMode = self.ListMode_Pending
+            self.loadReconList ()
+            self.loadExtractLines ()
+        elif buttonname == "ShowBoot":
+            self.listMode = self.ListMode_Boot
+            self.loadReconList ()
+            self.loadExtractLines ()
+        elif buttonname == "GenExtractBankPendingReport":
+            self.genExtractBankPendingReport ()
+        elif buttonname == "ReconcilateSelection":
+            reconAmount = self.getReconRowsAmount ()
+            extractAmount = self.getExtractRowsAmount ()
+            #estrictamente no permite conciliacion si los montos difieren.
+            if not roundedEqual(reconAmount,extractAmount):
+                message ("Los montos Seleccionados:" \
+                    +  " %.2f y %.2f" % (reconAmount, extractAmount) \
+                    + " no coinciden, es imposible conciliar.")
+            else:
+                for item in self.getSelectedReconcItems() + self.getSelectedExtractItems(): 
+                    item.conciliate ()
+                    # si el modo actual es "solo pendientes", entonces elimina
+                    # las referencias a los items del list view que manteniene
+                    # en buffer la ventana. En otro caso no se hace porque el
+                    # list view mantendría el item.
+                    if self.listMode == self.ListMode_Pending:
+                        self.removeItemReferences (item)
+                self.fillAmmountFields ()
+    def open (self):
+        ParentReconcilationWindow.open (self)
+        self.rllview = self.getListView("BankAccListView")
+        self.ellview = self.getListView("ExtractLinesListView")
+        if hasattr(self,"extractLines"):
+            self.refreshLists ()
+    # selecciones de usuario
+    def getExtractRowsAmount (self):
+        filtro=lambda item: item.conciliatingFlag
+        sum = 0.0
+        for item in filter(filtro, self.extractItems):
+            sum += item.row.Amount
+        return sum
+    def getPendingExtractRows(self):
+        filtro = lambda item: not item.isConciliated ()
+        return filter (filtro, self.extractItems)
+    def getReconRowsAmount (self):
+        suma = lambda a,b:float(a.rec.ValueBase1)+float(b.rec.ValueBase1)
+        filtro=lambda item: item.conciliatingFlag
+        sum = 0.0
+        for item in filter(filtro, self.reconItems):
+            sum+= item.rec.ValueBase1
+        return sum
+    # elimina todas las referencias innecesarias (las cuales están conciliadas)
+    def removeItemReferences (self, item):
+        if item.isConciliated ():
+            if item in self.reconItems:
+                self.reconItems.remove (item)
+            elif item in self.extractItems:
+                self.extractItems.remove (item)
+    def getSelectedExtractItems (self):
+        filtro=lambda item: item.conciliatingFlag
+        return filter(filtro, self.extractItems) 
+    def getSelectedReconcItems (self):
+        filtro=lambda item: item.conciliatingFlag
+        return filter(filtro, self.reconItems) 
+    def refreshLists (self):
+        self.rllview.setColumns(("S",tr("Date"), tr("Comment"), tr("Amount"), "T",  tr("Mark")))
+        self.ellview.setColumns(("S",tr("Date"), tr("Comment"), tr("Amount"), "T", tr("Status")))
+        self.loadExtractLines ()
+        self.loadReconList ()
+    def fillAmmountFields (self):
+        record = self.getRecord ()
+        record.ReconListSelectedAmount = self.getReconRowsAmount ()
+        record.BankExtractSelectedAmount=self.getExtractRowsAmount ()
+    # rellena las lineas de extracto
+    def loadExtractLines (self):
+        if not hasattr(self,"extractLines"):
+            return
+        myRecord = self.getRecord ()
+        myRecord.BankExtractPendingAmount=0.0
+        self.ellview.clear ()
+        showAll = (self.listMode == self.ListMode_Boot)
+        i=0
+        self.extractItems = []
+        for r in self.extractLines.Rows:
+            if not showAll and r.Reconcilated:
+                continue
+            item = ExtractLinesListViewItem (self.ellview)
+            item._init_ (r, i, self, showAll)
+            if not r.Reconcilated:
+                myRecord.BankExtractPendingAmount+= r.Amount
+            # por ahora no pueden accederse a los items externamente al 
+            # list view. 
+            self.extractItems.append (item)
+            i+=1
+    def loadReconList (self):
+        self.reconItems =[]
+        myRecord = self.getRecord ()
+        myRecord.ReconListPendingAmount=0.0
+        fa = FinAccount()
+        fa.Code=myRecord.FinAccountCode
+        if not fa.load ():
+            log ("No puedo cargar Cuenta Financiera %s" % fa.Code)
+            alert ("No puedo cargar Cuenta Financiera %s" % fa.Code)
+            return
+        self.rllview.clear ()
+        query = Query ()
+        query.sql  = "SELECT {SerNr},[NLTRow].{Comment},{ValueBase1},"
+        query.sql += "[NLT].{TransDate},[NLTRow].{internalId},{Reconciliation} "
+        query.sql += "FROM [NLTRow] INNER JOIN [NLT] "
+        query.sql += "ON [NLT].{internalId} = [NLTRow].{masterId} "
+        query.sql += "WHERE [NLTRow].{Account}=s|%s| " % fa.Account
+        query.sql += "AND ([NLT].{Invalid} = i|0| OR [NLT].{Invalid} IS NULL) "
+        if self.listMode == self.ListMode_Pending or self.listMode == self.ListMode_Boot:
+            query.sql += ""
+            query.sql += "AND ({TransDate} <= d|%s| " % str(myRecord.ToDate)
+            query.sql += "AND ({Reconciliation} = s|%s| " % str(myRecord.ReconcilationCode)
+            query.sql += "OR {Reconciliation} IS NULL OR {Reconciliation} ='')) "
+        elif self.listMode == self.ListMode_Reconcilated:
+            query.sql += "AND ({TransDate} <= d|%s| " % myRecord.EndDate
+            query.sql += "AND {Reconciliation} = s|%s|) " % myRecord.ReconcilationCode
+        query.sql += "ORDER BY {TransDate} "
+        if not query.open (): return
+        showAll = (self.listMode == self.ListMode_Boot)
+        i=0
+        for rec in query:
+            reconcilated= bool(rec.Reconciliation)
+            if not showAll and reconcilated:
+                continue
+            item = ReconcileLinesListViewItem (self.rllview)
+            item._init_ (myRecord.ReconcilationCode, rec, i, self, showAll) 
+            self.reconItems.append (item)
+            if not reconcilated:
+                myRecord.ReconListPendingAmount+= rec.ValueBase1
+
+    def afterEdit(self, fieldname):
+        ParentReconcilationWindow.afterEdit (self, fieldname)
+        myRecord = self.getRecord ()
+        if fieldname == "ReconcilationCode":
+            if myRecord.FinAccountCode:
+                bel = BankExtractLines ()
+                bel.Code = myRecord.ReconcilationCode
+                bel.FinAccountCode = myRecord.FinAccountCode
+                if not bel.Code: return
+                bel.load ()
+                self.extractLines = bel
+                self.refreshLists ()
+        elif fieldname == "FromDate":
+            myRecord.ToDate = EndOfMonth(myRecord.FromDate)
+            self.afterEdit ("ToDate")
+        elif fieldname == "ToDate":
+            myRecord.ReconcilationCode = myRecord.FromDate.strftime("%m%y")
+            self.afterEdit ("ReconcilationCode")
+
+    #action
+    def importBankfile (self):
+        myRecord = self.getRecord ()
+        finAcc = FinAccount ()
+        finAcc.Code = myRecord.FinAccountCode
+        if not finAcc.load ():
+            log ("No puedo cargar la cuenta financiera: %s" % finAcc.Code)
+            alert ("No puedo cargar la cuenta financiera: %s" % finAcc.Code)
+            return False
+        if not myRecord.ReconcilationCode:
+            message (tr("NONBLANKERR") + ": " + tr("Reconcilation") + " " \
+                + tr("Code")+".")
+            return
+        filename = getOpenFileName()
+        if not filename: return
+        code = finAcc.Code
+        reconCode = myRecord.ReconcilationCode
+        account = finAcc.Account
+        supCode = finAcc.SupCode
+        toDate = myRecord.ToDate
+        bnk = Bank.bring(finAcc.Bank)
+        pi,extractLines=bnk.processBankExtract \
+            (filename, supCode, reconCode, code, account, toDate)
+        r = extractLines.save ()
+        if not r:
+            log ("No Pudieron Guardarse las Lineas de Extracto: %s" % str(r))
+            alert ("No Pudieron Guardarse las Lineas de Extracto")
+        else:
+            commit ()
+        self.extractLines = extractLines 
+        piw = PurchaseInvoiceWindow ()
+        piw.setRecord (pi)
+        message("%.20f" % pi.Total)
+        piw.open ()
+        return True
+
+    #action
+    def genExtractBankPendingReport (self):
+        from GenericReport import GenericReport
+        gr = GenericReport()
+        gr.open (True)
+        gr.startTable ()
+        myRecord = self.getRecord ()
+        fromDate = myRecord.FromDate
+        gr.header ("<b>Listado de Movimientos Pendientes</b>")
+        gr.header ("Fecha: %s" % fromDate.strftime ("%m de %Y"))
+        gr.endTable()
+        gr.startTable()
+        gr.header ("Fecha", "Concepto", "Importe")
+        #ordena por fecha y monto, usar lambdas sería muy críptico para esto.
+        def sortfunc (r1, r2):
+            d1 = r1.getTransDate (False)
+            d2 = r2.getTransDate (False)
+            rval = 1
+            # se le da prioridad a la fechas, pero a igual fecha, se ordena por
+            # monto decrecientemente
+            if d1 < d2:
+                rval = -1
+            elif d1 == d2:
+                amount1= r1.getAmount ()
+                amount2 = r2.getAmount ()
+                if amount1 > amount2:
+                    rval = -1
+                elif amount1 == amount2:
+                    rval = 0
+            return rval
+        colors=["#FFFEEE", "#DFDFDF"]
+        cnr = 0
+        extractRows = self.getPendingExtractRows ()
+        extractRows.sort (sortfunc)
+        totalPending = 0.0
+        for row in extractRows:
+            cnr = (cnr+1) % len(colors)
+            gr.startRow ()
+            gr.addValue (row.getTransDate (True),Align="Left", BGColor=colors[cnr])
+            gr.addValue (row.getComment (), Align="Left", BGColor=colors[cnr])
+            gr.addValue (row.getAmount (True),Align="Right", BGColor=colors[cnr])
+            gr.endRow ()
+            totalPending += row.getAmount (False)
+        gr.startRow ()
+        gr.addValue ("Total", Bold=True, ColSpan=2, Align="Left",BGColor="gray")
+        gr.addValue ("%.2f" % totalPending, Bold=True, Align="Right", BGColor="gray")
+        gr.endRow ()
+        gr.endTable ()
+        gr.render()
+
+class ExtractLinesListViewItem (ListViewItem):
+    # por algun motivo no puedo redefinir __init__ de la siguiente forma
+    #def __init__ (self, listView, extractLinesRow, nr):
+    #    ListViewItem.ListViewItem.__init__ (self,listView)
+    #    self.lineNr = nr
+    #    self.row = extractLinesRow
+    def _init_ (self, extractLinesRow, nr,win, persistent=True):
+        self.row = extractLinesRow
+        self.lineNr = nr
+        self.persistent=persistent
+        self.window = win
+        self.conciliatingFlag=False
+        self.updateListRow ()
+    # actualiza los valores mostrados en el widget.
+    def updateListRow (self):
+        if self.row.Reconcilated:
+            stat = "Conciliada"
+        else: stat = "No Conciliada"
+        amount = self.getAmount ()
+        if amount >=0:
+            t="C"
+        else:
+            amount=amount*-1
+            t="D"
+        amount = ("%.2f" % amount).rjust(12," ")
+        conciliatingTxt =""
+        if self.conciliatingFlag:
+            conciliatingTxt ="X" 
+        self.setText \
+            ((conciliatingTxt, "%s"%self.getTransDate(),
+            self.getComment (), amount, t, stat))
+    def getAmount (self, strformat=False):
+        amount = self.row.Amount
+        if strformat:
+            amount = "%.2f"% amount
+        return amount
+    def getTransDate (self, strdate=True):
+        d = self.row.TransDate
+        if strdate:
+            d = d.strftime ("%d/%m/%y")
+        return d
+    def getComment (self):
+        return self.row.Concept
+    def selected (self):
+        self.conciliatingFlag=not self.conciliatingFlag
+        self.updateListRow ()
+        self.window.fillAmmountFields ()
+    def conciliate (self):
+        self.row.Reconcilated = not self.row.Reconcilated
+        saveRet = self.row.getMasterRecord().save ()
+        if saveRet:
+            commit ()
+        else:
+            log ("Alerta: ReconcilationWindow, no puedo guardar row de"+
+                " BankExtractLines:%s" % str(saveRet))
+            alert ("No pueden actualizarse los datos de lineas de extracto"+
+                " bancario: %s" % str(saveRet))
+            return
+        reconcilated=False
+        if self.row.Reconcilated:
+            self.__setStatus ("Conciliada")
+            reconcilated=True
+        else:
+            self.__setStatus ("No Conciliada")
+        self.conciliatingFlag=not self.conciliatingFlag
+        self.updateListRow ()
+        winRec = self.window.getRecord ()
+        if winRec:
+            if reconcilated:
+                winRec.BankExtractPendingAmount-=self.row.Amount
+            else:
+                winRec.BankExtractPendingAmount+= self.row.Amount
+        if not self.persistent:
+            self.getParent().removeItem(self)
+    def isConciliated (self):
+        return bool(self.row.Reconcilated)
+    def __setStatus (self, stat):
+        self.setColumnText(stat, 5)
+
+class ReconcileLinesListViewItem  (ListViewItem):
+    # por algun motivo no puedo utilizar los __init__
+    def _init_(self, code, rec, lineNr, win, persistent=True):
+        self.rec = rec
+        self.marked= bool(rec.Reconciliation)
+        self.autoReconcile=False
+        self.lineNr = lineNr
+        self.markCode= code
+        self.persistent = persistent
+        self.window = win
+        self.conciliatingFlag=False
+        self.updateListRow ()
+    # actualiza los valores mostrados en el widget.
+    def updateListRow (self):
+        rec = self.rec
+        conciliatingTxt = ""
+        if self.conciliatingFlag:
+            conciliatingTxt ="X"
+        if rec.ValueBase1>=0:
+            amount = rec.ValueBase1
+            t="C"
+        else:
+            amount = rec.ValueBase1*-1
+            t="D"
+        amount = ("%.2f" % amount).rjust (12," ")
+        self.setText \
+            ((conciliatingTxt,"%s"%rec.TransDate, rec.Comment,
+            amount, t, rec.Reconciliation))
+    def getAmount (self):
+        return self.rec.ValueBase1
+    def keyPressed(self, text, state):
+        #print "pressed: %s <%s>" % (text,state)
+        if text == " ":
+            win= self.window
+            listview = win.getListView("ExtractLinesListView")
+            amount = self.rec.ValueBase1
+            for item in win.extractItems:
+                if item.row.Amount == amount:
+                    listview.setCurrentItem (item)
+                    listview.ensureItemVisible(item)
+                    win.leftSelection=self
+                    win.rightSelection=item
+                    break
+        elif text in ("ENTER", "RETURN"):
+            self.selected ()
+    def selected (self):
+        self.conciliatingFlag = not self.conciliatingFlag
+        self.updateListRow ()
+        self.window.fillAmmountFields ()
+    def conciliate (self):
+        txt = ""
+        if not self.marked: 
+            txt = self.markCode
+        winRec = self.window.getRecord ()
+        if self.__conciliate (self.marked):
+            self.setColumnText (txt, 5)
+            self.marked = not self.marked
+            self.conciliatingFlag = not self.conciliatingFlag
+            self.updateListRow ()
+            if winRec:
+                if txt:
+                    winRec.ReconListPendingAmount-=self.rec.ValueBase1
+                else:
+                    winRec.ReconListPendingAmount+=self.rec.ValueBase1
+        if not self.persistent:
+            self.getParent().removeItem(self)
+    def isConciliated (self):
+        return bool (self.marked)
+    def __conciliate (self, removeMark=False):
+        if removeMark:
+            mark=""
+        else:
+            mark = self.markCode
+        internalId = self.rec.internalId
+        query = Query()
+        query.sql  = "UPDATE NLTRow "
+        query.sql += "SET reconciliation = s|%s| " % (mark)
+        query.sql += "WHERE internalId = i|%s| " % (internalId)
+        ret=True
+        r = query.execute()
+        if not r:
+            log ("ReconcilationWindow->reconcile(): %s" \
+                "Could not be marked NLTRow.internalId=%s, %s" \
+                    % ("",internalId, str(r)))
+            alert ("The boeking row could not be marked: internalId=%s" % internalId)
+            ret=False
+        else:
+            commit ()
+            self.rec.Reconciliation = mark
+        return ret

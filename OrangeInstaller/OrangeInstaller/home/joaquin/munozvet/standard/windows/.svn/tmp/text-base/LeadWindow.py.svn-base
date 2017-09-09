@@ -1,0 +1,22 @@
+#encoding: utf-8
+from OpenOrange import *
+
+ParentLeadWindow = SuperClass("LeadWindow","MasterWindow",__file__)
+class LeadWindow(ParentLeadWindow):
+    
+    def genCustomer(self):
+        record = self.getRecord()
+        if (record.isNew() or record.isModified()):
+            message(tr("REGISTERNOTSAVED"))
+            return False
+        cust = record.genCustomer()
+        if cust:
+            cust.openInWindow()
+        else:
+            message(cust)
+            
+    def afterEdit(self, fieldname):
+        ParentLeadWindow.afterEdit(self, fieldname)
+        lead = self.getRecord()
+        if (fieldname == "ProvinceCode"):
+            lead.pasteProvinceCode()

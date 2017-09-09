@@ -1,0 +1,12 @@
+#encoding: utf-8
+# Nov/09 - MSP
+from OpenOrange import *
+from GlobalTools import *
+
+
+ParentTaxSettingsWindow = SuperClass("TaxSettingsWindow","SettingWindow",__file__)
+class TaxSettingsWindow(ParentTaxSettingsWindow):
+    DefaultAfterEdit = True
+
+    #def afterEdit(self, fieldname):
+    #    afterEdit(self, fieldname)

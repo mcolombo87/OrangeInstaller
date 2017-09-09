@@ -1,0 +1,269 @@
+#encoding: utf-8
+from OpenOrange import *
+from GlobalTools import *
+
+ParentDeliveryWindow = SuperClass("DeliveryWindow","SalesTransactionWindow",__file__)
+class DeliveryWindow(ParentDeliveryWindow):
+
+    def afterShowRecord(self):
+        ParentDeliveryWindow.afterShowRecord(self)
+        record = self.getRecord()
+        record.ScannedItemQty = 1
+        record.setModified(False)
+        
+    def afterEdit(self, fieldname):
+        ParentDeliveryWindow.afterEdit(self, fieldname)
+        
+        
+        de = self.getRecord()
+        if fieldname == "Status": #very important
+            if de.Status in de.finalStatus() and de.oldFields("Status").getValue() not in de.finalStatus():
+                    if not currentUserCanDo("CanOK" + de.name(), True): 
+                        de.Status = de.oldFields("Status").getValue()
+        elif (fieldname == "Transporter"):
+            de.pasteTransporter()
+        elif (fieldname == "Driver"):
+            de.pasteDriver()
+        elif (fieldname == "Vehicle"):
+            de.pasteVehicle()
+        elif (fieldname == "ProvinceCode"):
+            de.pasteProvinceCode()
+        elif (fieldname == "LocalityCode"):
+            de.pasteLocalityCode()
+        elif (fieldname == "Contact"):
+            de.pasteContact()
+        elif (fieldname == "StockDepo"):
+            de.changeQInStock()
+        elif (fieldname == "DelAddressCode"):
+            de.pasteDelAddressCode()
+        elif (fieldname == "DeclaredValueCurrency"):
+            de.pasteDeclaredValueCurrency()
+        elif (fieldname == "ScannedItem"):
+            de.pasteScannedItem()
+
+    def afterEditRow(self, fieldname, rowfieldname, rownr):
+        ParentDeliveryWindow.afterEditRow(self, fieldname, rowfieldname, rownr)
+
+        de = self.getRecord()
+        if (fieldname == "Items"):
+            derow = de.Items[rownr]
+            if (rowfieldname == "ArtCode"):
+                derow.pasteArtCode(de)
+                de.sumUp()
+            elif (rowfieldname == "Package"):
+                derow.pastePackage()
+                de.sumUp()
+            elif (rowfieldname == "Qty"):
+                derow.pasteQty(de)
+                de.sumUp()
+            elif (rowfieldname == "Unit"):
+                derow.pasteUnit(de)
+                de.sumUp()    
+            elif (rowfieldname == "RowPackages"):
+                de.sumUp()
+            elif (rowfieldname == "SerialNr"):
+                derow.pasteSerialNr(de)
+                de.sumUp()
+            elif (rowfieldname == "ScanQty"):
+                derow.pasteScanQty()
+            elif (rowfieldname == "Pos"):
+                derow.pastePos(de)
+
+    def filterPasteWindow(self, fieldname):
+        if fieldname == "Contact" :
+            if self.getRecord().CustCode:
+                return "{CustCode} = s|%s| " % self.getRecord().CustCode
+        elif fieldname == "DelAddressCode":
+            if self.getRecord().CustCode:
+                return "{Entity} = s|%s| and {EntityType}=i|0| " % self.getRecord().CustCode
+        elif fieldname == "Driver":
+            return "{ContactType} = i|3| " 
+
+    def filterPasteWindowRow(self, detailfieldname, rowfieldname, rownr):
+        if detailfieldname == "Items":
+            if rowfieldname == "ArtCode":
+                return "({Closed} IS NULL OR {Closed} = i|0|)"
+        return ParentDeliveryWindow.filterPasteWindowRow(self,detailfieldname, rowfieldname, rownr)
+
+    def fillPasteWindowRow(self, pastewindowname, fieldname, rowfieldname, rownr):
+        ParentDeliveryWindow.fillPasteWindowRow(self, pastewindowname, fieldname, rowfieldname, rownr)
+        if (pastewindowname == "SerialNrPasteWindow"):
+            record = self.getRecord()
+            items = record.details(fieldname)
+            serialNrInclude = []
+            itemrow = items[rownr]
+            for row in items:
+                if row.ArtCode == itemrow.ArtCode:
+                    serialNrInclude.append(row.SerialNr)
+            query = Query()
+            query.sql = "SELECT Stock.ArtCode, {BestBefore} as DueDate, Stock.{SerialNr}, {StockDepo}, {StockPos}, SUM(Qty) as {Qty} FROM [Stock] "
+            query.sql += "LEFT JOIN BatchText bt ON bt.ArtCode = Stock.ArtCode and bt.SerialNr = Stock.SerialNr\n"
+            query.sql += "WHERE?AND Stock.{SerialNr} <> s|| "
+            query.sql += "WHERE?AND Stock.{SerialNr} NOT IN ('%s') " % ("','".join(serialNrInclude))
+            query.sql += "WHERE?AND Stock.{ArtCode} = s|%s| " % itemrow.ArtCode
+            query.sql += "WHERE?AND {StockDepo} = s|%s| " % record.StockDepo
+            if itemrow.Pos: query.sql += "WHERE?AND {StockPos} = s|%s| " % itemrow.Pos
+            query.sql += "GROUP BY Stock.{SerialNr} "
+            if not itemrow.Pos: query.sql += ", {StockPos} "
+            query.sql += " HAVING {Qty} > 0 "
+            query.sql += " ORDER BY {DueDate} ASC, Stock.{SerialNr} "
+            if query.open():
+                return query
+        elif (pastewindowname == "PositionStockPasteWindow"):
+            record = self.getRecord()
+            itemrow = record.details(fieldname)[rownr]
+            from Position import Position
+            return Position.genPasteWindowData(itemrow.ArtCode, record.StockDepo, itemrow.SerialNr)
+        return None
+
+    def getCurrencySelection(self):
+        from SalesSettings import SalesSettings
+        deliv = self.getRecord()
+        curr = SalesSettings.getDeliveryToInvCurrency(deliv)
+        currency = None
+        if (len(curr) > 1):
+            clist = []
+            clist.append("%s| %s" %(curr[0],tr("From Delivery")))
+            clist.append("%s| %s" %(curr[1],tr("From Customer")))
+            clist.append("%s| %s" %(curr[2],tr("Base 1")))
+            clist.append("%s| %s" %(curr[3],tr("Base 2")))
+            res = getSelection(tr("Select Currency of Transaction"), tuple(clist))
+            if (not res): return
+            currency = res.split("|")[0]
+        else:
+            currency = curr[0]
+        return currency
+
+    @checkTransactionForAction
+    def genInvoice(self):
+        record = self.getRecord()
+        if (record.isNew() or record.isModified()):
+            message("REGISTERNOTSAVED")
+            return 
+        if (not record.confirmed()):
+            message("REGISTERNOTAPPROVED")
+            return
+        if (record.SONr):
+            from SalesOrder import SalesOrder
+            sorder = SalesOrder.bring(record.SONr)
+            if (sorder):
+                currency = self.getCurrencySelection()
+                if (not currency):
+                    from Currency import Currency
+                    base1 = Currency.getBase1()
+                    base2 = Currency.getBase2()
+                    currency = getSelection(tr("Select Currency of Transaction"), (base1,base2))
+                    if (not currency):
+                        currency = base1
+                invoice = sorder.genInvoice(FromDeliveries=True,DeliveryRecord=record, Currency = currency)
+                if invoice:
+                    if invoice.Items.count() > 0:
+                        invoice.openInWindow()
+                        self.closeAfterGen()
+                    else:
+                        message("No quedan articulos por facturar")
+                else:
+                    message(invoice)
+            else:
+                message("No se encuentra la orden de esta entrega")
+        else:
+            currency = self.getCurrencySelection()
+            if (not currency):
+                return
+            invoice = self.getRecord().genInvoice(Currency = currency)
+            self.getRecord().showMessages()
+            if invoice:
+                from InvoiceWindow import InvoiceWindow
+                invw = InvoiceWindow()
+                invw.setRecord(invoice)
+                invw.open()
+        return invoice
+
+    @checkTransactionForAction
+    def genStockRequest(self):
+        stockreq = self.getRecord().genStockRequest()
+        if stockreq:
+            if stockreq.Items.count() > 0:
+                from StockRequestWindow import StockRequestWindow
+                stockreq.openInWindow()
+                self.closeAfterGen()
+            else:
+                message("No hay items que pedir")
+        else:
+            message(stockreq)
+        return stockreq
+
+    def showPickingList(self):
+        from PickingList import PickingList
+        report = PickingList()
+        report.defaults()
+        record = report.getRecord()
+        record.SerNr = self.getRecord().SerNr
+        record.Type=1
+        report.open(False)
+
+    def showDeliveryPrepareReport(self):
+        from DeliveryPrepareReport import DeliveryPrepareReport
+        report = DeliveryPrepareReport()
+        report.delivery = self.getRecord()
+        report.open()        
+
+    def printLabels(self):
+        record = self.getRecord()
+        from StockSettings import StockSettings
+        sset = StockSettings.bring()
+        preview = not sset.NoPreviewLabels
+        pdialog = not sset.NoPrinterDialog
+        if (not record.Packages):
+            printRecord("DeliveryLabelDoc", self.getRecord(), preview, pdialog, None)
+        else:
+            for iline in range(0,record.Packages):
+                printRecord("DeliveryLabelDoc", self.getRecord(), preview, pdialog, None)
+
+    def printToFiscalPrinter(self):
+        from FiscalPrinter import FiscalPrinter
+        from LocalSettings import LocalSettings
+        deliv = self.getRecord()
+        if deliv.Printed:   
+            message ("Document was already printed")
+            return
+        if deliv.isModified ():
+            message ("You need to save the current record first!")
+            return
+        ls = LocalSettings.bring()
+        fp = FiscalPrinter.bring(ls.Computer)
+        if not fp:
+           message ("No hay una impresora fiscal definida para este punto de venta")
+           return
+        delprintform = deliv.printingFormat()
+        officialNr = fp.printDelivery(delprintform)
+        fp.showMessages()
+        if not officialNr: 
+            return
+        deliv.OfficialSerNr = officialNr
+        deliv.Printed = True
+        if fp.OKAndInsert:
+            if deliv.store ():
+                commit()
+            else:
+                log ("printToFiscalPrinter: ERROR: No se puede guardar delivery SerNr %i" % deliv.SerNr)
+
+    @checkTransactionForAction
+    def genReturnCustomer(self):
+        record = self.getRecord()
+        res = record.genReturnCustomer()
+        if (res):
+            res.openInWindow()
+    
+    def save(self):
+        res = ParentDeliveryWindow.save(self)
+        if not res: return res
+        if (hasattr(self,"parentReport") and self.parentReport.getRecord()):
+            self.parentReport.refresh()
+        return res
+
+    def buttonClicked(self, buttonname):
+        ParentDeliveryWindow.buttonClicked(self, buttonname) #### No sE por quE se quitO la llamada al padre EC
+        record = self.getRecord()
+        if (buttonname == "pasteSerials"):
+            record.fillSerials()

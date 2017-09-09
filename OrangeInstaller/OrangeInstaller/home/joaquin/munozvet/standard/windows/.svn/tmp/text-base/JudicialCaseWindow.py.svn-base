@@ -1,0 +1,60 @@
+#encoding: utf-8
+from OpenOrange import *
+from JudicialCase import JudicialCase
+
+ParentJudicialCaseWindow = SuperClass("JudicialCaseWindow","TransactionWindow",__file__)
+class JudicialCaseWindow(ParentJudicialCaseWindow):
+
+    def afterEdit(self, fieldname):
+        record = self.getRecord()
+        if (fieldname == "CustCode"):
+            record.pasteCustCode()
+        if (fieldname == "LawFirm"):
+            record.pasteLawFirm()
+
+    def wedListStatus(self):
+        wl = self.getRecord()
+        from Report import Report
+        from ItemSearchReport import ItemSearchReport
+        report = ItemSearchReport()
+        report.getRecord().Name = self.getRecord().ArtCodeName
+        report.record = self.getRecord()
+        report.window = self
+        from Invoice import InvoiceItemRow
+        report.itemclass = InvoiceItemRow
+        report.open(False)
+
+    def refinaceDebt(self):
+        jc = self.getRecord()
+        inv = jc.genReFinInvoice()
+        from InvoiceWindow import InvoiceWindow
+        window = InvoiceWindow()
+        window.setRecord(inv)
+        window.open()
+
+    def openReceipt(self):
+        jc = self.getRecord()
+        from Receipt import Receipt,ReceiptInvoiceRow
+        rec = Receipt()
+        rec.defaults()
+        rec.CustCode = jc.CustCode
+        rec.pasteCustCode()
+        invRow = ReceiptInvoiceRow()
+        invRow.InvoiceNr = jc.OriginNr
+        rec.Invoices.append(invRow)
+        invRow.pasteInvoiceNr(rec,True, 0)
+        rec.sumUp()
+        rec.pastePayments()
+        rec.sumUp()
+        from ReceiptWindow import ReceiptWindow
+        window = ReceiptWindow()
+        window.setRecord(rec)
+        window.open()
+
+    def wedListStatus(self):
+          wl = self.getRecord()
+          from WedListStatus import WedListStatus
+          report = WedListStatus()
+          specs = report.getRecord()
+          specs.SerNr = wl.SerNr
+          report.open(False)

@@ -1,0 +1,141 @@
+#encoding: utf-8
+from OpenOrange import *
+
+ParentItemRequestWindow = SuperClass("ItemRequestWindow","PurchaseTransactionWindow",__file__)
+class ItemRequestWindow(ParentItemRequestWindow):
+
+    def activateNextCell(self, matrixname, row, col):
+        columns = self.getMatrixColumns(matrixname)
+        if columns[col] == "ArtCode": # To Qty
+            row,col = getNextCol(columns,row,col,"Qty")
+        elif columns[col] == "Qty": # To Next Row            
+            col = 0
+            row += 1
+        else:
+            row,col = getNextCol(columns,row,col,"")
+        return (row,col)
+    
+    def afterEdit(self, fieldname):
+        ParentItemRequestWindow.afterEdit(self, fieldname)
+        if (fieldname == "User"):
+            self.getRecord().pasteUser()
+        elif (fieldname == "StockDepo"):
+            self.getRecord().pasteStockDepo()
+        elif (fieldname == "SupCode"):
+            self.getRecord().pasteSupCode()
+        elif (fieldname == "Contact"):
+            self.getRecord().pasteContact()
+        elif (fieldname == "ProvinceCode"):
+            self.getRecord().pasteProvinceCode()
+        elif (fieldname == "ZipCode"):
+            self.getRecord().pasteZipCode()
+        elif (fieldname == "LocalityCode"):
+            self.getRecord().pasteLocalityCode()
+    
+    def afterEditRow(self, fieldname, rowfieldname, rownr):
+        ParentItemRequestWindow.afterEditRow(self, fieldname, rowfieldname, rownr)
+        irequest = self.getRecord()
+        if (fieldname == "Items"):
+            item = irequest.Items[rownr]
+            if (rowfieldname == "ArtCode"):
+                item.pasteArtCode(irequest)
+                item.sumUp(irequest)
+                irequest.sumUp()
+            if (rowfieldname == "SupArtCode"):
+                item.pasteSupArtCode(irequest)
+                item.sumUp(irequest)
+                irequest.sumUp()
+            elif (rowfieldname == "Price"):
+                item.pastePrice(irequest)
+                item.sumUp(irequest)
+                irequest.sumUp()
+            elif (rowfieldname == "VATPrice"):
+                item.pasteVATPrice(irequest)
+                item.sumUp(irequest)
+                irequest.sumUp()                
+            elif (rowfieldname == "VATCode"):
+                item.pasteVATCode(irequest)
+                item.sumUp(irequest)
+                irequest.sumUp()                
+            elif (rowfieldname =="Qty"):
+                item.pasteQty(irequest)
+                item.sumUp(irequest)
+                irequest.sumUp()
+        
+    @checkIfNewOrModified
+    def genPurchaseOrder(self):
+        if (self.getRecord().Status <> 1):
+            message(tr("INVALIDSTATE"))
+            return 
+        gr = self.getRecord().genPurchaseOrder()
+        if gr:
+            gr.openInWindow()
+            self.closeAfterGen()
+        else:
+            message(gr)
+        return gr
+
+    def afterDeleteRow(self, fieldname, rownr):
+        purchaseorder = self.getRecord()
+        if (fieldname == "Items"):
+          purchaseorder.sumUp()
+
+    def showItemRequestReport(self):
+        from ItemRequestReport import ItemRequestReport
+        report = ItemRequestReport()
+        report.defaults()
+        report.getRecord().ItReqNr = str(self.getRecord().SerNr)
+        report.open(False)
+
+    def filterPasteWindowRow(self,fieldname,rowfieldname,rownr):
+        record = self.getRecord()
+        if fieldname == "Items":
+            if rowfieldname == "ArtCode":
+                return "({Closed} IS NULL OR {Closed} = i|0|)"
+        return ParentItemRequestWindow.filterPasteWindowRow(self,fieldname, rowfieldname, rownr)         
+
+
+    def filterPasteWindow(self,fieldname):
+        if fieldname == "Contact":
+            if self.getRecord().SupCode:
+                return "({CustCode} = s|%s| AND {ContactType}=i|1|)" % self.getRecord().SupCode
+        if fieldname == "LocalityCode":
+            if self.getRecord().ZipCode:
+                return "{ZipCode} = s|%s|" % self.getRecord().ZipCode
+        return ParentItemRequestWindow.filterPasteWindow(self,fieldname)
+
+    @checkIfNewOrModified
+    def genStockMovement(self):
+        record = self.getRecord()
+        sm = record.genStockMovement()
+        if (sm):
+            sm.openInWindow()
+        self.closeAfterGen()
+        
+    @checkIfNewOrModified
+    def showItemRequestStatusReport(self):
+        record = self.getRecord()
+        report = record.showItemRequestStatusReport()
+        if report:
+            report.open(False)
+        
+    @checkTransactionForAction
+    def genStockDepreciation(self):
+        record = self.getRecord()
+        sdep = record.genStockDepreciation()
+        if (sdep):
+            openWindow(sdep)
+            
+    @checkTransactionForAction
+    def genPurchaseOrderCustom(self):
+        po = self.getRecord()
+        if not po.FullOrdered:
+            from GenPurchaseOrderCustom import GenPurchaseOrderCustom
+            report = GenPurchaseOrderCustom()
+            report.p = po
+            report.record = self.getRecord()
+            report.record.Trans = "PurchaseOrder"
+            report.window = self
+            report.open(False)
+        else:
+            message(tr("There are no items to be Ordered"))

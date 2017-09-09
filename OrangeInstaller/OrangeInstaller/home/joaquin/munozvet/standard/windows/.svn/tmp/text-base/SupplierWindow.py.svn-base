@@ -1,0 +1,147 @@
+#encoding: utf-8
+from OpenOrange import *
+from MasterWindow import MasterWindow
+from Report import Report
+import Validator
+import string
+
+ParentSupplierWindow = SuperClass("SupplierWindow", "AddressableWindow", __file__)
+class SupplierWindow(ParentSupplierWindow):
+
+    def afterShowRecord(self):
+        ParentSupplierWindow.afterShowRecord(self)
+        self.listContacts()
+        from PurchaseSettings import PurchaseSettings
+        ps = PurchaseSettings.bring()
+        if ps.EnableBankAccountTab:
+            self.setTabPageVisibility("Tabs", "BankAccountsPage", True)
+            self.listbankaccounts()
+        else:
+            self.setTabPageVisibility("Tabs", "BankAccountsPage", False)
+
+    def beforeEdit(self, fieldname):
+        res = ParentSupplierWindow.beforeEdit(self, fieldname)
+        res = self.getRecord().fieldIsEditable(fieldname)
+        if (not res): return res
+        return res
+    
+    def afterEdit(self, fieldname):
+        ParentSupplierWindow.afterEdit(self, fieldname)
+        supplier = self.getRecord()
+        if (fieldname == "MainContact"): 
+            res = supplier.pasteMainContact()
+            if not res: 
+                message(res)
+        elif (fieldname == "TaxRegNr"):
+            if (not supplier.TaxRegNr):
+                return
+            res = supplier.pasteTaxRegNr()
+            if not res:
+               message(tr("WRONGTAXREGNR"))
+        elif (fieldname == "TaxRegType"):
+            supplier.pasteTaxRegType()
+        elif (fieldname == "Phone"):
+            res = supplier.pastePhone()
+            if not res: message(res)
+        elif (fieldname == "Bank"):
+            supplier.pasteBank()
+        elif (fieldname == "ExpenseConcept"):
+            supplier.pasteExpenseConcept()
+            
+    def filterPasteWindow(self, fieldname):
+        sup = self.getRecord()
+        if fieldname == "MainContact":
+            if sup.Code:
+                return "{CustCode} = s|%s| AND {ContactType} = i|1|" % sup.Code
+        elif fieldname == "Withholdings":
+            return "{Type} = i|0|" 
+        elif fieldname == "PayTerm":
+            from PayTerm import PayTerm
+            return "({OperationType} IS NULL OR {OperationType} IN (i|%i|, i|%i|))" % (PayTerm.ALL_OPERATIONS,PayTerm.PURCHASE)     
+        else:
+            return ParentSupplierWindow.filterPasteWindow(self, fieldname)
+                
+    def contactList(self):
+        record = self.getRecord()
+        if record.Code:
+            from ContactList import ContactList
+            report = ContactList()
+            report.defaults()
+            report.ShowReportTitle = False
+            report.getRecord().CustCode = record.Code
+            report.getRecord().ContactType = 1
+            report.open(False)
+
+    def showSupplierStatus(self):
+        record = self.getRecord()
+        from SupplierStatus import SupplierStatus
+        report = SupplierStatus()
+        report.defaults()
+        report.getRecord().SupCode = record.Code
+        report.open(False)
+    
+    def listContacts(self):
+        from ContactList import ContactList
+        record = self.getRecord()
+        if record.Code:
+            r = self.getReportView("Contacts")
+            from ContactList import ContactList
+            report = ContactList()
+            report.defaults()
+            report.tinyList = True
+            report.setView(r)
+            report.getRecord().CustCode = record.Code
+            report.getRecord().ContactType = 1
+            report.getRecord().Sex = 2
+            report.open(False)
+    
+    def buttonClicked(self, buttonname):
+        ParentSupplierWindow.buttonClicked(self, buttonname)
+        sup = self.getRecord()
+        if buttonname == "showBankAccounts":
+            self.listbankaccounts()          
+        elif buttonname == "SupContactList":
+            if sup.Code:
+                self.listContacts()
+        elif buttonname == "NewContact":
+            from Person import Person
+            from PersonWindow import PersonWindow
+            per = Person()
+            per.ContactType = 1
+            per.CustCode = sup.Code
+            per.pasteCustCode()
+            wnd = PersonWindow()
+            wnd.setRecord(per)
+            wnd.open()
+        elif buttonname == "getTaxRegnr":      # change name because same funcion was called after saving !
+            res=sup.getTaxRegNr()
+            if (not res):
+                message(res)
+    def saveAsCustomer(self):
+        sup = self.getRecord()
+        cust = sup.getCustomerRecord()
+        from CustomerWindow import CustomerWindow
+        wnd = CustomerWindow()
+        wnd.setRecord(cust)
+        wnd.open()
+
+        
+    def listbankaccounts(self,openList = False):
+        from ContactList import ContactList
+        record = self.getRecord()
+        if record.Code:
+            from BankAccountList import BankAccountList
+            record = self.getRecord()
+            rep = BankAccountList()
+            rec = rep.getRecord()
+            rep.ShowReportTitle = False
+            rec.defaults()
+            if not openList:
+                rep.setView(self.getReportView("BankAccounts"))
+            rec.Entity = record.Code
+            rec.EntityType = 0 #Supplier
+            rep.open(False)
+            if not openList:
+                #processEvents() #needed to avoid report tool bar to showup #pero hace que se cuelgue open
+                self.setFocus()
+        

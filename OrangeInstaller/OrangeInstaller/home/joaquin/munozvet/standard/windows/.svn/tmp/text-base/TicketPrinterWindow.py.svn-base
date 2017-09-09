@@ -1,0 +1,13 @@
+#encoding: utf-8
+from OpenOrange import *
+
+import usb
+ParentTicketPrinterWindowx = SuperClass("TicketPrinterWindow", "MasterWindow", __file__)
+class TicketPrinterWindow(ParentTicketPrinterWindowx):
+
+    def afterShowRecord(self):
+        ParentTicketPrinterWindowx.afterShowRecord(self)
+        record = self.getRecord()
+        nameM, codeM = record.getUSBList()
+        t = zip(codeM, nameM)
+        self.setFieldOptions("USBPort", t)

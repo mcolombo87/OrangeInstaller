@@ -1,0 +1,43 @@
+#encoding: utf-8
+# Agosto 2009 - Martin Salcedo
+from OpenOrange import *
+from BankAccount import BankAccount
+
+ParentBankAccountWindow = SuperClass("BankAccountWindow","MasterWindow",__file__)
+class BankAccountWindow(ParentBankAccountWindow):
+
+    def getPasteWindowName(self,fieldName):
+        record = self.getRecord()
+        if fieldName == "Entity":
+            if (record.EntityType == 0):
+                return "SupplierPasteWindow"
+            elif (record.EntityType == 1):
+                return "CustomerPasteWindow"
+            elif (record.EntityType == 2):
+                return "PersonPasteWindow"
+        return ParentBankAccountWindow.getPasteWindowName(self,fieldName)
+
+    def afterEdit(self, fieldname):
+        ParentBankAccountWindow.afterEdit(self,fieldname)
+        record = self.getRecord()
+        if (fieldname == "MediatorBank"):
+            record.pasteMediatorBank()
+        elif (fieldname == "BankAccNr"):
+            record.pasteBankAccNr()
+        elif (fieldname == "BnkAccRouteNr"):
+            record.pasteBnkAccRouteNr()
+        elif (fieldname == "IBAN"):
+            record.pasteIBAN()
+        elif (fieldname == "Bank"):
+            record.pasteBank()
+        elif (fieldname == "AccountHolder"):
+            if not record.Entity:
+                from NameSearchResult import NameSearchResult
+                NameSearchResult.search(BankAccount.EntityTypes[record.EntityType],record.AccountHolder,self,"Entity")
+            
+
+    def buttonClicked(self, buttonname):
+        ba = self.getRecord()
+        if (buttonname == "genIBAN"):
+            ba.pasteIBANControlDigit()
+            ba.filloutIBAN()

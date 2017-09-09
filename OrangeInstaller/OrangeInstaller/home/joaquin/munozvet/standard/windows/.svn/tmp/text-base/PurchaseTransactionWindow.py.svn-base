@@ -1,0 +1,42 @@
+#encoding: utf-8
+from OpenOrange import *
+
+ParentPurchaseTransactionWindow = SuperClass("PurchaseTransactionWindow","FinancialTransWindow",__file__)
+class PurchaseTransactionWindow(ParentPurchaseTransactionWindow):
+    
+    def afterEdit(self, fieldname):
+        ParentPurchaseTransactionWindow.afterEdit(self, fieldname)
+        record = self.getRecord()
+        if fieldname == "SupCode":
+            record.pasteSupCode()
+            self.updateViewDecimals() # porque a veces se pega la moneda y pueden cambiar los decimales en la vista
+        elif (fieldname == "SupName"):
+            if (not record.SupCode):
+                from NameSearchResult import NameSearchResult
+                NameSearchResult.search("Supplier",self.getRecord().SupName,self)
+                
+    def filterPasteWindowRow(self,fieldname,rowfieldname,rownr):
+        res = ParentPurchaseTransactionWindow.filterPasteWindowRow(self,fieldname,rowfieldname,rownr)
+        record = self.getRecord()
+        filters = []
+        if res:
+            filters.append(res)
+        if fieldname == "Items":
+            if rowfieldname == "ArtCode":
+                filters.append(self.getItemPasteWindowFilters())
+            elif rowfieldname == "SupArtCode":
+                if hasattr(record, "SupCode"):
+                    filters.append("{SupCode} = s|%s|" % record.SupCode)
+        return " AND ".join(filters)
+
+    def getItemPasteWindowFilters(self):
+        filt = "(({Closed} IS NULL OR {Closed} = i|0|) AND (UseType = i|0| OR UseType = i|2| OR UseType IS NULL))"
+        record = self.getRecord()
+        if record.SupCode:
+            from PurchaseSettings import PurchaseSettings
+            ps = PurchaseSettings.bring()
+            if ps.FilterItemsBySupplier:
+                filt += "AND ({SupCode} = s|%s| OR " % record.SupCode
+                filt += "{Code} IN (SELECT {ArtCode} FROM [SupplierItem] [si] WHERE [si].{SupCode} = s|%s|)) " % record.SupCode
+        return filt
+        

@@ -1,0 +1,12 @@
+#encoding: utf-8
+from OpenOrange import *
+
+ParentCampaignFormWindow = SuperClass("CampaignFormWindow","MasterWindow",__file__)
+class CampaignFormWindow(ParentCampaignFormWindow):
+    
+    def afterEdit(self, fieldname):
+        ParentCampaignFormWindow.afterEdit(self, fieldname)
+        record = self.getRecord()
+        if (fieldname == "Campaign"):
+            record.pasteCampaign()
+            

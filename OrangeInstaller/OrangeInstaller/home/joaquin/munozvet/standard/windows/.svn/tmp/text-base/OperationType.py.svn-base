@@ -1,0 +1,6 @@
+#encoding: utf-8
+from OpenOrange import *
+
+ParentOperationTypeWindow = SuperClass("OperationTypeWindow", "MasterWindow", __file__)
+class OperationTypeWindow(ParentOperationTypeWindow):
+    pass

@@ -1,0 +1,25 @@
+#encoding: utf-8
+from OpenOrange import *
+
+ParentCompanyAddressWindow = SuperClass("CompanyAddressWindow","AddressableWindow",__file__)
+class CompanyAddressWindow(ParentCompanyAddressWindow):
+
+    def afterEdit(self, fieldname):
+        ParentCompanyAddressWindow.afterEdit(self, fieldname)
+        record = self.getRecord()
+        if (fieldname == "Entity"):
+            record.pasteEntity()
+
+    def getPasteWindowName(self,fieldName):
+        record = self.getRecord()
+        if fieldName == "Entity":
+            if (record.EntityType == 0):
+                return "CustomerPasteWindow"
+            elif (record.EntityType == 1):
+                return "SupplierPasteWindow"
+            elif (record.EntityType == 2):
+                return "PersonPasteWindow"
+            elif (record.EntityType == 3):
+                return "EmployeePasteWindow"
+        return ParentCompanyAddressWindow.getPasteWindowName(self,fieldName)
+
