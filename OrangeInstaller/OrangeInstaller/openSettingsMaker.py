@@ -46,10 +46,15 @@ class openSettingsMaker(object):
         subElement.text = str(companyInfo[8])
         settingsXML.append(subElement)
         #Starting with modules
+        mod = {}
         for a in range(len(modules)):
             module = modules[a]
-            moduleLevel = str(module[1]) #module[1]. 1 is for Level column in DB
-            modulePath = str(module[0]) #module[0]. 0 is for module column in DB
+            # make a dictionary with key = level so i can sort it before making the xml
+            if not mod.has_key(module[1]):
+                mod[module[1]] = module
+        for level in sorted(mod.keys()):
+            modulePath = str(mod[level][0]) #module[0]. 0 is folder column in DB
+            moduleLevel = str(mod[level][1]) #module[1]. 1 is for Level column in DB
             if (moduleLevel == '1'):
                 subElement = xml.Element('scriptdir level="0" path="base"')
                 settingsXML.append(subElement)

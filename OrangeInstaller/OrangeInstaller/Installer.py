@@ -24,7 +24,7 @@ class Installer(object):
         self.checkoutStacks = 0 #This is an important counter, increment your value for each checkout in queue, the real control for determinated if the installation...
                                 #...finished or not is through this. Once this count started, will return to cero when the installation is over.
 
-    def setInstallPath (self, path, companyName = None):
+    def setInstallPath (self, path, companyName=""):
         if(systemTools.isLinux()):
             self.installPath = path + "/" + companyName if companyName else path
         else:

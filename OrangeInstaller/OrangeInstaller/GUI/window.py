@@ -92,9 +92,9 @@ class userWindow(Gtk.Window):
         if (self.companyId == None and self.companyName == None):
             self.communicator(tr("First you must choose a Company"))
         else:
-            self.installation.setInstallPath(self.installation.getInstallPath(), self.companyName)
             nextWindowPos = self.actualWindowPos + 1
             if (self.actualWindowPos == 1):
+                self.installation.setInstallPath(self.installation.getInstallPath(), self.companyName)
                 self.win.hide()
                 self.installation.initialization(self.companyId) #If company was picked so we initialize installer
                 self.preparateWin1()
@@ -157,6 +157,7 @@ class userWindow(Gtk.Window):
         if model and colum:
             if len(model[colum][0].split(" ")) > 1:
                 self.companyId = model[colum][0].split(" ")[1]
+                self.companyName = model[colum][0].split(" ")[-1]
             else:
                 self.companyName = model[colum][0]
 
