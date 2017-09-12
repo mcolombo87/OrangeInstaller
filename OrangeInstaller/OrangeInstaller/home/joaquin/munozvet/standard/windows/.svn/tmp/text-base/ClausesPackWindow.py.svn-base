@@ -1,6 +1,0 @@
-#encoding: utf-8
-from OpenOrange import *
-
-ParentClausesPackWindow = SuperClass("ClausesPackWindow","MasterWindow",__file__)
-class ClausesPackWindow(ParentClausesPackWindow):
-    pass
