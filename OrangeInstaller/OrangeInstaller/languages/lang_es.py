@@ -51,4 +51,9 @@ lang_dict = {
 "Unable to connect to repository":"Imposible conectar al repositorio",
 "Default Path: ":"Directorio por defecto: ",
 "Program started":"Programa iniciado",
+"Send to SVN: {}":"Enviando a SVN: {}",
+"Process finished, check svn out for info": "Proceso finalizado, chequear salida svn para más información",
+"SVN Response: {}":"Respuesta SVN: {}",
+"Base and Standard":"Base y Standard",
+"No revision %s.":"No hay revision %s."
 }

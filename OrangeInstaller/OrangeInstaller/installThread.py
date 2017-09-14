@@ -1,6 +1,6 @@
 import threading
 import subprocess
-from Functions import functions
+from Functions import functions, systemTools
 
 tr = functions.tr
 
@@ -30,20 +30,27 @@ class installThread(threading.Thread):
         if (self.moduleName != 0):
             msg = str(tr("Installing: ") + self.moduleName)
             if (self.moduleName == ''):
-                msg = str(tr("Installing: ") + "Base and Standard")
+                msg = str(tr("Installing: ") + tr("Base and Standard"))
             print (msg)
             functions.logging.debug(msg)
             self.objInstaller.setMsgBuffer(msg)
-        functions.logging.debug('Send to SVN: {}'.format(self.construction))
+        functions.logging.debug(tr("Send to SVN: {}").format(self.construction))
         print(self.construction)
 
-        if (self.objInstaller.getCurrentSystem() == 'Linux'):
-            report = subprocess.call(self.construction, stdout=self.logFiles[0], stderr=self.logFiles[1], shell=True)
+        if systemTools.isLinux():
+            report = subprocess.Popen(self.construction, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
         else:
-            report = subprocess.call(self.construction, stdout=self.logFiles[0], stderr=self.logFiles[1], startupinfo=self.subprocessInfo)
+            report = subprocess.Popen(self.construction, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=False)
+        outs, errs = report.communicate()
 
-        functions.logging.debug('SVN Response: {}'.format("Process finished, check svn out for info"))
+        if errs:
+            self.logFiles[1].write(functions.processSVNout(errs))
+            functions.logging.debug(functions.processSVNout(errs))
+        else:
+            functions.logging.debug(tr("SVN Response: {}").format(tr("Process finished, check svn out for info")))
         self.semaphore.release()
+        if outs:
+            self.logFiles[0].write(outs)
         self.objInstaller.popCheckoutStacks() #pop Stack of threads (if is empty, all checkouts is over)
         if (self.objInstaller.getCheckoutStacks() == 0): #If all checkouts finished...
             self.objInstaller.createInitExtra() #...Make __init__.py in extra folder
