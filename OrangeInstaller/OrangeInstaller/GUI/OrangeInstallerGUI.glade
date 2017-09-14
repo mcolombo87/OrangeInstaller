@@ -10,17 +10,17 @@
   <object class="GtkImage" id="applyPic">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
-    <property name="stock">gtk-apply</property>
+    <property name="pixbuf">apply.svg</property>
   </object>
   <object class="GtkImage" id="exitPIC">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
-    <property name="stock">gtk-quit</property>
+    <property name="pixbuf">exit.svg</property>
   </object>
   <object class="GtkImage" id="exitPIC2">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
-    <property name="stock">gtk-quit</property>
+    <property name="pixbuf">exit.svg</property>
   </object>
   <object class="GtkListStore" id="liststore">
     <columns>
@@ -94,12 +94,12 @@
   <object class="GtkImage" id="nextPic">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
-    <property name="icon_name">edit-redo</property>
+    <property name="pixbuf">next.png</property>
   </object>
   <object class="GtkImage" id="previousPIC">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
-    <property name="icon_name">edit-undo</property>
+    <property name="pixbuf">undo.png</property>
   </object>
   <object class="GtkWindow" id="window1">
     <property name="width_request">600</property>

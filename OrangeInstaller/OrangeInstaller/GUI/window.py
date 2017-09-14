@@ -163,7 +163,7 @@ class userWindow(Gtk.Window):
 
     """If directory path change, this set the new one"""
     def changeInstallDirectory(self, widget):
-        newPath = self.folderChooser.get_uri().split('file:///')
+        newPath = self.folderChooser.get_uri().split('file://')
         newPath = newPath[1] #Discard first split
         newPath = newPath.replace("%20", " ") #Fix spaces
         self.installation.setInstallPath(newPath)

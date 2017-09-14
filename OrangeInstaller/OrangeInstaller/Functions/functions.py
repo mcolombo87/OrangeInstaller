@@ -88,5 +88,7 @@ def processSVNout(errs):
             errors.append(tr("Unable to connect to repository"))
         elif "E170001" in err:
             errors.append(tr("Username or password incorrect."))
+        elif "E160006" in err:
+            errors.append(tr("No revision %s.") % err.split(" ")[-1])
 
     return ".\n".join(errors)
