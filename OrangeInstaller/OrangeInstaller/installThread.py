@@ -38,19 +38,13 @@ class installThread(threading.Thread):
         print(self.construction)
 
         if systemTools.isLinux():
-            report = subprocess.Popen(self.construction, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+            report = subprocess.call(self.construction, stdout=self.logFiles[0], stderr=self.logFiles[1], shell=True)
         else:
-            report = subprocess.Popen(self.construction, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=False)
-        outs, errs = report.communicate()
+            report = subprocess.call(self.construction, stdout=self.logFiles[0], stderr=self.logFiles[1], startupinfo=self.subprocessInfo)
 
-        if errs:
-            self.logFiles[1].write(functions.processSVNout(errs))
-            functions.logging.debug(functions.processSVNout(errs))
-        else:
-            functions.logging.debug(tr("SVN Response: {}").format(tr("Process finished, check svn out for info")))
+        functions.logging.debug(tr("SVN Response: {}").format(tr("Process finished, check svn out for info")))
         self.semaphore.release()
-        if outs:
-            self.logFiles[0].write(outs)
+    
         self.objInstaller.popCheckoutStacks() #pop Stack of threads (if is empty, all checkouts is over)
         if (self.objInstaller.getCheckoutStacks() == 0): #If all checkouts finished...
             self.objInstaller.createInitExtra() #...Make __init__.py in extra folder
