@@ -2,7 +2,7 @@ import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GObject, GLib
 import dataConnection, Installer, installThread
-from Functions import functions
+from Functions import functions, systemTools
 import os
 
 tr = functions.tr
@@ -163,7 +163,9 @@ class userWindow(Gtk.Window):
 
     """If directory path change, this set the new one"""
     def changeInstallDirectory(self, widget):
-        newPath = self.folderChooser.get_uri().split('file://')
+        if systemTools.isWindows():
+            newPath = self.folderChooser.get_uri().split('file:///')
+        else: newPath = self.folderChooser.get_uri().split('file://')
         newPath = newPath[1] #Discard first split
         newPath = newPath.replace("%20", " ") #Fix spaces
         self.installation.setInstallPath(newPath)
