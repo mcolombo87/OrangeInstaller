@@ -24,6 +24,9 @@ class userWindow(Gtk.Window):
         if (self.installation.getCurrentSystem() == 'Linux'):
             gladeFile = path + "/OrangeInstallerGUI.glade"
         self.builder.add_from_file(gladeFile)
+        for obj in self.builder.get_objects():
+            if obj.find_property("label") and obj.get_property("label"):
+                obj.set_property("label", tr(obj.get_property("label")))
         self.handlers = {
             "delete-event": Gtk.main_quit,
             "userExit": self.userExit,

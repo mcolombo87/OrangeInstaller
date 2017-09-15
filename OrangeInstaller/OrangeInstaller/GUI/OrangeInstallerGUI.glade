@@ -346,7 +346,7 @@
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="hexpand">False</property>
-                    <property name="label" translatable="yes">Ups, this is a mistake, you don't picked one yet</property>
+                    <property name="label" translatable="yes">Ups, this is a mistake, you haven't picked one yet</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -827,7 +827,7 @@
               <object class="GtkLabel" id="installLabel">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="label" translatable="yes">OpenOrange is being installing now, please wait.</property>
+                <property name="label" translatable="yes">OpenOrange is being installed now, please wait.</property>
                 <attributes>
                   <attribute name="style" value="italic"/>
                   <attribute name="weight" value="ultrabold"/>

@@ -2,6 +2,17 @@
 #Language=ES
 #Spanish
 lang_dict = {
+"Orange Installer for":"Instalador OpenOrange para",
+" Install":" Instalar",
+" Exit":" Salir",
+"Change install directory ":"Cambiar directorio de instalacion",
+"Search Company:":"Buscar empresa",
+"Please Insert your SVN credentials":"Por favor inserta tus credenciales SVN",
+"Company Selected":"Compania seleccionada",
+"Finish":"Finalizar",
+"OpenOrange is being installed now, please wait.":"OpenOrange esta siendo instalado, por favor espera.",
+"Ups, this is a mistake, you haven't picked one yet":"Ups, esto es un error, no has elegido ninguna empresa aun",
+"Current Install Directory: Default by config file":"Directorio de instalacion: Por defecto segun archivo de configuracion",
 "Search Company: ":"Buscar compania: ",
 "OrangeInstaller for OpenOrange Software.\n":"Instalador de OpenOrange para Software OpenOrange\n",
 "Type 'exit' to cancel":"Escribe 'salir' para cancelar",
