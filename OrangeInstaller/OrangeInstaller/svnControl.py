@@ -94,7 +94,7 @@ class svnControl(object):
         self.setSvnCLientPath()
         folderCheck = 'checkSVNCred'
         revision = '0'
-        svnPath = 'afip'
+        svnPath = 'repo'
         installRoute = folderCheck
         if systemTools.isWindows():
             osCondition = False
