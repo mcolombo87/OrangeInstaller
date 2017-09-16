@@ -43,7 +43,7 @@
     <property name="deletable">False</property>
     <property name="message_type">error</property>
     <property name="text" translatable="yes">SVN Username or Password Invalid</property>
-    <property name="secondary_text" translatable="yes">Your credentials for svn login don't properly working. Please check your username and password. If the problem persists, you contact with an administrator.</property>
+    <property name="secondary_text" translatable="yes">Your credentials for svn login aren't working properly. Please check your username and password. If the problem persists, contact an administrator.</property>
     <child internal-child="vbox">
       <object class="GtkBox" id="messagedialog-vbox">
         <property name="can_focus">False</property>

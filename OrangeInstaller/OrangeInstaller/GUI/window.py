@@ -24,9 +24,13 @@ class userWindow(Gtk.Window):
         if (self.installation.getCurrentSystem() == 'Linux'):
             gladeFile = path + "/OrangeInstallerGUI.glade"
         self.builder.add_from_file(gladeFile)
+        # translate window's labels
         for obj in self.builder.get_objects():
             if obj.find_property("label") and obj.get_property("label"):
                 obj.set_property("label", tr(obj.get_property("label")))
+            elif obj.find_property("text") and obj.get_property("text"):
+                obj.set_property("text", tr(obj.get_property("text")))
+
         self.handlers = {
             "delete-event": Gtk.main_quit,
             "userExit": self.userExit,
@@ -41,29 +45,16 @@ class userWindow(Gtk.Window):
             "messageOk" : self.hideMessage
         }
         self.builder.connect_signals(self.handlers)
-        self.win = self.builder.get_object('window')
-        self.win1 = self.builder.get_object('window1')
-        self.win2 = self.builder.get_object('window2')
-        self.message = self.builder.get_object('message')
-
-        self.actualWindowPos = 1 #First Windows, this is an index for navigator
-        self.win.show_all()
         #load objects for working.
-        self.liststore = self.builder.get_object('liststore')
-        self.listview = self.builder.get_object('treeview')
-        self.statusbar = self.builder.get_object('statusbar')
-        self.statusbarInstall = self.builder.get_object('statusbarInstall')
-        self.selectorList = self.builder.get_object('treeview-selection')
-        self.companyLabel = self.builder.get_object('companyLabel')
-        self.installPathLabel = self.builder.get_object('installPathLabel')
-        self.folderChooser = self.builder.get_object('folderChooser')
-        self.inputSVNUser = self.builder.get_object('inputSVNUser')
-        self.inputSVNPassword = self.builder.get_object('inputSVNPassword')
-        self.installButton = self.builder.get_object('installButton')
-        self.slidesNote = self.builder.get_object('notebook')
-        self.finishButton = self.builder.get_object('finishButton')
-        self.spinner = self.builder.get_object('spinner1')
-        self.installLabel = self.builder.get_object('installLabel')
+        objects = ["window", "window1", "window2", "message", "treeview", "liststore", \
+        "statusbar", "statusbarInstall", "treeview-selection", "companyLabel", \
+        "installPathLabel", "folderChooser", "inputSVNUser", "inputSVNPassword", \
+        "installButton", "notebook", "finishButton", "spinner1", "installLabel"]
+        for obj in objects:
+            setattr(self, obj, self.builder.get_object(obj))
+
+        self.actualWindowPos = 1 #First window, this is an index for navigator
+        self.window.show_all()
 
         #check database Status
         dbcheck = self.dataConnect.testConnection()
@@ -74,7 +65,7 @@ class userWindow(Gtk.Window):
         #List all results for search and show up in screen
         renderer = Gtk.CellRendererText()
         column = Gtk.TreeViewColumn("Company", renderer, text=0)
-        self.listview.append_column(column)
+        self.treeview.append_column(column)
 
     """User press exit button"""
     def userExit(self, widget):
@@ -98,16 +89,16 @@ class userWindow(Gtk.Window):
             nextWindowPos = self.actualWindowPos + 1
             if (self.actualWindowPos == 1):
                 self.installation.setInstallPath(self.installation.getInstallPath(), self.companyName)
-                self.win.hide()
+                self.window.hide()
                 self.installation.initialization(self.companyId) #If company was picked so we initialize installer
                 self.preparateWin1()
-                self.win1.show_all()
+                self.window1.show_all()
             if (self.actualWindowPos == 2):
-                self.win1.hide()
-                self.win2.show_all()
+                self.window1.hide()
+                self.window2.show_all()
             if (self.actualWindowPos == 3):
-                self.win2.hide()
-                self.win3.show_all()
+                self.window2.hide()
+                self.window3.show_all()
             self.actualWindowPos = nextWindowPos #is more clearly
 
     """Show company name in screen and install patch"""
@@ -119,11 +110,11 @@ class userWindow(Gtk.Window):
     def prevWindow(self, widget):
         prevWindowPos = self.actualWindowPos - 1
         if (self.actualWindowPos == 2):
-            self.win1.hide()
-            self.win.show_all()
+            self.window1.hide()
+            self.window.show_all()
         if (self.actualWindowPos == 3):
-            self.win2.hide()
-            self.win.show_all()
+            self.window2.hide()
+            self.window.show_all()
         self.actualWindowPos = prevWindowPos #is more clearly
 
     """Take one message and show in screen"""
@@ -198,6 +189,8 @@ class userWindow(Gtk.Window):
             self.checkProgress()
         else:
             self.installPathLabel.set_text(tr(self.installation.svn.checkCredentials()))
+            # translate secondary text here
+            self.message.set_property("secondary_text", tr(self.message.get_property("secondary_text")))
             self.message.show_all()
 
     """Restart refresh timer"""
@@ -209,16 +202,16 @@ class userWindow(Gtk.Window):
         GObject.timeout_add(1000, self.checkProgress)
         catchProgress = self.installation.getMsgBuffer()
         self.communicator(catchProgress)
-    
+
     """Pass images over installation while wait it"""
     def imagesSlides(self):
-        if (self.slidesNote.get_current_page() == (self.slidesNote.get_n_pages() - 1) ):
-            self.slidesNote.set_current_page(0)  # back to first picture
-        else: self.slidesNote.next_page()
+        if (self.notebook.get_current_page() == (self.notebook.get_n_pages() - 1) ):
+            self.notebook.set_current_page(0)  # back to first picture
+        else: self.notebook.next_page()
         if(self.installation.checkStatus() == True):
             self.finishButton.set_opacity(1)
             self.finishButton.set_sensitive(True)
-            self.spinner.stop()
+            self.spinner1.stop()
             self.installLabel.set_text(tr('Installation Finished'))
         else: self.installStatus()
 
