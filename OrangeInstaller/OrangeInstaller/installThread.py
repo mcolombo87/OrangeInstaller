@@ -49,3 +49,5 @@ class installThread(threading.Thread):
         if (self.objInstaller.getCheckoutStacks() == 0): #If all checkouts finished...
             self.objInstaller.createInitExtra() #...Make __init__.py in extra folder
             self.objInstaller.makeSetting() #...Make settings.xml
+            if systemTools.isWindows():
+                self.objInstaller.makeShortcut(True)

@@ -48,12 +48,11 @@ class userWindow(Gtk.Window):
         self.builder.connect_signals(self.handlers)
         #load objects for working.
         objects = ["initialwindow", "window", "window1", "window2", "message", "treeview", "liststore", \
-        "statusbar", "statusbarInstall", "treeview-selection", "companyLabel", \
-        "installPathLabel", "folderChooser", "inputSVNUser", "inputSVNPassword", \
-        "installButton", "notebook", "finishButton", "spinner1", "installLabel", "revadvoptions", "codebox"]
+        "statusbar", "statusbarInstall", "treeview-selection", "companyLabel", "installButton", \
+        "installPathLabel", "folderChooser", "inputSVNUser", "inputSVNPassword", "notebook", \
+        "finishButton", "spinner1", "installLabel", "revadvoptions", "codebox"]
         for obj in objects:
             setattr(self, obj, self.builder.get_object(obj))
-
 
         self.actualWindowPos = 0 #First window, this is an index for navigator
         self.initialwindow.show_all()
@@ -233,4 +232,3 @@ class userWindow(Gtk.Window):
         if self.revadvoptions.get_reveal_child() == True:
             self.revadvoptions.set_reveal_child(False)
         else: self.revadvoptions.set_reveal_child(True)
-

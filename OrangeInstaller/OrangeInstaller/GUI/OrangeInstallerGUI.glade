@@ -13,6 +13,11 @@
     <property name="can_focus">False</property>
     <property name="pixbuf">apply.svg</property>
   </object>
+  <object class="GtkImage" id="nextPic">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="pixbuf">next.png</property>
+  </object>
   <object class="GtkImage" id="exitPIC">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
@@ -953,7 +958,7 @@
                     <property name="baseline_position">bottom</property>
                     <child>
                       <object class="GtkCheckButton" id="advoptions">
-                        <property name="label" translatable="yes">Advance Options</property>
+                        <property name="label" translatable="yes">Advanced Options</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">False</property>

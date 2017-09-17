@@ -170,3 +170,17 @@ class Installer(object):
 
     def getCurrentSystem(self):
         return self.currentSystem
+
+    ''' for Windows only '''
+    def makeShortcut(self, console):
+        import winshell
+        if console:
+            console = "--console"
+        else:
+            console = ""
+        target = self.installPath + "\\OpenOrange.exe"
+ 
+        desktop = winshell.desktop()
+        winshell.CreateShortcut (
+               Path=path.join(desktop, 'OpenOrange.lnk'),StartIn=self.installPath,
+               Target=target,Icon=(target,0),Arguments=console)
