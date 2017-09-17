@@ -42,19 +42,22 @@ class userWindow(Gtk.Window):
             "readyToInstall": self.readyToInstall,
             "startInstall": self.startInstall,
             "userFinish": self.userFinished,
-            "messageOk" : self.hideMessage
+            "messageOk" : self.hideMessage,
+            "showAdvOpt": self.showOrHideAdvOpt
         }
         self.builder.connect_signals(self.handlers)
         #load objects for working.
-        objects = ["window", "window1", "window2", "message", "treeview", "liststore", \
+        objects = ["initialwindow", "window", "window1", "window2", "message", "treeview", "liststore", \
         "statusbar", "statusbarInstall", "treeview-selection", "companyLabel", \
         "installPathLabel", "folderChooser", "inputSVNUser", "inputSVNPassword", \
-        "installButton", "notebook", "finishButton", "spinner1", "installLabel"]
+        "installButton", "notebook", "finishButton", "spinner1", "installLabel", "revadvoptions", "codebox"]
         for obj in objects:
             setattr(self, obj, self.builder.get_object(obj))
 
-        self.actualWindowPos = 1 #First window, this is an index for navigator
-        self.window.show_all()
+
+        self.actualWindowPos = 0 #First window, this is an index for navigator
+        self.initialwindow.show_all()
+        #self.window.show_all()
 
         #check database Status
         dbcheck = self.dataConnect.testConnection()
@@ -80,26 +83,34 @@ class userWindow(Gtk.Window):
     """For next buttons"""
     def nextWindow(self, widget):
         #check if company was selected
-        if (self.companyId == None and self.companyName != None):
-            resultOfSearch = self.dataConnect.getDataSearch('company', 'name', self.companyName, "*")
-            self.companyId = resultOfSearch[0][0]
-        if (self.companyId == None and self.companyName == None):
-            self.communicator(tr("First you must choose a Company"))
+        if self.actualWindowPos != 0:
+            if (self.companyId == None and self.companyName != None):
+                resultOfSearch = self.dataConnect.getDataSearch('company', 'name', self.companyName, "*")
+                self.companyId = resultOfSearch[0][0]
+            if (self.companyId == None and self.companyName == None):
+                self.communicator(tr("First you must choose a Company"))
+            else:
+                nextWindowPos = self.actualWindowPos + 1
+                if (self.actualWindowPos == 1):
+                    self.installation.setInstallPath(self.installation.getInstallPath(), self.companyName)
+                    self.window.hide()
+                    self.installation.initialization(self.companyId) #If company was picked so we initialize installer
+                    self.preparateWin1()
+                    self.window1.show_all()
+                if (self.actualWindowPos == 2):
+                    self.window1.hide()
+                    self.window2.show_all()
+                if (self.actualWindowPos == 3):
+                    self.window2.hide()
+                    self.window3.show_all()
+                self.actualWindowPos = nextWindowPos #is more clearly
         else:
-            nextWindowPos = self.actualWindowPos + 1
-            if (self.actualWindowPos == 1):
-                self.installation.setInstallPath(self.installation.getInstallPath(), self.companyName)
-                self.window.hide()
-                self.installation.initialization(self.companyId) #If company was picked so we initialize installer
-                self.preparateWin1()
-                self.window1.show_all()
-            if (self.actualWindowPos == 2):
-                self.window1.hide()
-                self.window2.show_all()
-            if (self.actualWindowPos == 3):
-                self.window2.hide()
-                self.window3.show_all()
-            self.actualWindowPos = nextWindowPos #is more clearly
+            if self.codebox.get_text_length() == 8:
+                codeToSearch = self.dataConnect.getDataSearch('company_keys', 'companykey', self.codebox.get_text(), "*")
+                self.companyId = codeToSearch[0][3]
+                self.initialwindow.hide()
+                self.window.show_all()
+                self.actualWindowPos = 1
 
     """Show company name in screen and install patch"""
     def preparateWin1(self):
@@ -217,3 +228,9 @@ class userWindow(Gtk.Window):
 
     def hideMessage(self, widget):
         self.message.hide()
+
+    def showOrHideAdvOpt(self, widget):
+        if self.revadvoptions.get_reveal_child() == True:
+            self.revadvoptions.set_reveal_child(False)
+        else: self.revadvoptions.set_reveal_child(True)
+
