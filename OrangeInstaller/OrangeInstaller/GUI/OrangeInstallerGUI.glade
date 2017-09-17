@@ -13,11 +13,6 @@
     <property name="can_focus">False</property>
     <property name="pixbuf">apply.svg</property>
   </object>
-  <object class="GtkImage" id="nextPic">
-    <property name="visible">True</property>
-    <property name="can_focus">False</property>
-    <property name="pixbuf">next.png</property>
-  </object>
   <object class="GtkImage" id="exitPIC">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
@@ -102,6 +97,11 @@
         </child>
       </object>
     </child>
+  </object>
+  <object class="GtkImage" id="nextPic">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="pixbuf">next.png</property>
   </object>
   <object class="GtkImage" id="previousPIC">
     <property name="visible">True</property>
@@ -803,6 +803,8 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="placeholder_text" translatable="yes">Company Code Here</property>
+                <signal name="activate" handler="insertCode" swapped="no"/>
+                <signal name="changed" handler="insertCode" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -1035,15 +1037,16 @@
               </packing>
             </child>
             <child>
-              <object class="GtkButton" id="next1">
+              <object class="GtkButton" id="initial">
+                <property name="label" translatable="yes">Ready</property>
                 <property name="visible">True</property>
+                <property name="sensitive">False</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
                 <property name="margin_top">5</property>
                 <property name="margin_bottom">5</property>
-                <property name="image">nextPic</property>
                 <property name="always_show_image">True</property>
-                <signal name="clicked" handler="nextWindow1" swapped="no"/>
+                <signal name="clicked" handler="initialClick" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">True</property>

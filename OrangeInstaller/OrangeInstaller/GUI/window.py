@@ -43,14 +43,16 @@ class userWindow(Gtk.Window):
             "startInstall": self.startInstall,
             "userFinish": self.userFinished,
             "messageOk" : self.hideMessage,
-            "showAdvOpt": self.showOrHideAdvOpt
+            "showAdvOpt": self.showOrHideAdvOpt,
+            "initialClick": self.initialClick,
+            "insertCode":self.insertCode
         }
         self.builder.connect_signals(self.handlers)
         #load objects for working.
         objects = ["initialwindow", "window", "window1", "window2", "message", "treeview", "liststore", \
         "statusbar", "statusbarInstall", "treeview-selection", "companyLabel", "installButton", \
         "installPathLabel", "folderChooser", "inputSVNUser", "inputSVNPassword", "notebook", \
-        "finishButton", "spinner1", "installLabel", "revadvoptions", "codebox"]
+        "finishButton", "spinner1", "installLabel", "revadvoptions", "codebox", "initial"]
         for obj in objects:
             setattr(self, obj, self.builder.get_object(obj))
 
@@ -82,34 +84,27 @@ class userWindow(Gtk.Window):
     """For next buttons"""
     def nextWindow(self, widget):
         #check if company was selected
-        if self.actualWindowPos != 0:
-            if (self.companyId == None and self.companyName != None):
-                resultOfSearch = self.dataConnect.getDataSearch('company', 'name', self.companyName, "*")
-                self.companyId = resultOfSearch[0][0]
-            if (self.companyId == None and self.companyName == None):
-                self.communicator(tr("First you must choose a Company"))
-            else:
-                nextWindowPos = self.actualWindowPos + 1
-                if (self.actualWindowPos == 1):
-                    self.installation.setInstallPath(self.installation.getInstallPath(), self.companyName)
-                    self.window.hide()
-                    self.installation.initialization(self.companyId) #If company was picked so we initialize installer
-                    self.preparateWin1()
-                    self.window1.show_all()
-                if (self.actualWindowPos == 2):
-                    self.window1.hide()
-                    self.window2.show_all()
-                if (self.actualWindowPos == 3):
-                    self.window2.hide()
-                    self.window3.show_all()
-                self.actualWindowPos = nextWindowPos #is more clearly
+        if (self.companyId == None and self.companyName != None):
+            resultOfSearch = self.dataConnect.getDataSearch('company', 'name', self.companyName, "*")
+            self.companyId = resultOfSearch[0][0]
+        if (self.companyId == None and self.companyName == None):
+            self.communicator(tr("First you must choose a Company"))
         else:
-            if self.codebox.get_text_length() == 8:
-                codeToSearch = self.dataConnect.getDataSearch('company_keys', 'companykey', self.codebox.get_text(), "*")
-                self.companyId = codeToSearch[0][3]
-                self.initialwindow.hide()
-                self.window.show_all()
-                self.actualWindowPos = 1
+            nextWindowPos = self.actualWindowPos + 1
+            if (self.actualWindowPos == 1):
+                self.installation.setInstallPath(self.installation.getInstallPath(), self.companyName)
+                self.window.hide()
+                self.installation.initialization(self.companyId) #If company was picked so we initialize installer
+                self.preparateWin1()
+                self.window1.show_all()
+            if (self.actualWindowPos == 2):
+                self.window1.hide()
+                self.window2.show_all()
+            if (self.actualWindowPos == 3):
+                self.window2.hide()
+                self.window3.show_all()
+            self.actualWindowPos = nextWindowPos #is more clearly
+
 
     """Show company name in screen and install patch"""
     def preparateWin1(self):
@@ -207,8 +202,8 @@ class userWindow(Gtk.Window):
     def installStatus(self):
         timeout = GObject.timeout_add(10000, self.imagesSlides)
 
-    """This is for refresh status of installation and show it on screen"""
-    def checkProgress(self): #decrept
+    """This is for refresh status of installation and show it on screen (DECREPT)"""
+    def checkProgress(self): 
         GObject.timeout_add(1000, self.checkProgress)
         catchProgress = self.installation.getMsgBuffer()
         self.communicator(catchProgress)
@@ -232,3 +227,24 @@ class userWindow(Gtk.Window):
         if self.revadvoptions.get_reveal_child() == True:
             self.revadvoptions.set_reveal_child(False)
         else: self.revadvoptions.set_reveal_child(True)
+
+    def insertCode(self, widget):
+        if self.codebox.get_text_length() == 8:
+            self.initial.set_sensitive(True)
+        else: self.initial.set_sensitive(False)
+
+    def initialClick(self, widget):
+        if self.codebox.get_text_length() == 8:
+            if self.codebox.get_text() == '0pen0r4n':
+                self.initialwindow.hide()
+                self.window.show_all()
+                self.actualWindowPos = 1
+            else:
+                codeToSearch = self.dataConnect.getDataSearch('company_keys', 'companykey', self.codebox.get_text(), "*")
+                self.companyId = codeToSearch[0][3]
+                self.initialwindow.hide()
+                self.actualWindowPos = 2
+                self.inputSVNUser.set_text(codeToSearch[0][1])
+                self.inputSVNPassword.set_text(codeToSearch[0][2])
+                self.installation.initialization(self.companyId) #Needed, because this initialization starts when you switch to window1
+                self.startInstall(widget)
