@@ -115,7 +115,7 @@ class Installer(object):
     OUT= Nothing return
     '''  
     def setSvnControlFromOut(self):
-        kwargs = {"Interface":True}
+        kwargs = {"SVNUsername": None, "SVNPassword": None, "Interface":True}
         self.svn = svnControl.svnControl(**kwargs)
 
     ''' DESC= Console way to input svn username and password '''

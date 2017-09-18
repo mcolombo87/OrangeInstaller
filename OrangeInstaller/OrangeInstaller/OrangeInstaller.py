@@ -34,18 +34,23 @@ def consoleApplication():
     validCode = False
     while not validCode:
         imputTest = raw_input(tr("Company Code: "))
-        if len(imputTest) == 8:
-            codeToSearch = dataConnect.getDataSearch('company_keys', 'companykey', imputTest, "*")
-            if codeToSearch:
-                validCode = True
-                break
+        if (imputTest == tr('exit')):
+            print(tr("CANCEL INSTALLATION BY USER"))
+            functions.logging.debug(tr("CANCEL INSTALLATION BY USER"))
+            functions.exitProgram(2)
+        else:
+            if len(imputTest) == 8:
+                codeToSearch = dataConnect.getDataSearch('company_keys', 'companykey', imputTest, "*")
+                if codeToSearch:
+                    validCode = True
+                    break
+                else:
+                    invalidCode = True
             else:
                 invalidCode = True
-        else:
-            invalidCode = True
-        if invalidCode:
-            print tr("Invalid company code, try again.")
-        else: break
+            if invalidCode:
+                print tr("Invalid company code, try again.")
+            else: break
 
     selection = None
     while codeToSearch[0][0] == "0pen0r4n":
