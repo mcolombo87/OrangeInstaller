@@ -265,7 +265,7 @@ class userWindow(Gtk.Window):
             if self.advoptions.get_active() == True:
                 self.workWithAdvancedOptions()
             else: #this is the behavior standard if not selected advanced options
-                self.actualWindowPos = 3 #defined in two because, 'startInstall' make 'nextWindow' if SVN credentials are valid
+                self.actualWindowPos = 2 #defined in two because, 'startInstall' make 'nextWindow' if SVN credentials are valid
                 self.startInstall(widget)
 
     """Initializate all values of advanced options by default"""

@@ -17,13 +17,11 @@ class svnControl(object):
     svnPassword ='password' #SVN password
 
     def __init__ (self, **kwargs):
-        self.SVNUsername = None
-        self.SVNPassword = None
         if(kwargs):
             if (kwargs['SVNUsername']):
-                self.SVNUsername = kwargs['SVNUsername']
+                self.svnUserName = kwargs['SVNUsername']
             if (kwargs['SVNPassword']):
-                self.SVNPassword = kwargs['SVNPassword']
+                self.svnPassword = kwargs['SVNPassword']
             if (not kwargs['Interface']):
                 self.logon()
         else: self.logon()
@@ -73,13 +71,8 @@ class svnControl(object):
     OUT= None
     '''
     def logon (self):
-        if self.SVNUsername:
-            self.svnUserName = self.SVNUsername
-        else:
+        if self.svnUserName == 'username':
             self.svnUserName = raw_input(tr("SVN Username: "))
-        if self.SVNPassword:
-            self.svnPassword = self.SVNPassword
-        else:
             self.svnPassword = getpass.getpass(tr("SVN Password: "))
 
     def setSvnCLientPath(self):
