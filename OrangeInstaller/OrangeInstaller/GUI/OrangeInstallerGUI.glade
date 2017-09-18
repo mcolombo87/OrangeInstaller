@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.19.0 -->
+<!-- Generated with glade 3.18.3 -->
 <interface>
   <requires lib="gtk+" version="3.12"/>
   <object class="GtkAction" id="action1"/>
@@ -674,8 +674,6 @@
     </style>
   </object>
   <object class="GtkWindow" id="initialwindow">
-    <property name="width_request">400</property>
-    <property name="height_request">400</property>
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="title" translatable="yes">OrangeInstaller</property>
@@ -690,8 +688,6 @@
       <object class="GtkBox" id="box16">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="margin_left">16</property>
-        <property name="margin_right">16</property>
         <property name="orientation">vertical</property>
         <child>
           <object class="GtkBox" id="box17">
@@ -840,14 +836,12 @@
                 <property name="baseline_position">bottom</property>
                 <child>
                   <object class="GtkRevealer" id="revadvoptions">
-                    <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="transition_type">crossfade</property>
                     <child>
                       <object class="GtkBox" id="box27">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="homogeneous">True</property>
                         <child>
                           <object class="GtkBox" id="box28">
                             <property name="visible">True</property>
@@ -930,7 +924,19 @@
                               </packing>
                             </child>
                             <child>
-                              <placeholder/>
+                              <object class="GtkCheckButton" id="opt5console">
+                                <property name="label" translatable="yes">Open console</property>
+                                <property name="visible">True</property>
+                                <property name="can_focus">True</property>
+                                <property name="receives_default">False</property>
+                                <property name="xalign">0</property>
+                                <property name="draw_indicator">True</property>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">False</property>
+                                <property name="position">1</property>
+                              </packing>
                             </child>
                             <child>
                               <placeholder/>
@@ -1177,7 +1183,7 @@
                 <property name="primary_icon_name">edit-find-symbolic</property>
                 <property name="primary_icon_activatable">False</property>
                 <property name="primary_icon_sensitive">False</property>
-                <property name="placeholder_text" translatable="yes">Write company name</property>
+                <property name="placeholder_text" translatable="yes">Company name</property>
                 <signal name="activate" handler="searching" swapped="no"/>
                 <signal name="changed" handler="searching" swapped="no"/>
               </object>

@@ -28,7 +28,9 @@ class userWindow(Gtk.Window):
         self.builder.add_from_file(gladeFile)
         # translate window's labels
         for obj in self.builder.get_objects():
-            if obj.find_property("label") and obj.get_property("label"):
+            if obj.find_property("placeholder_text") and obj.get_property("placeholder_text"):
+                obj.set_property("placeholder_text", tr(obj.get_property("placeholder_text")))
+            elif obj.find_property("label") and obj.get_property("label"):
                 obj.set_property("label", tr(obj.get_property("label")))
             elif obj.find_property("text") and obj.get_property("text"):
                 obj.set_property("text", tr(obj.get_property("text")))
@@ -55,7 +57,7 @@ class userWindow(Gtk.Window):
         "statusbar", "statusbarInstall", "treeview-selection", "companyLabel", "installButton", \
         "installPathLabel", "folderChooser", "inputSVNUser", "inputSVNPassword", "notebook", \
         "finishButton", "spinner1", "installLabel", "revadvoptions", "codebox", "initial", \
-        "opt1install", "opt2svn", "opt3report","opt4shortcut", "advoptions"]
+        "opt1install", "opt2svn", "opt3report","opt4shortcut", "opt5console", "advoptions"]
         # 'buttton1' is Previus button.
 
         for obj in objects:
@@ -272,6 +274,7 @@ class userWindow(Gtk.Window):
         self.opt2svn.set_active(False) #input svn credentials
         self.opt3report.set_active(False) #show report after installation
         self.opt4shortcut.set_active(True) #create shortcut after install, only windows.
+        self.opt5console.set_active(False)
 
     def workWithAdvancedOptions(self):
         if self.opt1install.get_active() or self.opt2svn.get_active(): #Select install path
@@ -291,5 +294,5 @@ class userWindow(Gtk.Window):
         if self.opt3report.get_active(): #show report after installation
             pass #build it in the future not long away.
         if self.opt4shortcut.get_active(): #create shortcut after install, only windows.
-            pass #build it soon
-
+            self.installation.createShortcut = True
+            self.installation.openConsole = True

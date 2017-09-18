@@ -23,6 +23,11 @@ class Installer(object):
         self.endInstallControl = False #Flag for indicate if the installation finished or not
         self.checkoutStacks = 0 #This is an important counter, increment your value for each checkout in queue, the real control for determinated if the installation...
                                 #...finished or not is through this. Once this count started, will return to cero when the installation is over.
+        # in case createShortcut or openConsole haven't been initialized (advanced options, only in GUI)
+        if not hasattr(self, "createShortcut"):
+            self.createShortcut = False
+        if not hasattr(self, "openConsole"):
+            self.openConsole = False
 
     def setInstallPath (self, path, companyName=""):
         if(systemTools.isLinux()):
@@ -113,6 +118,11 @@ class Installer(object):
         kwargs = {"Interface":True}
         self.svn = svnControl.svnControl(**kwargs)
 
+    ''' DESC= Console way to input svn username and password '''
+    def setSvnControlLogon(self, svnUsername, svnPassword):
+        kwargs = {"SVNUsername": svnUsername, "SVNPassword": svnPassword, "Interface": False}
+        self.svn = svnControl.svnControl(**kwargs)
+
     ''' 
     DESC= Check if installation is over. Is basically a 'get' of endInstallControl, i don't know why i did it... je.
     IN= None
@@ -172,15 +182,16 @@ class Installer(object):
         return self.currentSystem
 
     ''' for Windows only '''
-    def makeShortcut(self, console):
-        import winshell
-        if console:
-            console = "--console"
-        else:
-            console = ""
-        target = self.installPath + "\\OpenOrange.exe"
- 
-        desktop = winshell.desktop()
-        winshell.CreateShortcut (
-               Path=path.join(desktop, 'OpenOrange.lnk'),StartIn=self.installPath,
-               Target=target,Icon=(target,0),Arguments=console)
+    def makeShortcut(self):
+        if systemTools.isWindows() and self.createShortcut:
+            import winshell
+            if self.openConsole:
+                console = "--console"
+            else:
+                console = ""
+            target = self.installPath + "\\OpenOrange.exe"
+
+            desktop = winshell.desktop()
+            winshell.CreateShortcut (
+                   Path=path.join(desktop, 'OpenOrange.lnk'),StartIn=self.installPath,
+                   Target=target,Icon=(target,0),Arguments=console)
