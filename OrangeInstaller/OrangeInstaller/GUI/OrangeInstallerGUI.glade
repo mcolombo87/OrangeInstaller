@@ -13,12 +13,32 @@
     <property name="can_focus">False</property>
     <property name="pixbuf">apply.svg</property>
   </object>
+  <object class="GtkImage" id="applyPic2">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="pixbuf">apply.svg</property>
+  </object>
   <object class="GtkImage" id="exitPIC">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="pixbuf">exit.svg</property>
   </object>
+  <object class="GtkImage" id="exitPIC1">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="pixbuf">exit.svg</property>
+  </object>
   <object class="GtkImage" id="exitPIC2">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="pixbuf">exit.svg</property>
+  </object>
+  <object class="GtkImage" id="exitPIC3">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="pixbuf">exit.svg</property>
+  </object>
+  <object class="GtkImage" id="exitPIC4">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="pixbuf">exit.svg</property>
@@ -429,7 +449,7 @@
                 <property name="receives_default">True</property>
                 <property name="margin_top">5</property>
                 <property name="margin_bottom">5</property>
-                <property name="image">exitPIC</property>
+                <property name="image">exitPIC1</property>
                 <property name="xalign">0.51999998092651367</property>
                 <property name="always_show_image">True</property>
                 <signal name="clicked" handler="userExit" swapped="no"/>
@@ -648,7 +668,7 @@
                 <property name="receives_default">True</property>
                 <property name="margin_top">5</property>
                 <property name="margin_bottom">5</property>
-                <property name="image">exitPIC2</property>
+                <property name="image">exitPIC3</property>
                 <property name="xalign">0.51999998092651367</property>
                 <property name="always_show_image">True</property>
                 <signal name="clicked" handler="userExit" swapped="no"/>
@@ -1049,6 +1069,7 @@
                 <property name="sensitive">False</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
+                <property name="image">applyPic2</property>
                 <property name="margin_top">5</property>
                 <property name="margin_bottom">5</property>
                 <property name="always_show_image">True</property>
@@ -1287,7 +1308,7 @@
                 <property name="receives_default">True</property>
                 <property name="margin_top">5</property>
                 <property name="margin_bottom">5</property>
-                <property name="image">exitPIC2</property>
+                <property name="image">exitPIC</property>
                 <property name="xalign">0.51999998092651367</property>
                 <property name="always_show_image">True</property>
                 <signal name="clicked" handler="userExit" swapped="no"/>
