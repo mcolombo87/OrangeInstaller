@@ -113,6 +113,9 @@ class svnControl(object):
         if systemTools.isLinux():
             osCondition = True
         #End Set
+        construction = (self.svnclientPath + ' --no-auth-cache --non-interactive cleanup ' + '"' + installRoute + '"')
+        subprocess.Popen(construction, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=osCondition)
+        
         construction = (self.svnclientPath + ' checkout' + ' --no-auth-cache --force' + ' -r ' + revision +' --username ' + self.svnUserName + ' --password ' + self.svnPassword + ' ' + self.svnRemoteClient + svnPath +
                         ' ' + '"' + installRoute + '"')
         testingCheckout = subprocess.Popen(construction, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=osCondition)
