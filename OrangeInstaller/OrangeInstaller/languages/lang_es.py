@@ -41,6 +41,7 @@ lang_dict = {
 "Installation Finish":"Instalacion finalizada",
 "Installation Finished":"Instalacion finalizada",
 "Installing: ":"Instalando: ",
+"Invalid company code, try again.":"Codigo de compania invalido, intenta de nuevo.",
 "No revision %s.":"No hay revision %s.",
 "Open console":"Abrir con consola",
 "OpenOrange is being installed now, please wait.":"OpenOrange esta siendo instalado, por favor espera.",

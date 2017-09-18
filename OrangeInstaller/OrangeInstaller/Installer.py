@@ -25,7 +25,7 @@ class Installer(object):
                                 #...finished or not is through this. Once this count started, will return to cero when the installation is over.
         # in case createShortcut or openConsole haven't been initialized (advanced options, only in GUI)
         if not hasattr(self, "createShortcut"):
-            self.createShortcut = False
+            self.createShortcut = True
         if not hasattr(self, "openConsole"):
             self.openConsole = False
 

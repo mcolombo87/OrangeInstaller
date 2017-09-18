@@ -264,9 +264,10 @@ class userWindow(Gtk.Window):
             self.initialwindow.hide()
             if self.advoptions.get_active() == True:
                 self.workWithAdvancedOptions()
+                self.startInstall(widget)
             else: #this is the behavior standard if not selected advanced options
                 self.actualWindowPos = 2 #defined in two because, 'startInstall' make 'nextWindow' if SVN credentials are valid
-                self.startInstall(widget)
+                self.window.show_all()
 
     """Initializate all values of advanced options by default"""
     def advOptInitial(self):
@@ -294,5 +295,6 @@ class userWindow(Gtk.Window):
         if self.opt3report.get_active(): #show report after installation
             pass #build it in the future not long away.
         if self.opt4shortcut.get_active(): #create shortcut after install, only windows.
-            self.installation.createShortcut = True
             self.installation.openConsole = True
+        else:
+            self.installation.createShortcut = False
