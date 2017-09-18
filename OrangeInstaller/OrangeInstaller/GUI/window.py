@@ -13,6 +13,8 @@ class userWindow(Gtk.Window):
     builder = None
     companyId = None
     companyName = None
+    codeToSearch = None
+    userCodeFlag = False
 
     def __init__(self):
         self.dataConnect = dataConnection.dataConnection()
@@ -24,6 +26,15 @@ class userWindow(Gtk.Window):
         if (self.installation.getCurrentSystem() == 'Linux'):
             gladeFile = path + "/OrangeInstallerGUI.glade"
         self.builder.add_from_file(gladeFile)
+        # translate window's labels
+        for obj in self.builder.get_objects():
+            if obj.find_property("placeholder_text") and obj.get_property("placeholder_text"):
+                obj.set_property("placeholder_text", tr(obj.get_property("placeholder_text")))
+            elif obj.find_property("label") and obj.get_property("label"):
+                obj.set_property("label", tr(obj.get_property("label")))
+            elif obj.find_property("text") and obj.get_property("text"):
+                obj.set_property("text", tr(obj.get_property("text")))
+
         self.handlers = {
             "delete-event": Gtk.main_quit,
             "userExit": self.userExit,
@@ -35,32 +46,28 @@ class userWindow(Gtk.Window):
             "readyToInstall": self.readyToInstall,
             "startInstall": self.startInstall,
             "userFinish": self.userFinished,
-            "messageOk" : self.hideMessage
+            "messageOk" : self.hideMessage,
+            "showAdvOpt": self.showOrHideAdvOpt,
+            "initialClick": self.initialClick,
+            "insertCode":self.insertCode
         }
         self.builder.connect_signals(self.handlers)
-        self.win = self.builder.get_object('window')
-        self.win1 = self.builder.get_object('window1')
-        self.win2 = self.builder.get_object('window2')
-        self.message = self.builder.get_object('message')
-
-        self.actualWindowPos = 1 #First Windows, this is an index for navigator
-        self.win.show_all()
         #load objects for working.
-        self.liststore = self.builder.get_object('liststore')
-        self.listview = self.builder.get_object('treeview')
-        self.statusbar = self.builder.get_object('statusbar')
-        self.statusbarInstall = self.builder.get_object('statusbarInstall')
-        self.selectorList = self.builder.get_object('treeview-selection')
-        self.companyLabel = self.builder.get_object('companyLabel')
-        self.installPathLabel = self.builder.get_object('installPathLabel')
-        self.folderChooser = self.builder.get_object('folderChooser')
-        self.inputSVNUser = self.builder.get_object('inputSVNUser')
-        self.inputSVNPassword = self.builder.get_object('inputSVNPassword')
-        self.installButton = self.builder.get_object('installButton')
-        self.slidesNote = self.builder.get_object('notebook')
-        self.finishButton = self.builder.get_object('finishButton')
-        self.spinner = self.builder.get_object('spinner1')
-        self.installLabel = self.builder.get_object('installLabel')
+        objects = ["initialwindow", "window", "window1", "window2", "message", "treeview", "liststore", \
+        "statusbar", "statusbarInstall", "treeview-selection", "companyLabel", "installButton", \
+        "installPathLabel", "folderChooser", "inputSVNUser", "inputSVNPassword", "notebook", \
+        "finishButton", "spinner1", "installLabel", "revadvoptions", "codebox", "initial", \
+        "opt1install", "opt2svn", "opt3report","opt4shortcut", "opt5console", "advoptions"]
+        # 'buttton1' is Previus button.
+
+        for obj in objects:
+            setattr(self, obj, self.builder.get_object(obj))
+        
+        self.advOptInitial()
+        
+        self.actualWindowPos = 0 #First window, this is an index for navigator
+        self.initialwindow.show_all()
+        #self.window.show_all()
 
         #check database Status
         dbcheck = self.dataConnect.testConnection()
@@ -71,7 +78,7 @@ class userWindow(Gtk.Window):
         #List all results for search and show up in screen
         renderer = Gtk.CellRendererText()
         column = Gtk.TreeViewColumn("Company", renderer, text=0)
-        self.listview.append_column(column)
+        self.treeview.append_column(column)
 
     """User press exit button"""
     def userExit(self, widget):
@@ -95,17 +102,18 @@ class userWindow(Gtk.Window):
             nextWindowPos = self.actualWindowPos + 1
             if (self.actualWindowPos == 1):
                 self.installation.setInstallPath(self.installation.getInstallPath(), self.companyName)
-                self.win.hide()
+                self.window.hide()
                 self.installation.initialization(self.companyId) #If company was picked so we initialize installer
                 self.preparateWin1()
-                self.win1.show_all()
+                self.window1.show_all()
             if (self.actualWindowPos == 2):
-                self.win1.hide()
-                self.win2.show_all()
+                self.window1.hide()
+                self.window2.show_all()
             if (self.actualWindowPos == 3):
-                self.win2.hide()
-                self.win3.show_all()
+                self.window2.hide()
+                self.window3.show_all()
             self.actualWindowPos = nextWindowPos #is more clearly
+
 
     """Show company name in screen and install patch"""
     def preparateWin1(self):
@@ -116,11 +124,14 @@ class userWindow(Gtk.Window):
     def prevWindow(self, widget):
         prevWindowPos = self.actualWindowPos - 1
         if (self.actualWindowPos == 2):
-            self.win1.hide()
-            self.win.show_all()
+            self.window1.hide()
+            if self.userCodeFlag == True: #If code user was loaded, the system never shows the search company window
+                self.initialwindow.show_all()
+            else:
+                self.window.show_all()
         if (self.actualWindowPos == 3):
-            self.win2.hide()
-            self.win.show_all()
+            self.window2.hide()
+            self.window.show_all()
         self.actualWindowPos = prevWindowPos #is more clearly
 
     """Take one message and show in screen"""
@@ -195,29 +206,93 @@ class userWindow(Gtk.Window):
             self.checkProgress()
         else:
             self.installPathLabel.set_text(tr(self.installation.svn.checkCredentials()))
+            # translate secondary text here
+            self.message.set_property("secondary_text", tr(self.message.get_property("secondary_text")))
             self.message.show_all()
 
     """Restart refresh timer"""
     def installStatus(self):
         timeout = GObject.timeout_add(10000, self.imagesSlides)
 
-    """This is for refresh status of installation and show it on screen"""
-    def checkProgress(self): #decrept
+    """This is for refresh status of installation and show it on screen (DECREPT)"""
+    def checkProgress(self): 
         GObject.timeout_add(1000, self.checkProgress)
         catchProgress = self.installation.getMsgBuffer()
         self.communicator(catchProgress)
-    
+
     """Pass images over installation while wait it"""
     def imagesSlides(self):
-        if (self.slidesNote.get_current_page() == (self.slidesNote.get_n_pages() - 1) ):
-            self.slidesNote.set_current_page(0)  # back to first picture
-        else: self.slidesNote.next_page()
+        if (self.notebook.get_current_page() == (self.notebook.get_n_pages() - 1) ):
+            self.notebook.set_current_page(0)  # back to first picture
+        else: self.notebook.next_page()
         if(self.installation.checkStatus() == True):
             self.finishButton.set_opacity(1)
             self.finishButton.set_sensitive(True)
-            self.spinner.stop()
+            self.spinner1.stop()
             self.installLabel.set_text(tr('Installation Finished'))
         else: self.installStatus()
 
     def hideMessage(self, widget):
         self.message.hide()
+
+    def showOrHideAdvOpt(self, widget):
+        if self.revadvoptions.get_reveal_child() == True:
+            self.revadvoptions.set_reveal_child(False)
+        else: self.revadvoptions.set_reveal_child(True)
+
+    def insertCode(self, widget):
+        if self.codebox.get_text_length() == 8:
+            self.codeToSearch = self.dataConnect.getDataSearch('company_keys', 'companykey', self.codebox.get_text(), "*")
+            if self.codeToSearch:
+                self.initial.set_sensitive(True)
+        else: self.initial.set_sensitive(False)
+
+    def initialClick(self, widget):
+        self.companyId = self.codeToSearch[0][3]
+        search = self.dataConnect.getData('company', self.companyId, "name")
+        search = search[0][0]
+        print ("Code for company: ") + "{}".format(search)
+        if search == "OpenCode":
+            self.initialwindow.hide()
+            self.window.show_all()
+            self.actualWindowPos = 1
+        else:
+            self.userCodeFlag = True
+            self.inputSVNUser.set_text(self.codeToSearch[0][1])
+            self.inputSVNPassword.set_text(self.codeToSearch[0][2])
+            self.installation.initialization(self.companyId) #Needed, because this initialization starts when you switch to window1
+            self.initialwindow.hide()
+            if self.advoptions.get_active() == True:
+                self.workWithAdvancedOptions()
+            else: #this is the behavior standard if not selected advanced options
+                self.actualWindowPos = 3 #defined in two because, 'startInstall' make 'nextWindow' if SVN credentials are valid
+                self.startInstall(widget)
+
+    """Initializate all values of advanced options by default"""
+    def advOptInitial(self):
+        self.opt1install.set_active(False) #Select install path
+        self.opt2svn.set_active(False) #input svn credentials
+        self.opt3report.set_active(False) #show report after installation
+        self.opt4shortcut.set_active(True) #create shortcut after install, only windows.
+        self.opt5console.set_active(False)
+
+    def workWithAdvancedOptions(self):
+        if self.opt1install.get_active() or self.opt2svn.get_active(): #Select install path
+            self.actualWindowPos = 2
+            if self.opt1install.get_active() == False:
+                self.folderChooser.set_sensitive(False)
+            else:
+                self.folderChooser.set_sensitive(True)
+            self.preparateWin1()
+            self.window1.show_all()
+        if not self.opt2svn.get_active():#input svn credentials
+            self.inputSVNUser.set_sensitive(False)
+            self.inputSVNPassword.set_sensitive(False)
+        else:
+            self.inputSVNUser.set_sensitive(True)
+            self.inputSVNPassword.set_sensitive(True)
+        if self.opt3report.get_active(): #show report after installation
+            pass #build it in the future not long away.
+        if self.opt4shortcut.get_active(): #create shortcut after install, only windows.
+            self.installation.createShortcut = True
+            self.installation.openConsole = True
