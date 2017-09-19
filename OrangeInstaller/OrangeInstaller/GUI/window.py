@@ -49,7 +49,8 @@ class userWindow(Gtk.Window):
             "messageOk" : self.hideMessage,
             "showAdvOpt": self.showOrHideAdvOpt,
             "initialClick": self.initialClick,
-            "insertCode":self.insertCode
+            "insertCode":self.insertCode,
+            "shortcutButtonToggled": self.shortcutButtonToggled
         }
         self.builder.connect_signals(self.handlers)
         #load objects for working.
@@ -282,6 +283,7 @@ class userWindow(Gtk.Window):
         self.opt1install.set_active(False) #Select install path
         self.opt2svn.set_active(False) #input svn credentials
         self.opt3report.set_active(False) #show report after installation
+        self.opt3report.set_sensitive(False) #TEMPORARY WHILE DON'T WORK
         self.opt4shortcut.set_active(True) #create shortcut after install, only windows.
         self.opt5console.set_active(False)
 
@@ -297,17 +299,32 @@ class userWindow(Gtk.Window):
             self.window1.show_all()
             self.initialwindow.hide()
             shouldStartInstall = False
+
         if not self.opt2svn.get_active():#input svn credentials
             self.inputSVNUser.set_sensitive(False)
             self.inputSVNPassword.set_sensitive(False)
         else:
             self.inputSVNUser.set_sensitive(True)
             self.inputSVNPassword.set_sensitive(True)
+
         if self.opt3report.get_active(): #show report after installation
             pass #build it in the future not long away.
+
         if self.opt4shortcut.get_active(): #create shortcut after install, only windows.
-            self.installation.openConsole = True
+            self.installation.createShortcut = True
+            if self.opt5console.get_active(): #create shortcut with --console
+                self.installation.openConsole = True
+            else:
+                self.installation.openConsole = False
         else:
             self.installation.createShortcut = False
+            
         if shouldStartInstall:
             self.startInstall(widget)
+
+    def shortcutButtonToggled(self, widget):
+        if self.opt4shortcut.get_active():
+            self.opt5console.set_sensitive(True)
+        else:
+            self.opt5console.set_active(False)
+            self.opt5console.set_sensitive(False)
