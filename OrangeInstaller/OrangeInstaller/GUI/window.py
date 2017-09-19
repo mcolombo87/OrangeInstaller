@@ -54,10 +54,10 @@ class userWindow(Gtk.Window):
         self.builder.connect_signals(self.handlers)
         #load objects for working.
         objects = ["initialwindow", "window", "window1", "window2", "message", "treeview", "liststore", \
-        "statusbar", "statusbarInstall", "treeview-selection", "companyLabel", "installButton", \
+        "statusbar", "statusbar2", "statusbarInstall", "treeview-selection", "companyLabel", "installButton", \
         "installPathLabel", "folderChooser", "inputSVNUser", "inputSVNPassword", "notebook", \
-        "finishButton", "spinner1", "installLabel", "revadvoptions", "codebox", "initial", \
-        "opt1install", "opt2svn", "opt3report","opt4shortcut", "opt5console", "advoptions"]
+        "finishButton", "spinner1", "spinner3", "installLabel", "revadvoptions", "codebox", "initial", \
+        "opt1install", "opt2svn", "opt3report","opt4shortcut", "opt5console", "advoptions", "finalwindows"]
         # 'buttton1' is Previus button.
 
         for obj in objects:
@@ -113,7 +113,6 @@ class userWindow(Gtk.Window):
                 self.window2.hide()
                 self.window3.show_all()
             self.actualWindowPos = nextWindowPos #is more clearly
-
 
     """Show company name in screen and install patch"""
     def preparateWin1(self):
@@ -194,21 +193,33 @@ class userWindow(Gtk.Window):
 
     """Start all installation Engine"""
     def startInstall(self, widget):
-        self.installPathLabel.set_text(tr("Checking Username and Password from SVN"))
         self.installation.setSvnControlFromOut()
         self.installation.svn.svnUserName = self.inputSVNUser.get_text()
         self.installation.svn.svnPassword = self.inputSVNPassword.get_text()
-        if self.installation.svn.checkCredentials() == True:
-            self.installPathLabel.set_text(tr("Great Success!"))
-            self.nextWindow(widget)
-            self.installation.startInstall()
-            self.installStatus()
-            self.checkProgress()
+        if self.userCodeFlag:
+            self.statusbar2.push(1, tr("Checking Username and Password from SVN"))
+            self.finalwindows.show_all()
+            if self.installation.svn.checkCredentials() == True:
+                self.installation.startInstall()
+                catchProgress = self.installation.getMsgBuffer()
+                self.statusbar2.push(1, catchProgress)
+            else:
+                self.spinner3.stop()
+                self.statusbar2.push(1, tr(self.installation.svn.checkCredentials()))
+                self.statusbar2.push(1, tr(self.message.get_property("secondary_text")))
         else:
-            self.installPathLabel.set_text(tr(self.installation.svn.checkCredentials()))
-            # translate secondary text here
-            self.message.set_property("secondary_text", tr(self.message.get_property("secondary_text")))
-            self.message.show_all()
+            self.installPathLabel.set_text(tr("Checking Username and Password from SVN"))
+            if self.installation.svn.checkCredentials() == True:
+                self.installPathLabel.set_text(tr("Great Success!"))
+                self.nextWindow(widget)
+                self.installation.startInstall()
+                self.installStatus()
+                self.checkProgress()
+            else:
+                self.installPathLabel.set_text(tr(self.installation.svn.checkCredentials()))
+                # translate secondary text here
+                self.message.set_property("secondary_text", tr(self.message.get_property("secondary_text")))
+                self.message.show_all()
 
     """Restart refresh timer"""
     def installStatus(self):
@@ -251,23 +262,29 @@ class userWindow(Gtk.Window):
         self.companyId = self.codeToSearch[0][3]
         search = self.dataConnect.getData('company', self.companyId, "name")
         search = search[0][0]
-        print ("Code for company: ") + "{}".format(search)
+        self.companyName = search
+        print (tr("Code for company: ")) + "{}".format(search)
         if search == "OpenCode":
+            self.userCodeFlag = False
             self.initialwindow.hide()
             self.window.show_all()
             self.actualWindowPos = 1
         else:
+            self.installation.setInstallPath(self.installation.getInstallPath(), self.companyName)
             self.userCodeFlag = True
-            self.inputSVNUser.set_text(self.codeToSearch[0][1])
-            self.inputSVNPassword.set_text(self.codeToSearch[0][2])
+            if self.codeToSearch[0][1]:
+                self.inputSVNUser.set_text(self.codeToSearch[0][1])
+            if self.codeToSearch[0][2]:
+                self.inputSVNPassword.set_text(self.codeToSearch[0][2])
             self.installation.initialization(self.companyId) #Needed, because this initialization starts when you switch to window1
             self.initialwindow.hide()
             if self.advoptions.get_active() == True:
-                self.workWithAdvancedOptions()
-                self.startInstall(widget)
+                self.workWithAdvancedOptions(widget)
             else: #this is the behavior standard if not selected advanced options
-                self.actualWindowPos = 2 #defined in two because, 'startInstall' make 'nextWindow' if SVN credentials are valid
-                self.window.show_all()
+                if self.userCodeFlag: self.startInstall(widget)
+                else:
+                    self.actualWindowPos = 2 #defined in two because, 'startInstall' make 'nextWindow' if SVN credentials are valid
+                    self.window.show_all()
 
     """Initializate all values of advanced options by default"""
     def advOptInitial(self):
@@ -277,7 +294,8 @@ class userWindow(Gtk.Window):
         self.opt4shortcut.set_active(True) #create shortcut after install, only windows.
         self.opt5console.set_active(False)
 
-    def workWithAdvancedOptions(self):
+    def workWithAdvancedOptions(self, widget):
+        shouldStartInstall = True
         if self.opt1install.get_active() or self.opt2svn.get_active(): #Select install path
             self.actualWindowPos = 2
             if self.opt1install.get_active() == False:
@@ -286,6 +304,7 @@ class userWindow(Gtk.Window):
                 self.folderChooser.set_sensitive(True)
             self.preparateWin1()
             self.window1.show_all()
+            shouldStartInstall = False
         if not self.opt2svn.get_active():#input svn credentials
             self.inputSVNUser.set_sensitive(False)
             self.inputSVNPassword.set_sensitive(False)
@@ -298,3 +317,5 @@ class userWindow(Gtk.Window):
             self.installation.openConsole = True
         else:
             self.installation.createShortcut = False
+        if shouldStartInstall:
+            self.startInstall(widget)

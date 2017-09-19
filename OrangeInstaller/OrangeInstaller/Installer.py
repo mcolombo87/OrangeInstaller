@@ -33,7 +33,7 @@ class Installer(object):
         if(systemTools.isLinux()):
             self.installPath = path + "/" + companyName if companyName else path
         else:
-            self.installPath = path + "/" + companyName if companyName else path
+            self.installPath = path + "\\" + companyName if companyName else path
 
     def getInstallPath (self):
         return self.installPath

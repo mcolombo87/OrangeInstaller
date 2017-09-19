@@ -118,6 +118,7 @@ class svnControl(object):
         exit = False
 
         while timeout < 10 and exit == False:
+            print construction
             if testingCheckout.poll() == None:
                 time.sleep(0.5)
                 timeout += 1
