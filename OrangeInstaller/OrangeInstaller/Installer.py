@@ -15,6 +15,7 @@ class Installer(object):
     installPath = None #Directory of installation
     svn = None #svnControl Class
     msgBuffer = '' #This is a buffer for each message, next these are captured by the user interface to display on screen
+    disableLastFolderAsCompanyName = False
 
     def __init__(self, **kwargs):
         self.currentSystem = systemTools.osName()
@@ -30,10 +31,11 @@ class Installer(object):
             self.openConsole = False
 
     def setInstallPath (self, path, companyName=""):
-        if(systemTools.isLinux()):
-            self.installPath = path + "/" + companyName if companyName else path
-        else:
-            self.installPath = path + "\\" + companyName if companyName else path
+        if not self.disableLastFolderAsCompanyName:
+            if(systemTools.isLinux()):
+                self.installPath = path + "/" + companyName if companyName else path
+            else:
+                self.installPath = path + "\\" + companyName if companyName else path
 
     def getInstallPath (self):
         return self.installPath

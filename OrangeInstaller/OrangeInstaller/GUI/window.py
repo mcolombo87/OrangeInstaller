@@ -58,7 +58,7 @@ class userWindow(Gtk.Window):
         "statusbar", "statusbarInstall", "treeview-selection", "companyLabel", "installButton", \
         "installPathLabel", "folderChooser", "inputSVNUser", "inputSVNPassword", "notebook", \
         "finishButton", "spinner1", "installLabel", "revadvoptions", "codebox", "initial", \
-        "opt1install", "opt2svn", "opt3report","opt4shortcut", "opt5console", "advoptions"]
+        "opt1install", "opt2svn", "opt3report","opt4shortcut", "opt5console", "advoptions", "messagebar", "opt6companyname"]
         # 'buttton1' is Previus button.
 
         for obj in objects:
@@ -74,7 +74,10 @@ class userWindow(Gtk.Window):
         dbcheck = self.dataConnect.testConnection()
         if dbcheck:
             self.communicator(tr("Connection to DB: OK"))
-        else: self.communicator(tr("Fail to connect with DB"))
+            self.messagebar.set_text(tr("Connection to DB: OK"))
+        else: 
+            self.communicator(tr("Fail to connect with DB"))
+            self.messagebar.set_text(tr("Fail to connect with DB"))
 
         #List all results for search and show up in screen
         renderer = Gtk.CellRendererText()
@@ -247,16 +250,21 @@ class userWindow(Gtk.Window):
         if self.codebox.get_text_length() == 8:
             self.codeToSearch = self.dataConnect.getDataSearch('company_keys', 'companykey', self.codebox.get_text(), "*")
             if self.codeToSearch:
+                self.companyId = self.codeToSearch[0][3]
+                search = self.dataConnect.getData('company', self.companyId, "name")
+                search = search[0][0]
+                self.companyName = search
+                self.messagebar.set_text(tr("Code for company: ") + "{}".format(self.companyName))
+                print (tr("Code for company: ")) + "{}".format(self.companyName)
                 self.initial.set_sensitive(True)
-        else: self.initial.set_sensitive(False)
+            else:
+                self.messagebar.set_text(tr("Invalid Code"))
+        else: 
+            self.initial.set_sensitive(False)
+            self.messagebar.set_text("")
 
     def initialClick(self, widget):
-        self.companyId = self.codeToSearch[0][3]
-        search = self.dataConnect.getData('company', self.companyId, "name")
-        search = search[0][0]
-        self.companyName = search
-        print (tr("Code for company: ")) + "{}".format(search)
-        if search == "OpenCode":
+        if self.companyName == "OpenCode":
             self.userCodeFlag = False
             self.initialwindow.hide()
             self.window.show_all()
@@ -274,6 +282,7 @@ class userWindow(Gtk.Window):
                 self.workWithAdvancedOptions(widget)
             else: #this is the behavior standard if not selected advanced options
                 if self.userCodeFlag: 
+                    self.messagebar.set_text(tr("Checking Username and Password from SVN"))
                     self.startInstall(widget)
                 else:
                     self.window.show_all()
@@ -286,6 +295,7 @@ class userWindow(Gtk.Window):
         self.opt3report.set_sensitive(False) #TEMPORARY WHILE DON'T WORK
         self.opt4shortcut.set_active(True) #create shortcut after install, only windows.
         self.opt5console.set_active(False)
+        self.opt6companyname.set_active(True) #By Default, the last folder must be the company name
 
     def workWithAdvancedOptions(self, widget):
         shouldStartInstall = True
@@ -318,8 +328,14 @@ class userWindow(Gtk.Window):
                 self.installation.openConsole = False
         else:
             self.installation.createShortcut = False
+
+        if self.opt6companyname.get_active():
+            self.installation.disableLastFolderAsCompanyName = False
+        else:
+            self.installation.disableLastFolderAsCompanyName = True
             
         if shouldStartInstall:
+            self.messagebar.set_text(tr("Checking Username and Password from SVN"))
             self.startInstall(widget)
 
     def shortcutButtonToggled(self, widget):

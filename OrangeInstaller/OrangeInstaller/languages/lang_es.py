@@ -85,4 +85,5 @@ lang_dict = {
 "cancel":"cancelar",
 "exit":"salir",
 "help":"ayuda",
+"Invalid Code": "Codigo Invalido",
 }
