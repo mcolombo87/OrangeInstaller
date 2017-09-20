@@ -96,3 +96,5 @@ ENV/
 OrangeInstaller/OrangeInstaller/checkSVNCred/.svn/entries
 OrangeInstaller/OrangeInstaller/checkSVN.oins
 OrangeInstaller/OrangeInstaller/conf.cfg
+OrangeInstaller/OrangeInstaller/conf.cfg
+OrangeInstaller/OrangeInstaller/.vscode/settings.json

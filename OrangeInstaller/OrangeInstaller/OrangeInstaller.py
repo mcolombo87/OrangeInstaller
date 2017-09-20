@@ -29,7 +29,31 @@ def consoleApplication():
     dataConnect = dataConnection.dataConnection()
     installation = Installer.Installer()
     dataConnect.testConnection()
-    while (True):
+
+    invalidCode = False
+    validCode = False
+    while not validCode:
+        imputTest = raw_input(tr("Company Code: "))
+        if (imputTest == tr('exit')):
+            print(tr("CANCEL INSTALLATION BY USER"))
+            functions.logging.debug(tr("CANCEL INSTALLATION BY USER"))
+            functions.exitProgram(2)
+        else:
+            if len(imputTest) == 8:
+                codeToSearch = dataConnect.getDataSearch('company_keys', 'companykey', imputTest, "*")
+                if codeToSearch:
+                    validCode = True
+                    break
+                else:
+                    invalidCode = True
+            else:
+                invalidCode = True
+            if invalidCode:
+                print tr("Invalid company code, try again.")
+            else: break
+
+    selection = None
+    while codeToSearch[0][0] == "0pen0r4n":
         imputTest = raw_input(tr("Search Company: "))
         if (imputTest == tr('exit')):
             print(tr("CANCEL INSTALLATION BY USER"))
@@ -52,6 +76,10 @@ def consoleApplication():
         if (len(resultOfSearch) == 1):
             selection = resultOfSearch[0]
             break
+
+    if not selection:
+        installation.setSvnControlLogon(codeToSearch[0][1],codeToSearch[0][2])
+        selection = dataConnect.getDataSearch('company', 'idcompany', codeToSearch[0][3], "*")[0]
     installation.initialization(selection[0]) #'selection[0]' is value companyId from table 'Company'\
     if selection[1]:
         installation.setInstallPath(installation.getInstallPath(), selection[1])

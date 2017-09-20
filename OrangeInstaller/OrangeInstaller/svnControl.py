@@ -18,6 +18,10 @@ class svnControl(object):
 
     def __init__ (self, **kwargs):
         if(kwargs):
+            if (kwargs['SVNUsername']):
+                self.svnUserName = kwargs['SVNUsername']
+            if (kwargs['SVNPassword']):
+                self.svnPassword = kwargs['SVNPassword']
             if (not kwargs['Interface']):
                 self.logon()
         else: self.logon()
@@ -67,8 +71,9 @@ class svnControl(object):
     OUT= None
     '''
     def logon (self):
-        self.svnUserName = raw_input('SVN Username: ')
-        self.svnPassword = getpass.getpass('SVN password: ')
+        if self.svnUserName == 'username':
+            self.svnUserName = raw_input(tr("SVN Username: "))
+            self.svnPassword = getpass.getpass(tr("SVN Password: "))
 
     def setSvnCLientPath(self):
         if (systemTools.isWindows()):
@@ -113,6 +118,7 @@ class svnControl(object):
         exit = False
 
         while timeout < 10 and exit == False:
+            print construction
             if testingCheckout.poll() == None:
                 time.sleep(0.5)
                 timeout += 1

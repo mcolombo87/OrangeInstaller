@@ -15,6 +15,8 @@ class Installer(object):
     installPath = None #Directory of installation
     svn = None #svnControl Class
     msgBuffer = '' #This is a buffer for each message, next these are captured by the user interface to display on screen
+    disableLastFolderAsCompanyName = False
+    lastCompanyFolderSetted = False
 
     def __init__(self, **kwargs):
         self.currentSystem = systemTools.osName()
@@ -23,12 +25,28 @@ class Installer(object):
         self.endInstallControl = False #Flag for indicate if the installation finished or not
         self.checkoutStacks = 0 #This is an important counter, increment your value for each checkout in queue, the real control for determinated if the installation...
                                 #...finished or not is through this. Once this count started, will return to cero when the installation is over.
+        # in case createShortcut or openConsole haven't been initialized (advanced options, only in GUI)
+        if not hasattr(self, "createShortcut"):
+            self.createShortcut = True
+        if not hasattr(self, "openConsole"):
+            self.openConsole = False
 
     def setInstallPath (self, path, companyName=""):
-        if(systemTools.isLinux()):
-            self.installPath = path + "/" + companyName if companyName else path
+        if self.lastCompanyFolderSetted:
+             self.lastCompanyFolderSetted = False
+             self.__setDefaultPath()
         else:
-            self.installPath = path + "/" + companyName if companyName else path
+            if self.disableLastFolderAsCompanyName == False and companyName != "":
+                if(systemTools.isLinux()):
+                    self.installPath = path + "/" + companyName if companyName else path
+                else:
+                    self.installPath = path + "\\" + companyName if companyName else path
+                self.lastCompanyFolderSetted = True
+            else:
+                if(systemTools.isLinux()):
+                    self.installPath = path
+                else:
+                    self.installPath = path
 
     def getInstallPath (self):
         return self.installPath
@@ -110,7 +128,12 @@ class Installer(object):
     OUT= Nothing return
     '''  
     def setSvnControlFromOut(self):
-        kwargs = {"Interface":True}
+        kwargs = {"SVNUsername": None, "SVNPassword": None, "Interface":True}
+        self.svn = svnControl.svnControl(**kwargs)
+
+    ''' DESC= Console way to input svn username and password '''
+    def setSvnControlLogon(self, svnUsername, svnPassword):
+        kwargs = {"SVNUsername": svnUsername, "SVNPassword": svnPassword, "Interface": False}
         self.svn = svnControl.svnControl(**kwargs)
 
     ''' 
@@ -170,3 +193,18 @@ class Installer(object):
 
     def getCurrentSystem(self):
         return self.currentSystem
+
+    ''' for Windows only '''
+    def makeShortcut(self):
+        if systemTools.isWindows() and self.createShortcut:
+            import winshell
+            if self.openConsole:
+                console = "--console"
+            else:
+                console = ""
+            target = self.installPath + "\\OpenOrange.exe"
+
+            desktop = winshell.desktop()
+            winshell.CreateShortcut (
+                   Path=path.join(desktop, 'OpenOrange.lnk'),StartIn=self.installPath,
+                   Target=target,Icon=(target,0),Arguments=console)
