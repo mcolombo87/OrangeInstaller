@@ -50,7 +50,8 @@ class userWindow(Gtk.Window):
             "showAdvOpt": self.showOrHideAdvOpt,
             "initialClick": self.initialClick,
             "insertCode":self.insertCode,
-            "shortcutButtonToggled": self.shortcutButtonToggled
+            "shortcutButtonToggled": self.shortcutButtonToggled,
+            "companyFolderSetter" : self.companyFolderSetter
         }
         self.builder.connect_signals(self.handlers)
         #load objects for working.
@@ -132,6 +133,7 @@ class userWindow(Gtk.Window):
                 self.initialwindow.show_all()
             else:
                 self.window.show_all()
+            self.installation.setInstallPath(self.installation.getInstallPath()) #For reset path if i go to first windows.
         if (self.actualWindowPos == 3):
             self.window2.hide()
             self.window.show_all()
@@ -270,7 +272,7 @@ class userWindow(Gtk.Window):
             self.window.show_all()
             self.actualWindowPos = 1
         else:
-            self.installation.setInstallPath(self.installation.getInstallPath(), self.companyName) #Por que llamas a este de nuevo? 
+            self.installation.setInstallPath(self.installation.getInstallPath(), self.companyName)
             self.userCodeFlag = True
             if self.codeToSearch[0][1]:
                 self.inputSVNUser.set_text(self.codeToSearch[0][1])
@@ -329,7 +331,7 @@ class userWindow(Gtk.Window):
         else:
             self.installation.createShortcut = False
 
-        if self.opt6companyname.get_active():
+        if self.opt6companyname.get_active():  #It's a copy of def companyFolderSetter().
             self.installation.disableLastFolderAsCompanyName = False
         else:
             self.installation.disableLastFolderAsCompanyName = True
@@ -344,3 +346,9 @@ class userWindow(Gtk.Window):
         else:
             self.opt5console.set_active(False)
             self.opt5console.set_sensitive(False)
+
+    def companyFolderSetter(self, widget):
+        if self.opt6companyname.get_active():
+            self.installation.disableLastFolderAsCompanyName = False
+        else:
+            self.installation.disableLastFolderAsCompanyName = True 
