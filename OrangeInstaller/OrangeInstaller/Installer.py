@@ -2,6 +2,7 @@ import dataConnection, svnControl, openSettingsMaker
 from Functions import functions, systemTools
 from os import path
 import getpass
+import winshell
 
 tr = functions.tr
 
@@ -197,7 +198,6 @@ class Installer(object):
     ''' for Windows only '''
     def makeShortcut(self):
         if systemTools.isWindows() and self.createShortcut:
-            import winshell
             if self.openConsole:
                 console = "--console"
             else:
