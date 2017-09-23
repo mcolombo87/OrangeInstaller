@@ -40,7 +40,7 @@ def consoleApplication():
             functions.exitProgram(2)
         else:
             if len(imputTest) == 8:
-                codeToSearch = dataConnect.getDataSearch('company_keys', 'companykey', imputTest, "*")
+                codeToSearch = dataConnect.getDataSearch('OnlyValidCodes', 'companykey', imputTest, "*")
                 if codeToSearch:
                     validCode = True
                     break

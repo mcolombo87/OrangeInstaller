@@ -85,6 +85,6 @@ lang_dict = {
 "cancel":"cancelar",
 "exit":"salir",
 "help":"ayuda",
-"Invalid Code": "Codigo Invalido",
+"Invalid or Expired Code": "Codigo Invalido o Expirado",
 "Last folder as Company Name": "Ultima carpeta con Nombre de Empresa",
 }

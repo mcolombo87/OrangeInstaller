@@ -252,7 +252,7 @@ class userWindow(Gtk.Window):
 
     def insertCode(self, widget):
         if self.codebox.get_text_length() == 8:
-            self.codeToSearch = self.dataConnect.getDataSearch('company_keys', 'companykey', self.codebox.get_text(), "*")
+            self.codeToSearch = self.dataConnect.getDataSearch('OnlyValidCodes', 'companykey', self.codebox.get_text(), "*")
             if self.codeToSearch:
                 self.companyId = self.codeToSearch[0][3]
                 search = self.dataConnect.getData('company', self.companyId, "name")
@@ -262,7 +262,7 @@ class userWindow(Gtk.Window):
                 print (tr("Code for company: ")) + "{}".format(self.companyName)
                 self.initial.set_sensitive(True)
             else:
-                self.messagebar.set_text(tr("Invalid Code"))
+                self.messagebar.set_text(tr("Invalid or Expired Code"))
         else: 
             self.initial.set_sensitive(False)
             self.messagebar.set_text("")
