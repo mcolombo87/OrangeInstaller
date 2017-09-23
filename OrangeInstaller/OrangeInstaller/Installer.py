@@ -2,7 +2,11 @@ import dataConnection, svnControl, openSettingsMaker
 from Functions import functions, systemTools
 from os import path
 import getpass
-import winshell
+###Imports for creates shortcut
+import pythoncom
+from win32com.client import Dispatch
+from win32com.shell import shell, shellcon
+###
 
 tr = functions.tr
 
@@ -208,13 +212,24 @@ class Installer(object):
     ''' for Windows only '''
     def makeShortcut(self):
         if systemTools.isWindows() and self.createShortcut:
-            if self.openConsole:
-                console = "--console"
-            else:
-                console = ""
-            target = self.installPath + "\\OpenOrange.exe"
+            try:
+                if self.openConsole:
+                    console = "--console"
+                else:
+                    console = ""
+                target = self.installPath + "\\OpenOrange.exe"
 
-            desktop = winshell.desktop()
-            winshell.CreateShortcut (
-                   Path=path.join(desktop, 'OpenOrange.lnk'),StartIn=self.installPath,
-                   Target=target,Icon=(target,0),Arguments=console)
+                #NEW Method, because winshell throws an error.
+                desktop = shell.SHGetFolderPath(0,(shellcon.CSIDL_DESKTOP, shellcon.CSIDL_COMMON_DESKTOPDIRECTORY)[0], None, 0)
+
+                pythoncom.CoInitialize()
+                windowsScript = Dispatch("wscript.shell")
+                shortcut = windowsScript.CreateShortcut(desktop + '\\OpenOrange.lnk')
+                shortcut.TargetPath = target
+                shortcut.Arguments = console
+                shortcut.Save()
+                functions.logging.debug(tr('Shortcut was Created'))
+                print(tr('Shortcut was Created'))
+            except:
+                functions.logging.debug(tr('Cannot Create Shortcut'))
+                print(tr('Cannot Create Shortcut'))
