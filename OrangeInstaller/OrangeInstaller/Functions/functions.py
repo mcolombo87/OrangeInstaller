@@ -92,3 +92,87 @@ def processSVNout(errs):
             errors.append(tr("No revision %s.") % err.split(" ")[-1])
 
     return ".\n".join(errors)
+
+#Function to decrypt a string of text previously encrypted with encryptText() and using substitutionValues()
+def decryptText (myString):
+    newString = ''
+    for symbol in myString:
+        for key, value in substitutionValues().iteritems():
+            if value == symbol:
+                newString += key
+    return newString
+
+#Encrypt a String
+def encryptText(myString):
+    newString = ''
+    for symbol in myString:
+        newString += substitutionValues()[symbol]
+    return newString
+
+#It is a substitution encryption, but the values are not symmetric.
+def substitutionValues():
+    values = {
+        'a':'0',
+        'b':'A',
+        'c':'1',
+        'd':'S',
+        'e':'2',
+        'f':'D',
+        'g':'F',
+        'h':'3',
+        'i':'g',
+        'j':'H',
+        'k':'J',
+        'l':'K',
+        'm':'L',
+        'n':'Z',
+        'o':'X',
+        'p':'C',
+        'q':'V',
+        'r':'4',
+        's':'B',
+        't':'N',
+        'u':'m',
+        'v':'Q',
+        'w':'W',
+        'x':'5',
+        'y':'E',
+        'z':'R',
+        '1':'T',
+        '2':'Y',
+        '3':'U',
+        '4':'6',
+        '5':'I',
+        '6':'O',
+        '7':'P',
+        '8':'M',
+        '9':'n',
+        '0':'b',
+        'A':'7',
+        'B':'v',
+        'C':'c',
+        'D':'x',
+        'E':'z',
+        'F':'l',
+        'G':'k',
+        'H':'8',
+        'I':'j',
+        'J':'h',
+        'K':'G',
+        'L':'f',
+        'M':'d',
+        'N':'s',
+        'O':'a',
+        'P':'p',
+        'Q':'o',
+        'R':'i',
+        'S':'9',
+        'T':'u',
+        'U':'y',
+        'V':'t',
+        'W':'r',
+        'X':'e',
+        'Y':'w',
+        'Z':'q'
+        }
+    return values
