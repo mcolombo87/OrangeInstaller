@@ -184,7 +184,9 @@ class userWindow(Gtk.Window):
         else: newPath = self.folderChooser.get_uri().split('file://')
         newPath = newPath[1] #Discard first split
         newPath = newPath.replace("%20", " ") #Fix spaces
+        self.installation.pathThroughWidget = True
         self.installation.setInstallPath(newPath)
+        self.installation.pathThroughWidget = False
         self.installPathLabel.set_text(tr("Install Path: ") + self.installation.getInstallPath())
 
     """Check if the conditions for starting installation are ready or not"""

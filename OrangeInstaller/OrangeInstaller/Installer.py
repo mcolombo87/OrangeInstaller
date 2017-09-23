@@ -16,8 +16,12 @@ class Installer(object):
     installPath = None #Directory of installation
     svn = None #svnControl Class
     msgBuffer = '' #This is a buffer for each message, next these are captured by the user interface to display on screen
+    
+    ### All these is for set the directory path correctly
     disableLastFolderAsCompanyName = False
     lastCompanyFolderSetted = False
+    pathThroughWidget = False
+    ###
 
     def __init__(self, **kwargs):
         self.currentSystem = systemTools.osName()
@@ -33,21 +37,27 @@ class Installer(object):
             self.openConsole = False
 
     def setInstallPath (self, path, companyName=""):
-        if self.lastCompanyFolderSetted:
-             self.lastCompanyFolderSetted = False
-             self.__setDefaultPath()
-        else:
-            if self.disableLastFolderAsCompanyName == False and companyName != "":
-                if(systemTools.isLinux()):
-                    self.installPath = path + "/" + companyName if companyName else path
-                else:
-                    self.installPath = path + "\\" + companyName if companyName else path
-                self.lastCompanyFolderSetted = True
+        if self.pathThroughWidget == True:
+            if(systemTools.isLinux()):
+                self.installPath = path
             else:
-                if(systemTools.isLinux()):
-                    self.installPath = path
+                self.installPath = path
+        else:
+            if self.lastCompanyFolderSetted:
+                self.lastCompanyFolderSetted = False
+                self.__setDefaultPath()
+            else:
+                if self.disableLastFolderAsCompanyName == False and companyName != "":
+                    if(systemTools.isLinux()):
+                        self.installPath = path + "/" + companyName if companyName else path
+                    else:
+                        self.installPath = path + "\\" + companyName if companyName else path
+                    self.lastCompanyFolderSetted = True
                 else:
-                    self.installPath = path
+                    if(systemTools.isLinux()):
+                        self.installPath = path
+                    else:
+                        self.installPath = path
 
     def getInstallPath (self):
         return self.installPath
