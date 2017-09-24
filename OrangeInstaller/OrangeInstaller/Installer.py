@@ -2,6 +2,11 @@ import dataConnection, svnControl, openSettingsMaker
 from Functions import functions, systemTools
 from os import path
 import getpass
+###Imports for creates shortcut
+import pythoncom
+from win32com.client import Dispatch
+from win32com.shell import shell, shellcon
+###
 
 tr = functions.tr
 
@@ -15,8 +20,12 @@ class Installer(object):
     installPath = None #Directory of installation
     svn = None #svnControl Class
     msgBuffer = '' #This is a buffer for each message, next these are captured by the user interface to display on screen
+    
+    ### All these is for set the directory path correctly
     disableLastFolderAsCompanyName = False
     lastCompanyFolderSetted = False
+    pathThroughWidget = False
+    ###
 
     def __init__(self, **kwargs):
         self.currentSystem = systemTools.osName()
@@ -32,21 +41,27 @@ class Installer(object):
             self.openConsole = False
 
     def setInstallPath (self, path, companyName=""):
-        if self.lastCompanyFolderSetted:
-             self.lastCompanyFolderSetted = False
-             self.__setDefaultPath()
-        else:
-            if self.disableLastFolderAsCompanyName == False and companyName != "":
-                if(systemTools.isLinux()):
-                    self.installPath = path + "/" + companyName if companyName else path
-                else:
-                    self.installPath = path + "\\" + companyName if companyName else path
-                self.lastCompanyFolderSetted = True
+        if self.pathThroughWidget == True:
+            if(systemTools.isLinux()):
+                self.installPath = path
             else:
-                if(systemTools.isLinux()):
-                    self.installPath = path
+                self.installPath = path
+        else:
+            if self.lastCompanyFolderSetted:
+                self.lastCompanyFolderSetted = False
+                self.__setDefaultPath()
+            else:
+                if self.disableLastFolderAsCompanyName == False and companyName != "":
+                    if(systemTools.isLinux()):
+                        self.installPath = path + "/" + companyName if companyName else path
+                    else:
+                        self.installPath = path + "\\" + companyName if companyName else path
+                    self.lastCompanyFolderSetted = True
                 else:
-                    self.installPath = path
+                    if(systemTools.isLinux()):
+                        self.installPath = path
+                    else:
+                        self.installPath = path
 
     def getInstallPath (self):
         return self.installPath
@@ -197,14 +212,24 @@ class Installer(object):
     ''' for Windows only '''
     def makeShortcut(self):
         if systemTools.isWindows() and self.createShortcut:
-            import winshell
-            if self.openConsole:
-                console = "--console"
-            else:
-                console = ""
-            target = self.installPath + "\\OpenOrange.exe"
+            try:
+                if self.openConsole:
+                    console = "--console"
+                else:
+                    console = ""
+                target = self.installPath + "\\OpenOrange.exe"
 
-            desktop = winshell.desktop()
-            winshell.CreateShortcut (
-                   Path=path.join(desktop, 'OpenOrange.lnk'),StartIn=self.installPath,
-                   Target=target,Icon=(target,0),Arguments=console)
+                #NEW Method, because winshell throws an error.
+                desktop = shell.SHGetFolderPath(0,(shellcon.CSIDL_DESKTOP, shellcon.CSIDL_COMMON_DESKTOPDIRECTORY)[0], None, 0)
+
+                pythoncom.CoInitialize()
+                windowsScript = Dispatch("wscript.shell")
+                shortcut = windowsScript.CreateShortcut(desktop + '\\OpenOrange.lnk')
+                shortcut.TargetPath = target
+                shortcut.Arguments = console
+                shortcut.Save()
+                functions.logging.debug(tr('Shortcut was Created'))
+                print(tr('Shortcut was Created'))
+            except:
+                functions.logging.debug(tr('Cannot Create Shortcut'))
+                print(tr('Cannot Create Shortcut'))

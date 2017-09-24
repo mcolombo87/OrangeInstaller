@@ -14,9 +14,9 @@ class dataConnection(object):
         self.dbEnigne = functions.readConfigFile('database','dbEnigne')
         self.basename = functions.readConfigFile('database','basename')
         self.host = functions.readConfigFile('database','host')
-        self.port = int(functions.readConfigFile('database','port'))
-        self.username = functions.readConfigFile('database','username')
-        self.password = functions.readConfigFile('database','password')
+        self.port = int(functions.decryptText(functions.readConfigFile('database','port')))
+        self.username = functions.decryptText(functions.readConfigFile('database','username')) #For encryted text
+        self.password = functions.decryptText(functions.readConfigFile('database','password')) #For encryted text
 
     ''' 
     DESC= Test DB Server connection

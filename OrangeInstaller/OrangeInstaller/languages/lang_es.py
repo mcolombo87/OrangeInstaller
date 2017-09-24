@@ -85,6 +85,8 @@ lang_dict = {
 "cancel":"cancelar",
 "exit":"salir",
 "help":"ayuda",
-"Invalid Code": "Codigo Invalido",
+"Invalid or Expired Code": "Codigo Invalido o Expirado",
 "Last folder as Company Name": "Ultima carpeta con Nombre de Empresa",
+"Shortcut was Created":"El acceso directo fue Creado",
+"Cannot Create Shortcut":"No se puede crear el acceso directo",
 }
