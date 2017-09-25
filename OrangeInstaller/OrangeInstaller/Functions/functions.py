@@ -112,6 +112,7 @@ def encryptText(myString):
 #It is a substitution encryption, but the values are not symmetric.
 def substitutionValues():
     values = {
+        '.':'.',
         'a':'0',
         'b':'A',
         'c':'1',
