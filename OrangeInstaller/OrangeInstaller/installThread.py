@@ -23,6 +23,7 @@ class installThread(threading.Thread):
         if (self.objInstaller.getCurrentSystem() != 'Linux'):
             self.subprocessInfo = subprocess.STARTUPINFO()
             self.subprocessInfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW  #For don't show console windows in each process call (in windows)
+        self.daemon = True # Otherwise closing app doesn't kill threads
 
     def run(self):
         self.objInstaller.pushCheckoutStacks()

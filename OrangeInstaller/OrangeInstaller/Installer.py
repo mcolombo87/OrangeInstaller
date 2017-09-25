@@ -3,9 +3,12 @@ from Functions import functions, systemTools
 from os import path
 import getpass
 ###Imports for creates shortcut
-import pythoncom
-from win32com.client import Dispatch
-from win32com.shell import shell, shellcon
+try:
+    import pythoncom
+    from win32com.client import Dispatch
+    from win32com.shell import shell, shellcon
+except Exception, e:
+    print "No se pudo importar librerias: %s" % e
 ###
 
 tr = functions.tr

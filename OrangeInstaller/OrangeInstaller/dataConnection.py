@@ -10,13 +10,15 @@ class dataConnection(object):
     connector = None
 
     def __init__(self, **kwargs):
+        decTxt = functions.decryptText
+        encTxt = functions.encryptText
         #All this data is taken from conf.cfg file. It's for stablish conection with DB
-        self.dbEnigne = functions.readConfigFile('database','dbEnigne')
-        self.basename = functions.readConfigFile('database','basename')
-        self.host = functions.readConfigFile('database','host')
-        self.port = int(functions.decryptText(functions.readConfigFile('database','port')))
-        self.username = functions.decryptText(functions.readConfigFile('database','username')) #For encryted text
-        self.password = functions.decryptText(functions.readConfigFile('database','password')) #For encryted text
+        self.dbEngine = functions.readConfigFile('database','dbEngine')
+        self.basename = decTxt(functions.readConfigFile('database',encTxt('basename')))
+        self.host = decTxt(functions.readConfigFile('database',encTxt('host')))
+        self.port = int(decTxt(functions.readConfigFile('database',encTxt('port'))))
+        self.username = decTxt(functions.readConfigFile('database',encTxt('username'))) #For encryted text
+        self.password = decTxt(functions.readConfigFile('database',encTxt('password'))) #For encryted text
 
     ''' 
     DESC= Test DB Server connection
