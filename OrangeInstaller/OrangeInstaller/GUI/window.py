@@ -162,7 +162,7 @@ class userWindow(Gtk.Window):
                     break
                 self.liststore.append(["id: %i - %s" % (resultOfSearch[i][0], resultOfSearch[i][1])])
         if (len(resultOfSearch) == 1):
-            self.liststore.append([resultOfSearch[0][1]])
+            self.liststore.append(["id: %i - %s" % (resultOfSearch[0][0], resultOfSearch[0][1])])
             self.communicator(tr("Company Chosen"))
             self.companyId = resultOfSearch[0][0] #[0] for unique row, [0] for Id
             self.companyName = resultOfSearch[0][1]

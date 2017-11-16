@@ -76,7 +76,6 @@ def consoleApplication():
         if (len(resultOfSearch) == 1):
             selection = resultOfSearch[0]
             break
-
     if not selection:
         installation.setSvnControlLogon(codeToSearch[0][1],codeToSearch[0][2])
         selection = dataConnect.getDataSearch('company', 'idcompany', codeToSearch[0][3], "*")[0]
