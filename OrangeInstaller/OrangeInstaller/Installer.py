@@ -25,6 +25,8 @@ class Installer(object):
     svn = None #svnControl Class
     msgBuffer = '' #This is a buffer for each message, next these are captured by the user interface to display on screen
     finalReportText = ''
+    companyInstallated = ''
+    showReportAfterInstall = False
 
     ### All these is for set the directory path correctly
     disableLastFolderAsCompanyName = False
@@ -252,23 +254,25 @@ class Installer(object):
     OUT= Nothing return
     '''
     def finalReportAppend(self, msj):
-        self.finalReportText += "/n" + time.strftime("%H:%M:%S") +": " +  msj
+        self.finalReportText += "\n" + time.strftime("%H:%M:%S") +": " +  msj
 
     ''' 
     DESC= Define header of the final report
     IN= None
     OUT= None
     '''
-    def finalReportHead(self):
-        self.finalReportHead = "***************************************"
-        self.finalReportHead +="* Final Report -= " + time.strftime(" %d-%m-%Y %H:%M:%S") +" =-"
-        self.finalReportHead +="***************************************/n/n"
-        self.finalReportHead +="Company Installated: " + self.companyName +"/n"
-        self.finalReportHead +="Installated in " + self.installPath +"/n"
-        self.finalReportHead +="Modules to install" +"/n"
-        self.finalReportHead +="##" +"/n"
-        self.finalReportHead += self.modulesInfo +"/n"
-        self.finalReportHead +="##" +"/n"
+    def finalReportHead(self, companyName):
+        self.finalReportHead = "*************************************************\n"
+        self.finalReportHead +="* Final Report -= " + time.strftime(" %d-%m-%Y %H:%M:%S") +" =-\n"
+        self.finalReportHead +="*************************************************\n\n"
+        self.finalReportHead +="Company Installated: " + companyName +"\n"
+        self.finalReportHead +="Installated in " + self.installPath +"\n"
+        self.finalReportHead +="Modules to install" +"\n"
+        self.finalReportHead +="##" +"\n"
+        for m in self.modulesInfo:
+            self.finalReportHead += str(m[0]) +"\n"
+        #self.finalReportHead += str(self.modulesInfo) +"\n"
+        self.finalReportHead +="##" +"\n"
 
     ''' 
     DESC= Build and return finalReport
@@ -277,6 +281,6 @@ class Installer(object):
     '''
     def finalReport(self):
         reportText = self.finalReportHead
-        reportText += "---------------------------------/n"
+        reportText += "-------------------------\n"
         reportText += self.finalReportText
         return reportText

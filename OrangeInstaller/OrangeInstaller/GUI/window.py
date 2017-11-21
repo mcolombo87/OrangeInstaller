@@ -59,7 +59,8 @@ class userWindow(Gtk.Window):
         "statusbar", "statusbarInstall", "treeview-selection", "companyLabel", "installButton", \
         "installPathLabel", "folderChooser", "inputSVNUser", "inputSVNPassword", "notebook", \
         "finishButton", "spinner1", "installLabel", "revadvoptions", "codebox", "initial", \
-        "opt1install", "opt2svn", "opt3report","opt4shortcut", "opt5console", "advoptions", "messagebar", "opt6companyname", "finalwindows", "report"]
+        "opt1install", "opt2svn", "opt3report","opt4shortcut", "opt5console", "advoptions", "messagebar", "opt6companyname", "finalwindows", "report", \
+        "reportBuffer"]
         # 'buttton1' is Previus button.
 
         for obj in objects:
@@ -241,8 +242,13 @@ class userWindow(Gtk.Window):
             self.spinner1.stop()
             self.installLabel.set_text(tr('Installation Finished'))
             self.installation.finalReportAppend(tr('Installation Finished'))
-            self.report.set_buffer(self.installation.finalReport())
-            self.finalwindows.show_all()
+            ################# New final Report windows
+            if self.installation.showReportAfterInstall:
+                self.installation.finalReportHead(self.companyName)
+                self.reportBuffer.set_text(self.installation.finalReport())
+                self.report.set_buffer(self.reportBuffer)
+                self.finalwindows.show_all()
+            #################
         else: self.installStatus()
 
     def hideMessage(self, widget):
@@ -276,6 +282,7 @@ class userWindow(Gtk.Window):
             self.initialwindow.hide()
             self.window.show_all()
             self.actualWindowPos = 1
+            self.installation.showReportAfterInstall = True #This is for show it the final report by default
         else:
             self.installation.setInstallPath(self.installation.getInstallPath(), self.companyName)
             self.userCodeFlag = True
@@ -299,7 +306,7 @@ class userWindow(Gtk.Window):
         self.opt1install.set_active(False) #Select install path
         self.opt2svn.set_active(False) #input svn credentials
         self.opt3report.set_active(False) #show report after installation
-        self.opt3report.set_sensitive(False) #TEMPORARY WHILE DON'T WORK
+        self.opt3report.set_sensitive(True) 
         self.opt4shortcut.set_active(True) #create shortcut after install, only windows.
         self.opt5console.set_active(False)
         self.opt6companyname.set_active(True) #By Default, the last folder must be the company name
@@ -325,7 +332,7 @@ class userWindow(Gtk.Window):
             self.inputSVNPassword.set_sensitive(True)
 
         if self.opt3report.get_active(): #show report after installation
-            pass #build it in the future not long away.
+            self.installation.showReportAfterInstall = True
 
         if self.opt4shortcut.get_active(): #create shortcut after install, only windows.
             self.installation.createShortcut = True
