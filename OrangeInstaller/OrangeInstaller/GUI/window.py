@@ -15,6 +15,7 @@ class userWindow(Gtk.Window):
     companyName = None
     codeToSearch = None
     userCodeFlag = False
+    lastMessage = ''
 
     def __init__(self):
         self.dataConnect = dataConnection.dataConnection()
@@ -60,7 +61,7 @@ class userWindow(Gtk.Window):
         "installPathLabel", "folderChooser", "inputSVNUser", "inputSVNPassword", "notebook", \
         "finishButton", "spinner1", "installLabel", "revadvoptions", "codebox", "initial", \
         "opt1install", "opt2svn", "opt3report","opt4shortcut", "opt5console", "advoptions", "messagebar", "opt6companyname", "finalwindows", "report", \
-        "reportBuffer"]
+        "reportBuffer", "statusView", "bufferInstall"]
         # 'buttton1' is Previus button.
 
         for obj in objects:
@@ -146,6 +147,14 @@ class userWindow(Gtk.Window):
             self.statusbar.push(1, message)
         if (self.actualWindowPos == 3): #third screen
             self.statusbarInstall.push(1, message)
+            if self.lastMessage != message:
+                self.lastMessage = message
+                self.bufferInstall.insert_at_cursor(message + "\n")
+                self.statusView.set_buffer(self.bufferInstall)
+                self.bufferInstall.create_mark("end", self.bufferInstall.get_end_iter(), False)
+                mark = self.bufferInstall.get_mark("end")
+                self.bufferInstall.move_mark(mark,self.bufferInstall.get_end_iter())
+                self.statusView.scroll_mark_onscreen(mark)
 
     """Engine of search bar. Through this, one company will be selected"""
     def search(self, widget):

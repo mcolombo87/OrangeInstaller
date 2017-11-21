@@ -99,6 +99,7 @@ class Installer(object):
     OUT= Nothing return
     '''
     def startInstall(self):
+        self.msgBuffer = tr("Starting installation")
         if (self.svn == None):
             self.svn = svnControl.svnControl()
         for a in range(len(self.modulesInfo)):
@@ -130,6 +131,7 @@ class Installer(object):
     OUT= Nothing return
     '''
     def settingsMaker(self):
+        self.msgBuffer = tr("Building settings.xml")
         companyInfo = self.dataConnect.getData('company', self.modulesInfo[0][5], [' * ']) #5 for idcompany in vector
         settingsPath = self.installPath + '\\settings\\'
         if (self.currentSystem == 'Linux'):
@@ -138,6 +140,7 @@ class Installer(object):
             outXMLfile = open(settingsPath + 'settings.xml', 'w') #Truncate file if already exist
             openSettingsMaker.openSettingsMaker().createSettings(outXMLfile, self.modulesInfo, companyInfo)
             self.finalReportAppend(tr("Create settings.xml"))
+            self.msgBuffer = tr("Create settings.xml")
         except:
             msg = tr("Can't create settings.xml")
             print(msg) #Create new file
@@ -176,6 +179,7 @@ class Installer(object):
     OUT= None
     '''  
     def createInitExtra(self):
+        self.msgBuffer = tr("Making __init__.py")
         if (systemTools.isWindows()):
             extraDirPath = self.installPath + '\\extra'
             if (path.isdir(extraDirPath)): #Create __init__.py if exist extra folder and the file is not there

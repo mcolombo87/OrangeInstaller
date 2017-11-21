@@ -29,10 +29,10 @@ class installThread(threading.Thread):
         self.objInstaller.pushCheckoutStacks()
         self.semaphore.acquire()
         if (self.moduleName != 0):
-            msg = str(tr("Installing: ") + self.moduleName)
+            msg = str( ">> " + tr("Installing: ") + self.moduleName)
             self.objInstaller.finalReportAppend(msg)
             if (self.moduleName == ''):
-                msg = str(tr("Installing: ") + tr("Base and Standard"))
+                msg = str( ">> " + tr("Installing: ") + tr("Base and Standard"))
                 self.objInstaller.finalReportAppend(msg)
             print (msg)
             functions.logging.debug(msg)

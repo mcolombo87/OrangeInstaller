@@ -90,4 +90,7 @@ lang_dict = {
 "Shortcut was Created":"El acceso directo fue Creado",
 "Cannot Create Shortcut":"No se puede crear el acceso directo",
 "Create settings.xml": "Settings.xml creado",
+"Starting installation":"Iniciando Instalacion",
+"Building settings.xml":"Construyendo settings.xml",
+"Making __init__.py":"Creando __init__.py",
 }
