@@ -577,56 +577,14 @@
           </packing>
         </child>
         <child>
-          <object class="GtkSeparator" id="separator10">
+          <object class="GtkTextView" id="report">
             <property name="visible">True</property>
-            <property name="can_focus">False</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">1</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkStatusbar" id="statusbar2">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="margin_left">10</property>
-            <property name="margin_start">10</property>
-            <property name="margin_end">10</property>
-            <property name="margin_bottom">190</property>
-            <property name="orientation">vertical</property>
-            <property name="spacing">2</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">2</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkSpinner" id="spinner3">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="active">True</property>
+            <property name="can_focus">True</property>
           </object>
           <packing>
             <property name="expand">True</property>
             <property name="fill">True</property>
-            <property name="position">3</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkSeparator" id="separator11">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="margin_top">1</property>
-            <property name="margin_bottom">1</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">5</property>
+            <property name="position">1</property>
           </packing>
         </child>
         <child>

@@ -2,6 +2,7 @@ import dataConnection, svnControl, openSettingsMaker
 from Functions import functions, systemTools
 from os import path
 import getpass
+import time
 ###Imports for creates shortcut
 try:
     import pythoncom
@@ -23,7 +24,8 @@ class Installer(object):
     installPath = None #Directory of installation
     svn = None #svnControl Class
     msgBuffer = '' #This is a buffer for each message, next these are captured by the user interface to display on screen
-    
+    finalReportText = ''
+
     ### All these is for set the directory path correctly
     disableLastFolderAsCompanyName = False
     lastCompanyFolderSetted = False
@@ -133,9 +135,11 @@ class Installer(object):
         try:
             outXMLfile = open(settingsPath + 'settings.xml', 'w') #Truncate file if already exist
             openSettingsMaker.openSettingsMaker().createSettings(outXMLfile, self.modulesInfo, companyInfo)
+            self.finalReportAppend(tr("Create settings.xml"))
         except:
             msg = tr("Can't create settings.xml")
             print(msg) #Create new file
+            self.finalReportAppend(msg)
             functions.logging.debug(msg)
             self.msgBuffer = msg
 
@@ -179,6 +183,7 @@ class Installer(object):
             if (path.isdir(self.installPath + '/extra')): #Create __init__.py if exist extra folder and the file is not there
                 if(not path.exists(self.installPath + '/extra/__init__.py')):
                     open(self.installPath + '/extra/__init__.py', 'w')
+        self.finalReportAppend("Make __init__.py for extra")
 
     ''' 
     DESC= Work more as "end installation step". Call to "settings maker" and change endInstallationFlag to True. Installer will be done after that
@@ -188,12 +193,14 @@ class Installer(object):
     def makeSetting(self):
         msg = tr("Creating settings.xml")
         print(msg) #For Console use
+        self.finalReportAppend(msg)
         self.msgBuffer = msg
         self.settingsMaker()
 
         msg = str(tr("Installated in: ") + self.installPath)
         print(msg)
         functions.logging.debug(msg)
+        self.finalReportAppend(msg)
         self.msgBuffer = msg
         self.endInstallControl = True
 
@@ -233,6 +240,43 @@ class Installer(object):
                 shortcut.Save()
                 functions.logging.debug(tr('Shortcut was Created'))
                 print(tr('Shortcut was Created'))
+                self.finalReportAppend(tr('Shortcut was Created'))
             except:
                 functions.logging.debug(tr('Cannot Create Shortcut'))
                 print(tr('Cannot Create Shortcut'))
+                self.finalReportAppend(tr('Cannot Create Shortcut'))
+
+    ''' 
+    DESC= Store text to show on final report
+    IN= message to store
+    OUT= Nothing return
+    '''
+    def finalReportAppend(self, msj):
+        self.finalReportText += "/n" + time.strftime("%H:%M:%S") +": " +  msj
+
+    ''' 
+    DESC= Define header of the final report
+    IN= None
+    OUT= None
+    '''
+    def finalReportHead(self):
+        self.finalReportHead = "***************************************"
+        self.finalReportHead +="* Final Report -= " + time.strftime(" %d-%m-%Y %H:%M:%S") +" =-"
+        self.finalReportHead +="***************************************/n/n"
+        self.finalReportHead +="Company Installated: " + self.companyName +"/n"
+        self.finalReportHead +="Installated in " + self.installPath +"/n"
+        self.finalReportHead +="Modules to install" +"/n"
+        self.finalReportHead +="##" +"/n"
+        self.finalReportHead += self.modulesInfo +"/n"
+        self.finalReportHead +="##" +"/n"
+
+    ''' 
+    DESC= Build and return finalReport
+    IN= None
+    OUT= finalReport builded
+    '''
+    def finalReport(self):
+        reportText = self.finalReportHead
+        reportText += "---------------------------------/n"
+        reportText += self.finalReportText
+        return reportText

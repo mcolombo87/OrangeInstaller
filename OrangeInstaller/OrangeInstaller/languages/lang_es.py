@@ -89,4 +89,5 @@ lang_dict = {
 "Last folder as Company Name": "Ultima carpeta con Nombre de Empresa",
 "Shortcut was Created":"El acceso directo fue Creado",
 "Cannot Create Shortcut":"No se puede crear el acceso directo",
+"Create settings.xml": "Settings.xml creado",
 }

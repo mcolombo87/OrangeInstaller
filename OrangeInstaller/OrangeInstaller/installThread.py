@@ -30,8 +30,10 @@ class installThread(threading.Thread):
         self.semaphore.acquire()
         if (self.moduleName != 0):
             msg = str(tr("Installing: ") + self.moduleName)
+            self.objInstaller.finalReportAppend(msg)
             if (self.moduleName == ''):
                 msg = str(tr("Installing: ") + tr("Base and Standard"))
+                self.objInstaller.finalReportAppend(msg)
             print (msg)
             functions.logging.debug(msg)
             self.objInstaller.setMsgBuffer(msg)
@@ -44,6 +46,8 @@ class installThread(threading.Thread):
             report = subprocess.call(self.construction, stdout=self.logFiles[0], stderr=self.logFiles[1], startupinfo=self.subprocessInfo)
 
         functions.logging.debug(tr("SVN Response: {}").format(tr("Process finished, check svn out for info")))
+        if (self.moduleName != 0):
+            self.objInstaller.finalReportAppend(msg + " >> OK")
         self.semaphore.release()
     
         self.objInstaller.popCheckoutStacks() #pop Stack of threads (if is empty, all checkouts is over)

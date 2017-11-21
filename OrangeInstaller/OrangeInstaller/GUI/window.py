@@ -59,7 +59,7 @@ class userWindow(Gtk.Window):
         "statusbar", "statusbarInstall", "treeview-selection", "companyLabel", "installButton", \
         "installPathLabel", "folderChooser", "inputSVNUser", "inputSVNPassword", "notebook", \
         "finishButton", "spinner1", "installLabel", "revadvoptions", "codebox", "initial", \
-        "opt1install", "opt2svn", "opt3report","opt4shortcut", "opt5console", "advoptions", "messagebar", "opt6companyname"]
+        "opt1install", "opt2svn", "opt3report","opt4shortcut", "opt5console", "advoptions", "messagebar", "opt6companyname", "finalwindows", "report"]
         # 'buttton1' is Previus button.
 
         for obj in objects:
@@ -240,6 +240,9 @@ class userWindow(Gtk.Window):
             self.finishButton.set_sensitive(True)
             self.spinner1.stop()
             self.installLabel.set_text(tr('Installation Finished'))
+            self.installation.finalReportAppend(tr('Installation Finished'))
+            self.report.set_buffer(self.installation.finalReport())
+            self.finalwindows.show_all()
         else: self.installStatus()
 
     def hideMessage(self, widget):
