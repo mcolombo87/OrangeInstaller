@@ -61,7 +61,7 @@ class userWindow(Gtk.Window):
         "installPathLabel", "folderChooser", "inputSVNUser", "inputSVNPassword", "notebook", \
         "finishButton", "spinner1", "installLabel", "revadvoptions", "codebox", "initial", \
         "opt1install", "opt2svn", "opt3report","opt4shortcut", "opt5console", "advoptions", "messagebar", "opt6companyname", "finalwindows", "report", \
-        "reportBuffer", "statusView", "bufferInstall"]
+        "reportBuffer", "statusView", "bufferInstall", "notificationRevealer"]
         # 'buttton1' is Previus button.
 
         for obj in objects:
@@ -86,6 +86,11 @@ class userWindow(Gtk.Window):
         renderer = Gtk.CellRendererText()
         column = Gtk.TreeViewColumn("Company", renderer, text=0)
         self.treeview.append_column(column)
+
+        #push initial notifications
+        self.installation.checkNotifications()
+        if len(self.installation.notificationsList) > 0:
+            self.notificationRevealer.set_reveal_child(True)
 
     """User press exit button"""
     def userExit(self, widget):

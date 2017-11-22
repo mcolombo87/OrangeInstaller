@@ -33,6 +33,9 @@ class Installer(object):
     lastCompanyFolderSetted = False
     pathThroughWidget = False
     ###
+    #List of notifications
+    notificationsList = []
+    ###
 
     def __init__(self, **kwargs):
         self.currentSystem = systemTools.osName()
@@ -288,3 +291,9 @@ class Installer(object):
         reportText += "-------------------------\n"
         reportText += self.finalReportText
         return reportText
+
+    def checkNotifications(self):
+        if len(self.notificationsList) == 0: #If is 0 then we search general notifications
+            sql = self.dataConnect.getDataSearch("notifications","idcompany",0,"*")
+            print sql
+            self.notificationsList.append(sql)  #table, field, key, columns
