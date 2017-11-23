@@ -293,7 +293,8 @@ class Installer(object):
         return reportText
 
     def checkNotifications(self, key=0):
-        if len(self.notificationsList) == 0: #If is 0 then we search general notifications
-            columns = ['idnotifications, ','message']
-            sql = self.dataConnect.getDataSearch("notifications","idcompany",key, columns)
-            self.notificationsList.append(sql)  #table, field, key, columns
+        columns = ['idnotifications, ','message']
+        sql = self.dataConnect.getDataSearch("notifications","idcompany",key, columns)
+        if len(sql) > 0:
+            for i in sql:
+                self.notificationsList.append(i)

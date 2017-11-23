@@ -93,10 +93,7 @@ class userWindow(Gtk.Window):
         #push initial notifications
         self.actualNotify = 0
         self.installation.checkNotifications() #0 = key
-        if len(self.installation.notificationsList[0]) > 0:
-            self.validateNextNotifyButton()
-            self.textNotification.set_text(self.installation.notificationsList[0][self.actualNotify][self.messagePos])
-            self.notificationRevealer.set_reveal_child(True)
+        self.checkAvailableNotifications()
 
     """User press exit button"""
     def userExit(self, widget):
@@ -287,6 +284,10 @@ class userWindow(Gtk.Window):
                 search = self.dataConnect.getData('company', self.companyId, "name")
                 search = search[0][0]
                 self.companyName = search
+                #For personal notifications, its mean, when i found a company
+                self.installation.checkNotifications(self.companyId)
+                self.checkAvailableNotifications()
+                ##
                 self.messagebar.set_text(tr("Code for company: ") + "{}".format(self.companyName))
                 print (tr("Code for company: ")) + "{}".format(self.companyName)
                 self.initial.set_sensitive(True)
@@ -390,28 +391,35 @@ class userWindow(Gtk.Window):
         GObject.timeout_add(500,self.showAgainNotify)
 
     def showAgainNotify(self): #this function is only for animation
-        totalMsg = len(self.installation.notificationsList[0])
+        totalMsg = len(self.installation.notificationsList)
         self.actualNotify += 1
         if self.actualNotify >= totalMsg:
             self.actualNotify = 0
         if totalMsg != 0:
-            msg = self.installation.notificationsList[0][self.actualNotify][self.messagePos]
+            msg = self.installation.notificationsList[self.actualNotify][self.messagePos]
             self.textNotification.set_text(msg)
             self.notifyAnimation.set_reveal_child(True)
         return False
 
     def closeNotify(self,widget, userDate=1):
-        myActualList = self.installation.notificationsList[0]
+        myActualList = self.installation.notificationsList
         myActualList.remove(myActualList[self.actualNotify]) #Delete from the list actual Notify
         self.validateNextNotifyButton() #call the next for move on.
         self.nextNotify()
 
     def validateNextNotifyButton(self):
-        if len(self.installation.notificationsList[0]) <=1:
+        if len(self.installation.notificationsList) <=1:
             self.infoBarButton.set_opacity(0.5)
             self.infoBarButton.set_sensitive(False)
-        if len(self.installation.notificationsList[0]) >1:
+        if len(self.installation.notificationsList) >1:
             self.infoBarButton.set_opacity(1)
             self.infoBarButton.set_sensitive(True)
-        if len(self.installation.notificationsList[0]) ==0:
+        if len(self.installation.notificationsList) ==0:
             self.notificationRevealer.set_reveal_child(False)
+
+    def checkAvailableNotifications(self):
+        if len(self.installation.notificationsList) > 0:
+            self.validateNextNotifyButton()
+            self.textNotification.set_text(self.installation.notificationsList[self.actualNotify][self.messagePos])
+            self.notifyAnimation.set_reveal_child(True)
+            self.notificationRevealer.set_reveal_child(True)
