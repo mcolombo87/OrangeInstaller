@@ -294,7 +294,7 @@ class Installer(object):
 
     def checkNotifications(self, key=0):
         columns = ['idnotifications, ','message']
-        sql = self.dataConnect.getDataSearch("notifications","idcompany",key, columns)
+        sql = self.dataConnect.getData("notifications",key, columns)
         if len(sql) > 0:
             for i in sql:
                 self.notificationsList.append(i)

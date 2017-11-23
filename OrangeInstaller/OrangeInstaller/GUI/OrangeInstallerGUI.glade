@@ -1127,9 +1127,7 @@
                               <object class="GtkLabel" id="textNotification">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <attributes>
-                                  <attribute name="weight" value="medium"/>
-                                </attributes>
+                                <property name="use_markup">True</property>
                               </object>
                             </child>
                           </object>
