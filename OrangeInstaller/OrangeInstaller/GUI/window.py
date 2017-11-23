@@ -397,7 +397,7 @@ class userWindow(Gtk.Window):
             self.actualNotify = 0
         if totalMsg != 0:
             msg = self.installation.notificationsList[self.actualNotify][self.messagePos]
-            self.textNotification.set_text(msg)
+            self.textNotification.set_markup(msg)
             self.notifyAnimation.set_reveal_child(True)
         return False
 
@@ -420,6 +420,6 @@ class userWindow(Gtk.Window):
     def checkAvailableNotifications(self):
         if len(self.installation.notificationsList) > 0:
             self.validateNextNotifyButton()
-            self.textNotification.set_text(self.installation.notificationsList[self.actualNotify][self.messagePos])
+            self.textNotification.set_markup(self.installation.notificationsList[self.actualNotify][self.messagePos])
             self.notifyAnimation.set_reveal_child(True)
             self.notificationRevealer.set_reveal_child(True)
