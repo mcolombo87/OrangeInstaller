@@ -16,6 +16,7 @@ class userWindow(Gtk.Window):
     codeToSearch = None
     userCodeFlag = False
     lastMessage = ''
+    messagePos = 1
 
     def __init__(self):
         self.dataConnect = dataConnection.dataConnection()
@@ -52,7 +53,9 @@ class userWindow(Gtk.Window):
             "initialClick": self.initialClick,
             "insertCode":self.insertCode,
             "shortcutButtonToggled": self.shortcutButtonToggled,
-            "companyFolderSetter" : self.companyFolderSetter
+            "companyFolderSetter" : self.companyFolderSetter,
+            "nextNotify": self.nextNotify,
+            "closeNotify": self.closeNotify
         }
         self.builder.connect_signals(self.handlers)
         #load objects for working.
@@ -61,7 +64,7 @@ class userWindow(Gtk.Window):
         "installPathLabel", "folderChooser", "inputSVNUser", "inputSVNPassword", "notebook", \
         "finishButton", "spinner1", "installLabel", "revadvoptions", "codebox", "initial", \
         "opt1install", "opt2svn", "opt3report","opt4shortcut", "opt5console", "advoptions", "messagebar", "opt6companyname", "finalwindows", "report", \
-        "reportBuffer", "statusView", "bufferInstall", "notificationRevealer"]
+        "reportBuffer", "statusView", "bufferInstall", "notificationRevealer","textNotification", "notifyAnimation","infoBarButton"]
         # 'buttton1' is Previus button.
 
         for obj in objects:
@@ -88,8 +91,11 @@ class userWindow(Gtk.Window):
         self.treeview.append_column(column)
 
         #push initial notifications
-        self.installation.checkNotifications()
-        if len(self.installation.notificationsList) > 0:
+        self.actualNotify = 0
+        self.installation.checkNotifications() #0 = key
+        if len(self.installation.notificationsList[0]) > 0:
+            self.validateNextNotifyButton()
+            self.textNotification.set_text(self.installation.notificationsList[0][self.actualNotify][self.messagePos])
             self.notificationRevealer.set_reveal_child(True)
 
     """User press exit button"""
@@ -378,3 +384,34 @@ class userWindow(Gtk.Window):
             self.installation.disableLastFolderAsCompanyName = False
         else:
             self.installation.disableLastFolderAsCompanyName = True 
+
+    def nextNotify(self, widget=None):
+        self.notifyAnimation.set_reveal_child(False)
+        GObject.timeout_add(500,self.showAgainNotify)
+
+    def showAgainNotify(self): #this function is only for animation
+        totalMsg = len(self.installation.notificationsList[0])
+        self.actualNotify += 1
+        if self.actualNotify >= totalMsg:
+            self.actualNotify = 0
+        if totalMsg != 0:
+            msg = self.installation.notificationsList[0][self.actualNotify][self.messagePos]
+            self.textNotification.set_text(msg)
+            self.notifyAnimation.set_reveal_child(True)
+        return False
+
+    def closeNotify(self,widget, userDate=1):
+        myActualList = self.installation.notificationsList[0]
+        myActualList.remove(myActualList[self.actualNotify]) #Delete from the list actual Notify
+        self.validateNextNotifyButton() #call the next for move on.
+        self.nextNotify()
+
+    def validateNextNotifyButton(self):
+        if len(self.installation.notificationsList[0]) <=1:
+            self.infoBarButton.set_opacity(0.5)
+            self.infoBarButton.set_sensitive(False)
+        if len(self.installation.notificationsList[0]) >1:
+            self.infoBarButton.set_opacity(1)
+            self.infoBarButton.set_sensitive(True)
+        if len(self.installation.notificationsList[0]) ==0:
+            self.notificationRevealer.set_reveal_child(False)
