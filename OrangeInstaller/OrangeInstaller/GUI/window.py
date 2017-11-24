@@ -55,7 +55,8 @@ class userWindow(Gtk.Window):
             "shortcutButtonToggled": self.shortcutButtonToggled,
             "companyFolderSetter" : self.companyFolderSetter,
             "nextNotify": self.nextNotify,
-            "closeNotify": self.closeNotify
+            "closeNotify": self.closeNotify,
+            "showReport": self.showReport
         }
         self.builder.connect_signals(self.handlers)
         #load objects for working.
@@ -64,7 +65,7 @@ class userWindow(Gtk.Window):
         "installPathLabel", "folderChooser", "inputSVNUser", "inputSVNPassword", "notebook", \
         "finishButton", "spinner1", "installLabel", "revadvoptions", "codebox", "initial", \
         "opt1install", "opt2svn", "opt3report","opt4shortcut", "opt5console", "advoptions", "messagebar", "opt6companyname", "finalwindows", "report", \
-        "reportBuffer", "statusView", "bufferInstall", "notificationRevealer","textNotification", "notifyAnimation","infoBarButton"]
+        "reportBuffer", "statusView", "bufferInstall", "notificationRevealer","textNotification", "notifyAnimation","infoBarButton", "showFinalReport"]
         # 'buttton1' is Previus button.
 
         for obj in objects:
@@ -256,15 +257,14 @@ class userWindow(Gtk.Window):
         if(self.installation.checkStatus() == True):
             self.finishButton.set_opacity(1)
             self.finishButton.set_sensitive(True)
+            self.showFinalReport.set_opacity(1)
+            self.showFinalReport.set_sensitive(True)
             self.spinner1.stop()
             self.installLabel.set_text(tr('Installation Finished'))
             self.installation.finalReportAppend(tr('Installation Finished'))
             ################# New final Report windows
-            if self.installation.showReportAfterInstall:
-                self.installation.finalReportHead(self.companyName)
-                self.reportBuffer.set_text(self.installation.finalReport())
-                self.report.set_buffer(self.reportBuffer)
-                self.finalwindows.show_all()
+            if self.installation.showReportAfterInstall and self.opt3report.get_active() == True:
+                self.showReportWindows()
             #################
         else: self.installStatus()
 
@@ -303,7 +303,6 @@ class userWindow(Gtk.Window):
             self.initialwindow.hide()
             self.window.show_all()
             self.actualWindowPos = 1
-            self.installation.showReportAfterInstall = True #This is for show it the final report by default
         else:
             self.installation.setInstallPath(self.installation.getInstallPath(), self.companyName)
             self.userCodeFlag = True
@@ -423,3 +422,12 @@ class userWindow(Gtk.Window):
             self.textNotification.set_markup(self.installation.notificationsList[self.actualNotify][self.messagePos])
             self.notifyAnimation.set_reveal_child(True)
             self.notificationRevealer.set_reveal_child(True)
+
+    def showReport(self, widget):
+        self.showReportWindows()
+    
+    def showReportWindows(self):
+        self.installation.finalReportHead(self.companyName)
+        self.reportBuffer.set_text(self.installation.finalReport())
+        self.report.set_buffer(self.reportBuffer)
+        self.finalwindows.show_all()

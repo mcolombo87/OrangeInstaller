@@ -336,6 +336,26 @@
             <property name="halign">end</property>
             <property name="layout_style">spread</property>
             <child>
+              <object class="GtkButton" id="showFinalReport">
+                <property name="label" translatable="yes">Show Report</property>
+                <property name="visible">True</property>
+                <property name="sensitive">False</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="opacity">0.50196078431372548</property>
+                <property name="margin_top">5</property>
+                <property name="margin_bottom">5</property>
+                <property name="image_position">right</property>
+                <signal name="clicked" handler="showReport" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="padding">3</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
               <object class="GtkButton" id="finishButton">
                 <property name="label" translatable="yes">Finish</property>
                 <property name="visible">True</property>

@@ -26,7 +26,7 @@ class Installer(object):
     msgBuffer = '' #This is a buffer for each message, next these are captured by the user interface to display on screen
     finalReportText = ''
     companyInstallated = ''
-    showReportAfterInstall = False
+    showReportAfterInstall = True
 
     ### All these is for set the directory path correctly
     disableLastFolderAsCompanyName = False
