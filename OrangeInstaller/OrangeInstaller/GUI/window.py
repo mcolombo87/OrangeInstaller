@@ -1,6 +1,6 @@
 import gi
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, GObject, GLib
+from gi.repository import Gtk, GObject, GLib, Gdk
 import dataConnection, Installer, installThread
 from Functions import functions, systemTools
 import os
@@ -56,7 +56,9 @@ class userWindow(Gtk.Window):
             "companyFolderSetter" : self.companyFolderSetter,
             "nextNotify": self.nextNotify,
             "closeNotify": self.closeNotify,
-            "showReport": self.showReport
+            "showReport": self.showReport,
+            "copyClipboard": self.copyClipboard,
+            "saveReport":self.saveReport
         }
         self.builder.connect_signals(self.handlers)
         #load objects for working.
@@ -65,7 +67,8 @@ class userWindow(Gtk.Window):
         "installPathLabel", "folderChooser", "inputSVNUser", "inputSVNPassword", "notebook", \
         "finishButton", "spinner1", "installLabel", "revadvoptions", "codebox", "initial", \
         "opt1install", "opt2svn", "opt3report","opt4shortcut", "opt5console", "advoptions", "messagebar", "opt6companyname", "finalwindows", "report", \
-        "reportBuffer", "statusView", "bufferInstall", "notificationRevealer","textNotification", "notifyAnimation","infoBarButton", "showFinalReport"]
+        "reportBuffer", "statusView", "bufferInstall", "notificationRevealer","textNotification", "notifyAnimation","infoBarButton", "showFinalReport", \
+        "copyClipboardReportButton", "saveReportButton"]
         # 'buttton1' is Previus button.
 
         for obj in objects:
@@ -431,3 +434,34 @@ class userWindow(Gtk.Window):
         self.reportBuffer.set_text(self.installation.finalReport())
         self.report.set_buffer(self.reportBuffer)
         self.finalwindows.show_all()
+
+    def copyClipboard(self, widget):
+        text = self.takeTextFromReportBuffer()
+        cb = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
+        cb.wait_for_text()
+        cb.set_text(text, -1)
+
+    def takeTextFromReportBuffer(self):
+        startIterofBuffer = self.reportBuffer.get_start_iter()
+        endIterofBuffer = self.reportBuffer.get_end_iter()
+        includeHiddenChars = True 
+        return self.reportBuffer.get_text(startIterofBuffer, endIterofBuffer, includeHiddenChars)
+
+    def saveReport(self, widget):
+        dialog = Gtk.FileChooserDialog("Save Report", None, Gtk.FileChooserAction.SAVE,(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,Gtk.STOCK_SAVE, Gtk.ResponseType.OK)) 
+        dialog.set_do_overwrite_confirmation(True)
+        if self.installation.reportTitle != '':
+            dialog.set_current_name(self.installation.reportTitle+".OIReport.txt")
+        dialog.set_modal(True)
+        response = dialog.run()
+        if response == -5: #'-5' is the response for ResponseType.OK
+            try:
+                reportFile = open(dialog.get_filename(), 'w')
+                reportFile.write(self.takeTextFromReportBuffer())
+            except:
+                print "Cannot save the report"
+                functions.logging.debug('Cannot save the report')
+        else:
+            print "Report save cancel"
+        dialog.destroy()
+

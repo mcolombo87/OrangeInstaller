@@ -24,9 +24,11 @@ class Installer(object):
     installPath = None #Directory of installation
     svn = None #svnControl Class
     msgBuffer = '' #This is a buffer for each message, next these are captured by the user interface to display on screen
-    finalReportText = ''
     companyInstallated = ''
+    #For Report
     showReportAfterInstall = True
+    reportTitle = ''
+    finalReportText = ''
 
     ### All these is for set the directory path correctly
     disableLastFolderAsCompanyName = False
@@ -280,6 +282,9 @@ class Installer(object):
             self.finalReportHead += str(m[0]) +"\n"
         #self.finalReportHead += str(self.modulesInfo) +"\n"
         self.finalReportHead +="##" +"\n"
+
+        #set report title
+        self.reportTitle = str("Report-"+companyName+"-"+time.strftime("%d-%m-%Y"))
 
     ''' 
     DESC= Build and return finalReport
