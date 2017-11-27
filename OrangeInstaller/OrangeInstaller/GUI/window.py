@@ -448,7 +448,7 @@ class userWindow(Gtk.Window):
         return self.reportBuffer.get_text(startIterofBuffer, endIterofBuffer, includeHiddenChars)
 
     def saveReport(self, widget):
-        dialog = Gtk.FileChooserDialog("Save Report", None, Gtk.FileChooserAction.SAVE,(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,Gtk.STOCK_SAVE, Gtk.ResponseType.OK)) 
+        dialog = Gtk.FileChooserDialog(tr("Save Report"), None, Gtk.FileChooserAction.SAVE,(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,Gtk.STOCK_SAVE, Gtk.ResponseType.OK)) 
         dialog.set_do_overwrite_confirmation(True)
         if self.installation.reportTitle != '':
             dialog.set_current_name(self.installation.reportTitle+".OIReport.txt")
@@ -459,9 +459,10 @@ class userWindow(Gtk.Window):
                 reportFile = open(dialog.get_filename(), 'w')
                 reportFile.write(self.takeTextFromReportBuffer())
             except:
-                print "Cannot save the report"
-                functions.logging.debug('Cannot save the report')
+                print tr("Cannot save the report")
+                functions.logging.debug(tr('Cannot save the report'))
         else:
-            print "Report save cancel"
+            print tr('Report save cancel')
+            functions.logging.debug(tr('Report save cancel'))
         dialog.destroy()
 
