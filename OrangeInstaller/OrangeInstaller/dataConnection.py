@@ -73,8 +73,8 @@ class dataConnection(object):
             for a in cursor.fetchall():
                 data.append(a)
             return data
-        except:
-            functions.logging.debug("Query ERROR")
+        except Exception, e:
+            functions.logging.debug("Query ERROR %s" % e)
             functions.exitProgram(1)
 
     ''' 

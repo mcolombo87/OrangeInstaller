@@ -1,6 +1,6 @@
 import gi
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, GObject, GLib
+from gi.repository import Gtk, GObject, GLib, Gdk
 import dataConnection, Installer, installThread
 from Functions import functions, systemTools
 import os
@@ -15,10 +15,13 @@ class userWindow(Gtk.Window):
     companyName = None
     codeToSearch = None
     userCodeFlag = False
+    lastMessage = ''
+    messagePos = 1
 
     def __init__(self):
         self.dataConnect = dataConnection.dataConnection()
         self.installation = Installer.Installer() #Instance of Installer class
+        functions.logging.debug(tr('Loading Interface'))
 
         self.builder = Gtk.Builder()
         path = os.path.dirname(os.path.abspath(__file__))
@@ -51,7 +54,12 @@ class userWindow(Gtk.Window):
             "initialClick": self.initialClick,
             "insertCode":self.insertCode,
             "shortcutButtonToggled": self.shortcutButtonToggled,
-            "companyFolderSetter" : self.companyFolderSetter
+            "companyFolderSetter" : self.companyFolderSetter,
+            "nextNotify": self.nextNotify,
+            "closeNotify": self.closeNotify,
+            "showReport": self.showReport,
+            "copyClipboard": self.copyClipboard,
+            "saveReport":self.saveReport
         }
         self.builder.connect_signals(self.handlers)
         #load objects for working.
@@ -59,7 +67,9 @@ class userWindow(Gtk.Window):
         "statusbar", "statusbarInstall", "treeview-selection", "companyLabel", "installButton", \
         "installPathLabel", "folderChooser", "inputSVNUser", "inputSVNPassword", "notebook", \
         "finishButton", "spinner1", "installLabel", "revadvoptions", "codebox", "initial", \
-        "opt1install", "opt2svn", "opt3report","opt4shortcut", "opt5console", "advoptions", "messagebar", "opt6companyname"]
+        "opt1install", "opt2svn", "opt3report","opt4shortcut", "opt5console", "advoptions", "messagebar", "opt6companyname", "finalwindows", "report", \
+        "reportBuffer", "statusView", "bufferInstall", "notificationRevealer","textNotification", "notifyAnimation","infoBarButton", "showFinalReport", \
+        "copyClipboardReportButton", "saveReportButton"]
         # 'buttton1' is Previus button.
 
         for obj in objects:
@@ -68,6 +78,7 @@ class userWindow(Gtk.Window):
         self.advOptInitial()
         
         self.actualWindowPos = 0 #First window, this is an index for navigator
+        functions.logging.debug(tr('GUI Loaded'))
         self.initialwindow.show_all()
         #self.window.show_all()
 
@@ -84,6 +95,11 @@ class userWindow(Gtk.Window):
         renderer = Gtk.CellRendererText()
         column = Gtk.TreeViewColumn("Company", renderer, text=0)
         self.treeview.append_column(column)
+
+        #push initial notifications
+        self.actualNotify = 0
+        self.installation.checkNotifications() #0 = key
+        self.checkAvailableNotifications()
 
     """User press exit button"""
     def userExit(self, widget):
@@ -145,6 +161,14 @@ class userWindow(Gtk.Window):
             self.statusbar.push(1, message)
         if (self.actualWindowPos == 3): #third screen
             self.statusbarInstall.push(1, message)
+            if self.lastMessage != message:
+                self.lastMessage = message
+                self.bufferInstall.insert_at_cursor(message + "\n")
+                self.statusView.set_buffer(self.bufferInstall)
+                self.bufferInstall.create_mark("end", self.bufferInstall.get_end_iter(), False)
+                mark = self.bufferInstall.get_mark("end")
+                self.bufferInstall.move_mark(mark,self.bufferInstall.get_end_iter())
+                self.statusView.scroll_mark_onscreen(mark)
 
     """Engine of search bar. Through this, one company will be selected"""
     def search(self, widget):
@@ -162,7 +186,7 @@ class userWindow(Gtk.Window):
                     break
                 self.liststore.append(["id: %i - %s" % (resultOfSearch[i][0], resultOfSearch[i][1])])
         if (len(resultOfSearch) == 1):
-            self.liststore.append([resultOfSearch[0][1]])
+            self.liststore.append(["id: %i - %s" % (resultOfSearch[0][0], resultOfSearch[0][1])])
             self.communicator(tr("Company Chosen"))
             self.companyId = resultOfSearch[0][0] #[0] for unique row, [0] for Id
             self.companyName = resultOfSearch[0][1]
@@ -238,8 +262,15 @@ class userWindow(Gtk.Window):
         if(self.installation.checkStatus() == True):
             self.finishButton.set_opacity(1)
             self.finishButton.set_sensitive(True)
+            self.showFinalReport.set_opacity(1)
+            self.showFinalReport.set_sensitive(True)
             self.spinner1.stop()
             self.installLabel.set_text(tr('Installation Finished'))
+            self.installation.finalReportAppend(tr('Installation Finished'))
+            ################# New final Report windows
+            if self.installation.showReportAfterInstall and self.opt3report.get_active() == True:
+                self.showReportWindows()
+            #################
         else: self.installStatus()
 
     def hideMessage(self, widget):
@@ -258,6 +289,10 @@ class userWindow(Gtk.Window):
                 search = self.dataConnect.getData('company', self.companyId, "name")
                 search = search[0][0]
                 self.companyName = search
+                #For personal notifications, its mean, when i found a company
+                self.installation.checkNotifications(self.companyId)
+                self.checkAvailableNotifications()
+                ##
                 self.messagebar.set_text(tr("Code for company: ") + "{}".format(self.companyName))
                 print (tr("Code for company: ")) + "{}".format(self.companyName)
                 self.initial.set_sensitive(True)
@@ -296,7 +331,7 @@ class userWindow(Gtk.Window):
         self.opt1install.set_active(False) #Select install path
         self.opt2svn.set_active(False) #input svn credentials
         self.opt3report.set_active(False) #show report after installation
-        self.opt3report.set_sensitive(False) #TEMPORARY WHILE DON'T WORK
+        self.opt3report.set_sensitive(True) 
         self.opt4shortcut.set_active(True) #create shortcut after install, only windows.
         self.opt5console.set_active(False)
         self.opt6companyname.set_active(True) #By Default, the last folder must be the company name
@@ -322,7 +357,7 @@ class userWindow(Gtk.Window):
             self.inputSVNPassword.set_sensitive(True)
 
         if self.opt3report.get_active(): #show report after installation
-            pass #build it in the future not long away.
+            self.installation.showReportAfterInstall = True
 
         if self.opt4shortcut.get_active(): #create shortcut after install, only windows.
             self.installation.createShortcut = True
@@ -354,3 +389,82 @@ class userWindow(Gtk.Window):
             self.installation.disableLastFolderAsCompanyName = False
         else:
             self.installation.disableLastFolderAsCompanyName = True 
+
+    def nextNotify(self, widget=None):
+        self.notifyAnimation.set_reveal_child(False)
+        GObject.timeout_add(500,self.showAgainNotify)
+
+    def showAgainNotify(self): #this function is only for animation
+        totalMsg = len(self.installation.notificationsList)
+        self.actualNotify += 1
+        if self.actualNotify >= totalMsg:
+            self.actualNotify = 0
+        if totalMsg != 0:
+            msg = self.installation.notificationsList[self.actualNotify][self.messagePos]
+            self.textNotification.set_markup(msg)
+            self.notifyAnimation.set_reveal_child(True)
+        return False
+
+    def closeNotify(self,widget, userDate=1):
+        myActualList = self.installation.notificationsList
+        myActualList.remove(myActualList[self.actualNotify]) #Delete from the list actual Notify
+        self.validateNextNotifyButton() #call the next for move on.
+        self.nextNotify()
+
+    def validateNextNotifyButton(self):
+        if len(self.installation.notificationsList) <=1:
+            self.infoBarButton.set_opacity(0.5)
+            self.infoBarButton.set_sensitive(False)
+        if len(self.installation.notificationsList) >1:
+            self.infoBarButton.set_opacity(1)
+            self.infoBarButton.set_sensitive(True)
+        if len(self.installation.notificationsList) ==0:
+            self.notificationRevealer.set_reveal_child(False)
+
+    def checkAvailableNotifications(self):
+        if len(self.installation.notificationsList) > 0:
+            self.validateNextNotifyButton()
+            self.textNotification.set_markup(self.installation.notificationsList[self.actualNotify][self.messagePos])
+            self.notifyAnimation.set_reveal_child(True)
+            self.notificationRevealer.set_reveal_child(True)
+
+    def showReport(self, widget):
+        self.showReportWindows()
+    
+    def showReportWindows(self):
+        self.installation.finalReportHead(self.companyName)
+        self.reportBuffer.set_text(self.installation.finalReport())
+        self.report.set_buffer(self.reportBuffer)
+        self.finalwindows.show_all()
+
+    def copyClipboard(self, widget):
+        text = self.takeTextFromReportBuffer()
+        cb = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
+        cb.wait_for_text()
+        cb.set_text(text, -1)
+
+    def takeTextFromReportBuffer(self):
+        startIterofBuffer = self.reportBuffer.get_start_iter()
+        endIterofBuffer = self.reportBuffer.get_end_iter()
+        includeHiddenChars = True 
+        return self.reportBuffer.get_text(startIterofBuffer, endIterofBuffer, includeHiddenChars)
+
+    def saveReport(self, widget):
+        dialog = Gtk.FileChooserDialog(tr("Save Report"), None, Gtk.FileChooserAction.SAVE,(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,Gtk.STOCK_SAVE, Gtk.ResponseType.OK)) 
+        dialog.set_do_overwrite_confirmation(True)
+        if self.installation.reportTitle != '':
+            dialog.set_current_name(self.installation.reportTitle+".OIReport.txt")
+        dialog.set_modal(True)
+        response = dialog.run()
+        if response == -5: #'-5' is the response for ResponseType.OK
+            try:
+                reportFile = open(dialog.get_filename(), 'w')
+                reportFile.write(self.takeTextFromReportBuffer())
+            except:
+                print tr("Cannot save the report")
+                functions.logging.debug(tr('Cannot save the report'))
+        else:
+            print tr('Report save cancel')
+            functions.logging.debug(tr('Report save cancel'))
+        dialog.destroy()
+

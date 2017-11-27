@@ -89,4 +89,15 @@ lang_dict = {
 "Last folder as Company Name": "Ultima carpeta con Nombre de Empresa",
 "Shortcut was Created":"El acceso directo fue Creado",
 "Cannot Create Shortcut":"No se puede crear el acceso directo",
+"Create settings.xml": "Settings.xml creado",
+"Starting installation":"Iniciando Instalacion",
+"Building settings.xml":"Construyendo settings.xml",
+"Making __init__.py":"Creando __init__.py",
+"Cannot save the report":"El reporte no se puede guardar",
+"Report save cancel":"Guardado del reporte Cancelado",
+"Save Report":"Guardar Reporte",
+"Show Report":"Ver Reporte",
+"Copy to Clipboard!":"Copiar al Portapapeles!",
+"Loading Interface":"Cargando Interfaz",
+"GUI Loaded":"GUI Cargada"
 }
