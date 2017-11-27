@@ -97,5 +97,7 @@ lang_dict = {
 "Report save cancel":"Guardado del reporte Cancelado",
 "Save Report":"Guardar Reporte",
 "Show Report":"Ver Reporte",
-"Copy to Clipboard!":"Copiar al Portapapeles!"
+"Copy to Clipboard!":"Copiar al Portapapeles!",
+"Loading Interface":"Cargando Interfaz",
+"GUI Loaded":"GUI Cargada"
 }

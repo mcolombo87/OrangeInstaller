@@ -21,6 +21,7 @@ class userWindow(Gtk.Window):
     def __init__(self):
         self.dataConnect = dataConnection.dataConnection()
         self.installation = Installer.Installer() #Instance of Installer class
+        functions.logging.debug(tr('Loading Interface'))
 
         self.builder = Gtk.Builder()
         path = os.path.dirname(os.path.abspath(__file__))
@@ -77,6 +78,7 @@ class userWindow(Gtk.Window):
         self.advOptInitial()
         
         self.actualWindowPos = 0 #First window, this is an index for navigator
+        functions.logging.debug(tr('GUI Loaded'))
         self.initialwindow.show_all()
         #self.window.show_all()
 
