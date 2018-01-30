@@ -21,7 +21,8 @@ class Installer(object):
     """
 
     modulesInfo = None #List of each module to install, this info it's contained in DB
-    installPath = None #Directory of installation
+    if not hasattr(object, "installPath"):
+        installPath = None #Directory of installation
     svn = None #svnControl Class
     msgBuffer = '' #This is a buffer for each message, next these are captured by the user interface to display on screen
     companyInstallated = ''
@@ -32,7 +33,7 @@ class Installer(object):
 
     ### All these is for set the directory path correctly
     disableLastFolderAsCompanyName = False
-    lastCompanyFolderSetted = False
+    lastCompanyFolderSetted = None
     pathThroughWidget = False
     ###
     #List of notifications
@@ -53,27 +54,23 @@ class Installer(object):
             self.openConsole = False
 
     def setInstallPath (self, path, companyName=""):
-        if self.pathThroughWidget == True:
-            if(systemTools.isLinux()):
-                self.installPath = path
-            else:
-                self.installPath = path
-        else:
-            if self.lastCompanyFolderSetted:
-                self.lastCompanyFolderSetted = False
-                self.__setDefaultPath()
-            else:
-                if self.disableLastFolderAsCompanyName == False and companyName != "":
-                    if(systemTools.isLinux()):
-                        self.installPath = path + "/" + companyName if companyName else path
-                    else:
-                        self.installPath = path + "\\" + companyName if companyName else path
-                    self.lastCompanyFolderSetted = True
+        if self.lastCompanyFolderSetted <> companyName:
+            if self.lastCompanyFolderSetted: # Clean last companyName from Path
+                if systemTools.isLinux():
+                    path = path.replace("/" + self.lastCompanyFolderSetted, "")
                 else:
-                    if(systemTools.isLinux()):
-                        self.installPath = path
-                    else:
-                        self.installPath = path
+                    path = path.replace("\\" + self.lastCompanyFolderSetted, "")
+        if self.pathThroughWidget:
+            self.installPath = path
+        else:
+            if not self.disableLastFolderAsCompanyName and companyName:
+                if systemTools.isLinux():
+                    self.installPath = path + "/" + companyName
+                else:
+                    self.installPath = path + "\\" + companyName
+                self.lastCompanyFolderSetted = companyName
+            else:
+                self.installPath = path
 
     def getInstallPath (self):
         return self.installPath
@@ -84,7 +81,7 @@ class Installer(object):
     def setMsgBuffer(self, msg):
         self.msgBuffer = msg
 
-    ''' 
+    '''
     DESC= This is the first kick of the install process, test connection to DB and it set each module to install.
     IN= companyId: id of Company to install, the value is the primary key of company for catch his modules (in DB).
     OUT= Nothing return
@@ -93,12 +90,12 @@ class Installer(object):
         if (self.dataConnect.testConnection() == True):
             print(tr("Connection to DB: OK"))
             functions.logging.debug(tr("Connection to DB: OK"))
-        else: 
+        else:
             print(tr("Fail to connect with DB"))
             functions.logging.debug(tr("Fail to connect with DB"))
         self.setCompanyModules(companyId)
 
-    ''' 
+    '''
     DESC= If svnControl object is not instanced, he do it. Then catch each module info, extract data and send to svnControl for make checkout
     IN= None
     OUT= Nothing return
@@ -125,7 +122,7 @@ class Installer(object):
         if(self.currentSystem == 'Linux'):
             self.setInstallPath('/home/'+getpass.getuser()+'/'+functions.readConfigFile('System','DefaultPath')) #Ever define folders beyond home/user in cfg file
 
-    def setCompanyModules(self, companyId): 
+    def setCompanyModules(self, companyId):
         self.modulesInfo = self.dataConnect.getData('modules',companyId,['module, ', 'level, ', 'revision, ', 'svnurl, ', 'path, ', 'idcompany'])
         msg = 'DB > Get Data: {}'.format(self.modulesInfo)
         functions.logging.debug(msg)
@@ -153,12 +150,12 @@ class Installer(object):
             functions.logging.debug(msg)
             self.msgBuffer = msg
 
-    ''' 
-    DESC= GUI use this function for instancing svnControl and passing an signal for avoid call SVN logon (method of svnControl). 
+    '''
+    DESC= GUI use this function for instancing svnControl and passing an signal for avoid call SVN logon (method of svnControl).
     On this way, GUI can controlate login through your own interface.
     IN= None
     OUT= Nothing return
-    '''  
+    '''
     def setSvnControlFromOut(self):
         kwargs = {"SVNUsername": None, "SVNPassword": None, "Interface":True}
         self.svn = svnControl.svnControl(**kwargs)
@@ -168,21 +165,21 @@ class Installer(object):
         kwargs = {"SVNUsername": svnUsername, "SVNPassword": svnPassword, "Interface": False}
         self.svn = svnControl.svnControl(**kwargs)
 
-    ''' 
+    '''
     DESC= Check if installation is over. Is basically a 'get' of endInstallControl, i don't know why i did it... je.
     IN= None
-    OUT= True or False, 
-    '''  
+    OUT= True or False,
+    '''
     def checkStatus(self):
         if (self.endInstallControl == True):
             return True
         else: return False
 
-    ''' 
+    '''
     DESC= When run a installation of some extras (and not all folder), __init__ file doesn't exist. This do make it.
     IN= None
     OUT= None
-    '''  
+    '''
     def createInitExtra(self):
         self.msgBuffer = tr("Making __init__.py")
         if (systemTools.isWindows()):
@@ -196,7 +193,7 @@ class Installer(object):
                     open(self.installPath + '/extra/__init__.py', 'w')
         self.finalReportAppend("Make __init__.py for extra")
 
-    ''' 
+    '''
     DESC= Work more as "end installation step". Call to "settings maker" and change endInstallationFlag to True. Installer will be done after that
     IN= None
     OUT= Nothing return
@@ -215,9 +212,9 @@ class Installer(object):
         self.msgBuffer = msg
         self.endInstallControl = True
 
-    ''' 
+    '''
     DESC= Push increment counter and Pop decrement his value
-    '''   
+    '''
     def pushCheckoutStacks(self):
         self.checkoutStacks = self.checkoutStacks + 1
 
@@ -257,7 +254,7 @@ class Installer(object):
                 print(tr('Cannot Create Shortcut'))
                 self.finalReportAppend(tr('Cannot Create Shortcut'))
 
-    ''' 
+    '''
     DESC= Store text to show on final report
     IN= message to store
     OUT= Nothing return
@@ -265,7 +262,7 @@ class Installer(object):
     def finalReportAppend(self, msj):
         self.finalReportText += "\n" + time.strftime("%H:%M:%S") +": " +  msj
 
-    ''' 
+    '''
     DESC= Define header of the final report
     IN= None
     OUT= None
@@ -286,7 +283,7 @@ class Installer(object):
         #set report title
         self.reportTitle = str("Report-"+companyName+"-"+time.strftime("%d-%m-%Y"))
 
-    ''' 
+    '''
     DESC= Build and return finalReport
     IN= None
     OUT= finalReport builded
