@@ -290,8 +290,13 @@ class userWindow(Gtk.Window):
                 search = search[0][0]
                 self.companyName = search
                 #For personal notifications, its mean, when i found a company
+                notiCount = self.checkAvailableNotifications()
                 self.installation.checkNotifications(self.companyId)
                 self.checkAvailableNotifications()
+                if notiCount != False:
+                    notiCount = notiCount - self.actualNotify
+                    for n in range(notiCount):
+                        self.nextNotify()
                 ##
                 self.messagebar.set_text(tr("Code for company: ") + "{}".format(self.companyName))
                 print (tr("Code for company: ")) + "{}".format(self.companyName)
@@ -422,11 +427,14 @@ class userWindow(Gtk.Window):
             self.notificationRevealer.set_reveal_child(False)
 
     def checkAvailableNotifications(self):
-        if len(self.installation.notificationsList) > 0:
+        notiAmount = len(self.installation.notificationsList)
+        if notiAmount > 0:
             self.validateNextNotifyButton()
             self.textNotification.set_markup(self.installation.notificationsList[self.actualNotify][self.messagePos])
             self.notifyAnimation.set_reveal_child(True)
             self.notificationRevealer.set_reveal_child(True)
+            return notiAmount
+        return False
 
     def showReport(self, widget):
         self.showReportWindows()
