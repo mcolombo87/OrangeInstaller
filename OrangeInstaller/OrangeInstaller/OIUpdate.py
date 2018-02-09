@@ -17,6 +17,7 @@ class oiUpdate(object):
         self.osCondition = config['osCondition']
         self.installRoute = config['installRoute']
         self.actualVersion = functions.readConfigFile('System','Version')
+        self.currentOS = config['currentOS']
 
     def checkUpdate(self):
         construction = (self.svnclientPath + ' --no-auth-cache --non-interactive -u -q status ' + self.installRoute)
@@ -40,7 +41,7 @@ class oiUpdate(object):
             self.dialogs(5)
         
         self.dialogs(6)
-        construction = (self.svnclientPath + ' checkout -r HEAD' + ' --no-auth-cache --force' + ' --username ' + self.svnUser + ' --password ' + self.svnPwd + ' ' + self.svnRemoteClient + self.svnPath +
+        construction = (self.svnclientPath + ' checkout -r HEAD' + ' --no-auth-cache --force' + ' --username ' + self.svnUser + ' --password ' + self.svnPwd + ' ' + self.svnRemoteClient + self.svnPath + self.currentOS +
                         ' ' + '"' + self.installRoute + '"')
         testingCheckout = subprocess.Popen(construction, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=self.osCondition)
         outs, errs = testingCheckout.communicate()
@@ -98,18 +99,23 @@ class oiUpdate(object):
     def loadConfig(self):
         if systemTools.isWindows():
             svnclientPath = "svnclient\svn.exe"
-            installRoute = "TESTUPDATE"
+            installRoute = "..\."
             osCondition = False
+            currentOS = "/OIWindows"
         if systemTools.isLinux():
             svnclientPath = "svn"
-            installRoute = "TESTUDAPTE"
+            installRoute = "."
             osCondition = True
+            if systemTools.osName().index('SUSE'):
+                currentOS = "/OISuse"
+            else:
+                currentOS = "/OILinux" #is it Ubuntu
         svnPath = 'oitest'
         svnRemoteClient= 'svn://svn.openorange.com/'
         svnUser = 'oi'
         svnPwd = 'oi'
         return {'svnPath':svnPath, 'svnRemoteClient':svnRemoteClient, 'svnUser':svnUser, 'svnPwd':svnPwd,
-            'svnclientPath':svnclientPath, 'installRoute':installRoute, 'osCondition':osCondition}
+            'svnclientPath':svnclientPath, 'installRoute':installRoute, 'osCondition':osCondition, 'currentOS':currentOS}
 
     def startProgram(self):
         self.dialogs(1)
