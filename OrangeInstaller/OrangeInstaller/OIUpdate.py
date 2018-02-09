@@ -1,7 +1,7 @@
 #This is a little supply program for easy updating.
 try:
     from Functions import functions, systemTools
-    import subprocess
+    import subprocess, sys
 except:
     print "Necesary imports Fail, report this issue"
 
@@ -61,7 +61,7 @@ class oiUpdate(object):
         except:
             pass
         finally:
-            exit()
+            sys.exit()
 
     def startOI(self):
         pass
@@ -99,7 +99,7 @@ class oiUpdate(object):
     def loadConfig(self):
         if systemTools.isWindows():
             svnclientPath = "svnclient\svn.exe"
-            installRoute = "..\."
+            installRoute = "."
             osCondition = False
             currentOS = "/OIWindows"
         if systemTools.isLinux():
