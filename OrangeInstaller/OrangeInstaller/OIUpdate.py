@@ -6,7 +6,7 @@ except:
     print "Necesary imports Fail, report this issue"
 
 class oiUpdate(object):
-    
+
     def __init__(self, **kwargs):
         config = self.loadConfig()
         self.svnPath = config['svnPath']
@@ -31,6 +31,9 @@ class oiUpdate(object):
             except:
                 self.dialogs(9)
                 self.finishUpdate()
+        else:
+            self.dialogs(9)
+            self.finishUpdate()
 
     def updateOI(self):
         self.dialogs(4)
@@ -39,13 +42,13 @@ class oiUpdate(object):
         outs, errs = testingCheckout.communicate()
         if outs:
             self.dialogs(5)
-        
+
         self.dialogs(6)
         construction = (self.svnclientPath + ' checkout -r HEAD' + ' --no-auth-cache --force' + ' --username ' + self.svnUser + ' --password ' + self.svnPwd + ' ' + self.svnRemoteClient + self.svnPath + self.currentOS +
                         ' ' + '"' + self.installRoute + '"')
         testingCheckout = subprocess.Popen(construction, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=self.osCondition)
         outs, errs = testingCheckout.communicate()
-        
+
         if not errs:
             if outs:
                 self.dialogs(2)
@@ -106,10 +109,12 @@ class oiUpdate(object):
             svnclientPath = "svn"
             installRoute = "."
             osCondition = True
-            if systemTools.osName().index('SUSE'):
-                currentOS = "/OISuse"
-            else:
-                currentOS = "/OILinux" #is it Ubuntu
+            currentOS = "/OILinux" #is it Ubuntu
+            try:
+                if systemTools.osName().index('SUSE'):
+                    currentOS = "/OISuse"
+            except:
+                pass
         svnPath = 'oitest'
         svnRemoteClient= 'svn://svn.openorange.com/'
         svnUser = 'oi'
