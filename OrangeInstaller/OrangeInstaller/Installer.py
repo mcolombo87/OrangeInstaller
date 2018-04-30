@@ -59,13 +59,7 @@ class Installer(object):
     MUST REALLY NEED TO DO. WARNING: CAN BE CALL IT VERY TIMES IN A SINGLE INSTALLATION.
     '''
     def setInstallPath (self, path, companyName=""):
-        print '____________________________________________'
-        print 'self.lastCompanyFolderSetted: '+ str(self.lastCompanyFolderSetted)
-        print 'companyName: '+ str(companyName)
-        print 'self.pathThroughWidget: ' + str(self.pathThroughWidget)
-        print 'self.disableLastFolderAsCompanyName: '+str(self.disableLastFolderAsCompanyName)
         if self.pathThroughWidget:
-            print 'ENTRE EN PATH'
             self.installPath = path
         else:
             if self.lastCompanyFolderSetted <> companyName:
@@ -82,7 +76,6 @@ class Installer(object):
                 self.lastCompanyFolderSetted = companyName
             else:
                 self.installPath = path
-        print 'self.installPath: ' +str(self.installPath)
 
     def getInstallPath (self):
         return self.installPath
