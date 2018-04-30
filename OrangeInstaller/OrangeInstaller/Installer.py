@@ -53,16 +53,27 @@ class Installer(object):
         if not hasattr(self, "openConsole"):
             self.openConsole = False
 
+    '''
+    DESC: This function set the Install Path (final directory were OpenOrange will be installed)
+    ALERT: ALERT: THIS METHOD IS DIFFICULT TO READ AND VERY IMPORTANT FOR THE PROCESS. NOT TOUCH, UNLESS THAT YOU 
+    MUST REALLY NEED TO DO. WARNING: CAN BE CALL IT VERY TIMES IN A SINGLE INSTALLATION.
+    '''
     def setInstallPath (self, path, companyName=""):
-        if self.lastCompanyFolderSetted <> companyName:
-            if self.lastCompanyFolderSetted: # Clean last companyName from Path
-                if systemTools.isLinux():
-                    path = path.replace("/" + self.lastCompanyFolderSetted, "")
-                else:
-                    path = path.replace("\\" + self.lastCompanyFolderSetted, "")
+        print '____________________________________________'
+        print 'self.lastCompanyFolderSetted: '+ str(self.lastCompanyFolderSetted)
+        print 'companyName: '+ str(companyName)
+        print 'self.pathThroughWidget: ' + str(self.pathThroughWidget)
+        print 'self.disableLastFolderAsCompanyName: '+str(self.disableLastFolderAsCompanyName)
         if self.pathThroughWidget:
+            print 'ENTRE EN PATH'
             self.installPath = path
         else:
+            if self.lastCompanyFolderSetted <> companyName:
+                if self.lastCompanyFolderSetted: # Clean last companyName from Path
+                    if systemTools.isLinux():
+                        path = path.replace("/" + self.lastCompanyFolderSetted, "")
+                    else:
+                        path = path.replace("\\" + self.lastCompanyFolderSetted, "")
             if not self.disableLastFolderAsCompanyName and companyName:
                 if systemTools.isLinux():
                     self.installPath = path + "/" + companyName
@@ -71,6 +82,7 @@ class Installer(object):
                 self.lastCompanyFolderSetted = companyName
             else:
                 self.installPath = path
+        print 'self.installPath: ' +str(self.installPath)
 
     def getInstallPath (self):
         return self.installPath
