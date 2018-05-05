@@ -52,7 +52,7 @@ class Installer(object):
             self.createShortcut = True
         if not hasattr(self, "openConsole"):
             self.openConsole = False
-        self.useDaemon = True #Daemon must be "false" if OI is in console mode or threads fail to start.
+        self.useDaemon = True #Daemon must be "false" if OI is in console mode or the threads will fail to start.
 
     '''
     DESC: This function set the Install Path (final directory were OpenOrange will be installed)
