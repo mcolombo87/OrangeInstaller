@@ -52,6 +52,7 @@ class Installer(object):
             self.createShortcut = True
         if not hasattr(self, "openConsole"):
             self.openConsole = False
+        self.useDaemon = True #Daemon must be "false" if OI is in console mode or threads fail to start.
 
     '''
     DESC: This function set the Install Path (final directory were OpenOrange will be installed)
@@ -107,6 +108,7 @@ class Installer(object):
     '''
     def startInstall(self):
         self.msgBuffer = tr("Starting installation")
+        print str(self.msgBuffer)
         if (self.svn == None):
             self.svn = svnControl.svnControl()
         for a in range(len(self.modulesInfo)):

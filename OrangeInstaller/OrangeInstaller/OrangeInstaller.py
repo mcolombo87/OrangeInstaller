@@ -106,6 +106,7 @@ def consoleApplication():
         functions.exitProgram(2)
     else:
         functions.logging.debug(tr("Ready to install OpenOrange for ") + "{}".format(selection[1]))
+        installation.useDaemon = False
         installation.startInstall()
 
 #For use with GUI, this is main way to use
