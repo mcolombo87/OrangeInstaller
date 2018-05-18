@@ -74,9 +74,9 @@ class userWindow(Gtk.Window):
 
         for obj in objects:
             setattr(self, obj, self.builder.get_object(obj))
-        
+
         self.advOptInitial()
-        
+
         self.actualWindowPos = 0 #First window, this is an index for navigator
         functions.logging.debug(tr('GUI Loaded'))
         self.initialwindow.show_all()
@@ -87,7 +87,7 @@ class userWindow(Gtk.Window):
         if dbcheck:
             self.communicator(tr("Connection to DB: OK"))
             self.messagebar.set_text(tr("Connection to DB: OK"))
-        else: 
+        else:
             self.communicator(tr("Fail to connect with DB"))
             self.messagebar.set_text(tr("Fail to connect with DB"))
 
@@ -130,7 +130,7 @@ class userWindow(Gtk.Window):
             if (self.actualWindowPos == 2):
                 self.window1.hide()
                 self.window2.show_all()
-            if (self.actualWindowPos == 3): #THIS WINDOWS IS NOT EXIST YET!! 
+            if (self.actualWindowPos == 3): #THIS WINDOWS IS NOT EXIST YET!!
                 self.window2.hide()
                 self.window3.show_all()
             self.actualWindowPos = nextWindowPos #is more clearly
@@ -239,6 +239,7 @@ class userWindow(Gtk.Window):
             self.installStatus()
             self.checkProgress()
         else:
+            self.installation.setInstallPath(self.installation.getInstallPath()) #For reset path after credentials error
             self.installPathLabel.set_text(tr(self.installation.svn.checkCredentials()))
             # translate secondary text here
             self.message.set_property("secondary_text", tr(self.message.get_property("secondary_text")))
@@ -249,7 +250,7 @@ class userWindow(Gtk.Window):
         timeout = GObject.timeout_add(10000, self.imagesSlides)
 
     """This is for refresh status of installation and show it on screen (DECREPT)"""
-    def checkProgress(self): 
+    def checkProgress(self):
         GObject.timeout_add(1000, self.checkProgress)
         catchProgress = self.installation.getMsgBuffer()
         self.communicator(catchProgress)
@@ -303,7 +304,7 @@ class userWindow(Gtk.Window):
                 self.initial.set_sensitive(True)
             else:
                 self.messagebar.set_text(tr("Invalid or Expired Code"))
-        else: 
+        else:
             self.initial.set_sensitive(False)
             self.messagebar.set_text("")
 
@@ -325,7 +326,7 @@ class userWindow(Gtk.Window):
             if self.advoptions.get_active() == True:
                 self.workWithAdvancedOptions(widget)
             else: #this is the behavior standard if not selected advanced options
-                if self.userCodeFlag: 
+                if self.userCodeFlag:
                     self.messagebar.set_text(tr("Checking Username and Password from SVN"))
                     self.startInstall(widget)
                 else:
@@ -336,7 +337,7 @@ class userWindow(Gtk.Window):
         self.opt1install.set_active(False) #Select install path
         self.opt2svn.set_active(False) #input svn credentials
         self.opt3report.set_active(False) #show report after installation
-        self.opt3report.set_sensitive(True) 
+        self.opt3report.set_sensitive(True)
         self.opt4shortcut.set_active(True) #create shortcut after install, only windows.
         self.opt5console.set_active(False)
         self.opt6companyname.set_active(True) #By Default, the last folder must be the company name
@@ -377,7 +378,7 @@ class userWindow(Gtk.Window):
             self.installation.disableLastFolderAsCompanyName = False
         else:
             self.installation.disableLastFolderAsCompanyName = True
-            
+
         if shouldStartInstall:
             self.messagebar.set_text(tr("Checking Username and Password from SVN"))
             self.startInstall(widget)
@@ -393,7 +394,7 @@ class userWindow(Gtk.Window):
         if self.opt6companyname.get_active():
             self.installation.disableLastFolderAsCompanyName = False
         else:
-            self.installation.disableLastFolderAsCompanyName = True 
+            self.installation.disableLastFolderAsCompanyName = True
 
     def nextNotify(self, widget=None):
         self.notifyAnimation.set_reveal_child(False)
@@ -438,7 +439,7 @@ class userWindow(Gtk.Window):
 
     def showReport(self, widget):
         self.showReportWindows()
-    
+
     def showReportWindows(self):
         self.installation.finalReportHead(self.companyName)
         self.reportBuffer.set_text(self.installation.finalReport())
@@ -454,11 +455,11 @@ class userWindow(Gtk.Window):
     def takeTextFromReportBuffer(self):
         startIterofBuffer = self.reportBuffer.get_start_iter()
         endIterofBuffer = self.reportBuffer.get_end_iter()
-        includeHiddenChars = True 
+        includeHiddenChars = True
         return self.reportBuffer.get_text(startIterofBuffer, endIterofBuffer, includeHiddenChars)
 
     def saveReport(self, widget):
-        dialog = Gtk.FileChooserDialog(tr("Save Report"), None, Gtk.FileChooserAction.SAVE,(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,Gtk.STOCK_SAVE, Gtk.ResponseType.OK)) 
+        dialog = Gtk.FileChooserDialog(tr("Save Report"), None, Gtk.FileChooserAction.SAVE,(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,Gtk.STOCK_SAVE, Gtk.ResponseType.OK))
         dialog.set_do_overwrite_confirmation(True)
         if self.installation.reportTitle != '':
             dialog.set_current_name(self.installation.reportTitle+".OIReport.txt")
