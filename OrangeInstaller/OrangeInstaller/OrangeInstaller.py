@@ -14,6 +14,7 @@ Project: OrangeInstaller
 Author: Colombo Maximiliano
 Documentation: https://drive.google.com/drive/folders/0B4CKD2TRMlffOXlyUWVzSFE5ZnM?usp=sharing
 Project Repository: https://github.com/mcolombo87/OrangeInstaller
+User Manual: https://github.com/mcolombo87/OrangeInstaller/wiki
 '''
 
 tr = functions.tr
@@ -105,6 +106,7 @@ def consoleApplication():
         functions.exitProgram(2)
     else:
         functions.logging.debug(tr("Ready to install OpenOrange for ") + "{}".format(selection[1]))
+        installation.useDaemon = False
         installation.startInstall()
 
 #For use with GUI, this is main way to use

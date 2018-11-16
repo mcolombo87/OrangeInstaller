@@ -52,17 +52,23 @@ class Installer(object):
             self.createShortcut = True
         if not hasattr(self, "openConsole"):
             self.openConsole = False
+        self.useDaemon = True #Daemon must be "false" if OI is in console mode or the threads will fail to start.
 
+    '''
+    DESC: This function set the Install Path (final directory were OpenOrange will be installed)
+    ALERT: ALERT: THIS METHOD IS DIFFICULT TO READ AND VERY IMPORTANT FOR THE PROCESS. NOT TOUCH, UNLESS THAT YOU 
+    MUST REALLY NEED TO DO. WARNING: CAN BE CALL IT VERY TIMES IN A SINGLE INSTALLATION.
+    '''
     def setInstallPath (self, path, companyName=""):
-        if self.lastCompanyFolderSetted <> companyName:
-            if self.lastCompanyFolderSetted: # Clean last companyName from Path
-                if systemTools.isLinux():
-                    path = path.replace("/" + self.lastCompanyFolderSetted, "")
-                else:
-                    path = path.replace("\\" + self.lastCompanyFolderSetted, "")
         if self.pathThroughWidget:
             self.installPath = path
         else:
+            if self.lastCompanyFolderSetted <> companyName:
+                if self.lastCompanyFolderSetted: # Clean last companyName from Path
+                    if systemTools.isLinux():
+                        path = path.replace("/" + self.lastCompanyFolderSetted, "")
+                    else:
+                        path = path.replace("\\" + self.lastCompanyFolderSetted, "")
             if not self.disableLastFolderAsCompanyName and companyName:
                 if systemTools.isLinux():
                     self.installPath = path + "/" + companyName
@@ -102,6 +108,7 @@ class Installer(object):
     '''
     def startInstall(self):
         self.msgBuffer = tr("Starting installation")
+        print str(self.msgBuffer)
         if (self.svn == None):
             self.svn = svnControl.svnControl()
         for a in range(len(self.modulesInfo)):
