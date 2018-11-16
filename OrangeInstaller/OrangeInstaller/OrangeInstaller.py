@@ -3,7 +3,7 @@ import svnControl
 import dataConnection
 import Installer
 from Functions import functions
-from Test import Testing
+import Testing
 from GUI import window
 import gi
 gi.require_version('Gtk', '3.0')
